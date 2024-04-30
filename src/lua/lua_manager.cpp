@@ -140,24 +140,6 @@ namespace big
 		g_lua_manager = nullptr;
 	}
 
-	static void delete_everything()
-	{
-		std::scoped_lock l(g_lua_manager_mutex);
-
-		g_is_lua_state_valid = false;
-
-		g_lua_manager_instance.reset();
-
-		LOG(INFO) << "state is no longer valid!";
-	}
-
-	static int the_state_is_going_down(lua_State* L)
-	{
-		delete_everything();
-
-		return 0;
-	}
-
 	// https://sol2.readthedocs.io/en/latest/exceptions.html
 	static int exception_handler(lua_State* L, sol::optional<const std::exception&> maybe_exception, sol::string_view description)
 	{

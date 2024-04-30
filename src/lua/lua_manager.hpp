@@ -79,8 +79,5 @@ namespace big
 		}
 	};
 
-	inline std::recursive_mutex g_lua_manager_mutex;
-	inline bool g_is_lua_state_valid = false;
-	inline std::unique_ptr<lua_manager> g_lua_manager_instance;
 	inline lua_manager* g_lua_manager;
 } // namespace big
