@@ -4,7 +4,7 @@
 
 #include <filesystem>
 #include <logger/logger.hpp>
-#include <rom/info.hpp>
+#include <rom/rom.hpp>
 
 namespace big::paths
 {

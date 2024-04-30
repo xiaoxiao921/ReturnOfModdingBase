@@ -8,7 +8,7 @@
 #include "bindings/toml/toml_lua.hpp"
 #include "file_manager/file_manager.hpp"
 #include "logger/logger.hpp"
-#include "rom/info.hpp"
+#include "rom/rom.hpp"
 #include "string/string.hpp"
 
 #include <hooks/hooking.hpp>

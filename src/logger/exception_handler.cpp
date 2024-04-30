@@ -2,7 +2,7 @@
 
 #include "hooks/hooking.hpp"
 #include "paths/paths.hpp"
-#include "rom/info.hpp"
+#include "rom/rom.hpp"
 #include "stack_trace.hpp"
 
 #include <csignal>

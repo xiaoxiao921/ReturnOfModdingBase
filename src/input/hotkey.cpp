@@ -1,7 +1,7 @@
 #include "hotkey.hpp"
 
 #include <logger/logger.hpp>
-#include <rom/info.hpp>
+#include <rom/rom.hpp>
 #include <windows.h>
 
 namespace big

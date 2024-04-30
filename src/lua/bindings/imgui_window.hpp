@@ -2,7 +2,7 @@
 
 #include "file_manager/file_manager.hpp"
 #include "logger/logger.hpp"
-#include "rom/info.hpp"
+#include "rom/rom.hpp"
 #include "toml.hpp"
 
 namespace lua::window
