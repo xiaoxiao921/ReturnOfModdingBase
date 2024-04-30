@@ -38,7 +38,7 @@ set_property(TARGET ReturnOfModdingBase PROPERTY CXX_STANDARD 23)
 
 source_group(TREE ${SRC_DIR} PREFIX "src" FILES ${SRC_MAIN})
 
-target_include_directories(ReturnOfModdingBase PRIVATE
+target_include_directories(ReturnOfModdingBase PUBLIC
     "${SRC_DIR}"
     "${cxxopts_SOURCE_DIR}/include"
     "${json_SOURCE_DIR}/single_include"
@@ -51,7 +51,7 @@ target_include_directories(ReturnOfModdingBase PRIVATE
     "${magic_enum_SOURCE_DIR}/include"
 )
 
-target_link_libraries(ReturnOfModdingBase PRIVATE pugixml AsyncLogger dbghelp imgui lua_static sol2 tomlplusplus::tomlplusplus magic_enum PolyHook_2)
+target_link_libraries(ReturnOfModdingBase PUBLIC pugixml AsyncLogger dbghelp imgui lua_static sol2 tomlplusplus::tomlplusplus magic_enum PolyHook_2)
 
 # Warnings as errors
 set_property(TARGET ReturnOfModdingBase PROPERTY COMPILE_WARNING_AS_ERROR ON)
