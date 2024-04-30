@@ -23,7 +23,6 @@ namespace big
 		void set_vk_value(uint8_t new_vk);
 
 		static inline std::unordered_map<std::string, hotkey*> hotkeys;
-		static inline constexpr auto m_file_name = "Hotkeys.cfg";
 		static inline std::filesystem::path m_file_path;
 		static inline toml::table m_table;
 		static inline toml::table m_last_saved_table;

@@ -15,7 +15,7 @@ namespace lua::window
 		try
 		{
 			const auto& data     = is_open;
-			const auto file_name = rom::g_project_name + "-" + rom::g_project_name + "-Windows.cfg";
+			const auto file_name = rom::g_project_name + "-" + rom::g_project_name + "-" + "Windows.cfg";
 			const auto file_path = big::g_file_manager.get_project_folder("config").get_path() / file_name;
 
 			std::ofstream ofs(file_path);
@@ -55,7 +55,7 @@ namespace lua::window
 		try
 		{
 			auto& data           = is_open;
-			const auto file_name = rom::g_project_name + "-" + rom::g_project_name + "-Windows.cfg";
+			const auto file_name = rom::g_project_name + "-" + rom::g_project_name + "-" + "Windows.cfg";
 			const auto file_path = big::g_file_manager.get_project_folder("config").get_path() / file_name;
 
 			const auto config = toml::parse_file(file_path.c_str());
