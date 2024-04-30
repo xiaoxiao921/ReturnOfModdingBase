@@ -8,6 +8,7 @@
 #include "bindings/toml/toml_lua.hpp"
 #include "file_manager/file_manager.hpp"
 #include "logger/logger.hpp"
+#include "rom/info.hpp"
 #include "string/string.hpp"
 
 #include <hooks/hooking.hpp>
@@ -463,8 +464,8 @@ namespace big
 			    .m_lua_file_entries_hash = "",
 			    .m_path                  = tmp_path,
 			    .m_folder_path           = m_plugins_folder.get_path(),
-			    .m_guid                  = "Hell2Modding-GLOBAL",
-			    .m_guid_with_version     = "Hell2Modding-GLOBAL-1.0.0",
+			    .m_guid                  = rom::g_project_name + "-GLOBAL",
+			    .m_guid_with_version     = rom::g_project_name + "-GLOBAL-1.0.0",
 			    .m_manifest = {.name = "GLOBAL", .version_number = "1.0.0", .version = semver::version(1, 0, 0), .website_url = "", .description = "Fallback module"},
 			};
 			const auto load_result = load_module(mod_info);
@@ -546,7 +547,7 @@ namespace big
 		std::unordered_set<std::string> missing_modules;
 		for (const auto& guid : sorted_modules)
 		{
-			constexpr auto mod_loader_name = "Hell2Modding-Hell2Modding";
+			const auto mod_loader_name = rom::g_project_name + "-" + rom::g_project_name;
 
 			bool not_missing_dependency = true;
 			for (const auto& dependency : module_guid_to_module_info[guid].m_manifest.dependencies_no_version_number)

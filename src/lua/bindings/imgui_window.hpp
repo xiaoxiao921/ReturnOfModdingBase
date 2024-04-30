@@ -2,6 +2,7 @@
 
 #include "file_manager/file_manager.hpp"
 #include "logger/logger.hpp"
+#include "rom/info.hpp"
 #include "toml.hpp"
 
 namespace lua::window
@@ -13,10 +14,11 @@ namespace lua::window
 	{
 		try
 		{
-			const auto& data = is_open;
-			const auto filename = big::g_file_manager.get_project_folder("config").get_path() / "Hell2Modding-Hell2Modding-Windows.cfg";
+			const auto& data     = is_open;
+			const auto file_name = rom::g_project_name + "-" + rom::g_project_name + "-Windows.cfg";
+			const auto file_path = big::g_file_manager.get_project_folder("config").get_path() / file_name;
 
-			std::ofstream ofs(filename);
+			std::ofstream ofs(file_path);
 			if (ofs.is_open())
 			{
 				toml::table output_table;
@@ -52,10 +54,11 @@ namespace lua::window
 	{
 		try
 		{
-			auto& data = is_open;
-			const auto filename = big::g_file_manager.get_project_folder("config").get_path() / "Hell2Modding-Hell2Modding-Windows.cfg";
+			auto& data           = is_open;
+			const auto file_name = rom::g_project_name + "-" + rom::g_project_name + "-Windows.cfg";
+			const auto file_path = big::g_file_manager.get_project_folder("config").get_path() / file_name;
 
-			const auto config = toml::parse_file(filename.c_str());
+			const auto config = toml::parse_file(file_path.c_str());
 
 			for (const auto& [mod_guid, window_states] : config)
 			{

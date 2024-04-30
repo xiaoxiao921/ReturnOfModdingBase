@@ -2,6 +2,7 @@
 
 #include "hooks/hooking.hpp"
 #include "paths/paths.hpp"
+#include "rom/info.hpp"
 #include "stack_trace.hpp"
 
 #include <csignal>
@@ -54,7 +55,11 @@ namespace big
 
 	exception_handler::~exception_handler()
 	{
-		MessageBoxA(0, "No more exception handler!!!\nIf this continues to happen, try not launching from the executable but from Steam.", "Hell2Modding", MB_ICONERROR);
+		MessageBoxA(0,
+		            "No more exception handler!!!\nIf this continues to happen, try not launching from the executable "
+		            "but from Steam.",
+		            rom::g_project_name.c_str(),
+		            MB_ICONERROR);
 	}
 
 	typedef BOOL(WINAPI* MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType, const PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam, const PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam, const PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
@@ -74,7 +79,7 @@ namespace big
 		{
 			std::stringstream error_msg;
 			error_msg << "CreateFileW error code: " << HEX_TO_UPPER(GetLastError());
-			MessageBoxA(0, error_msg.str().c_str(), "Hell2Modding", MB_ICONERROR);
+			MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
 
 			goto cleanup;
 		}
@@ -84,7 +89,7 @@ namespace big
 		{
 			std::stringstream error_msg;
 			error_msg << "GetProcAddress error code: " << HEX_TO_UPPER(GetLastError());
-			MessageBoxA(0, error_msg.str().c_str(), "Hell2Modding", MB_ICONERROR);
+			MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
 
 			goto cleanup;
 		}
@@ -100,7 +105,7 @@ namespace big
 		{
 			std::stringstream error_msg;
 			error_msg << "MiniDumpWriteDump_function error code: " << HEX_TO_UPPER(GetLastError());
-			MessageBoxA(0, error_msg.str().c_str(), "Hell2Modding", MB_ICONERROR);
+			MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
 
 			goto cleanup;
 		}
