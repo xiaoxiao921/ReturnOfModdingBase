@@ -1,9 +1,11 @@
 #pragma once
+#include "logger/logger.hpp"
 #include "pattern.hpp"
 #include "range.hpp"
 #include "signature.hpp"
 
 #include <future>
+#include <rom/rom.hpp>
 
 namespace memory
 {
@@ -105,7 +107,7 @@ namespace memory
 					std::scoped_lock<std::mutex> lock(s_entry_mutex);
 
 					std::invoke(std::move(entry.m_on_signature_found), result.value());
-					LOG(INFO) << "Found '" << entry.m_name << "' Hades2.exe+"
+					LOG(INFO) << "Found '" << entry.m_name << "' " << rom::g_target_module_name << "+"
 					          << HEX_TO_UPPER(result.value().as<DWORD64>() - region.begin().as<DWORD64>());
 
 					return true;

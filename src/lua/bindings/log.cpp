@@ -14,7 +14,7 @@ namespace lua::log
 		const size_t last_element_index = args.size() - 1;
 		for (const auto& arg : args)
 		{
-			data << env.env.value()["_h2m_tostring"](arg).get<const char*>();
+			data << env.env.value()["_rom_tostring"](arg).get<const char*>();
 
 			if (i != last_element_index)
 			{
@@ -70,15 +70,15 @@ namespace lua::log
 	{
 		log_internal(args, env, FATAL);
 
-		return env.env.value()["_h2m_error"](args);
+		return env.env.value()["_rom_error"](args);
 	}
 
 	void bind(sol::state_view& state, sol::table& lua_ext)
 	{
-		state["_h2m_tostring"] = state["tostring"];
+		state["_rom_tostring"] = state["tostring"];
 
 		state["print"]      = info;
-		state["_h2m_error"] = state["error"];
+		state["_rom_error"] = state["error"];
 		state["error"]      = error;
 
 		auto ns       = lua_ext.create_named("log");
