@@ -14,8 +14,10 @@ include(cmake_scripts/cxxopts.cmake)
 include(cmake_scripts/imgui.cmake)
 include(cmake_scripts/json.cmake)
 include(cmake_scripts/lua.cmake)
+include(cmake_scripts/magic_enum.cmake)
 include(cmake_scripts/polyhook.cmake)
 include(cmake_scripts/pugixml.cmake)
+include(cmake_scripts/toml.cmake)
 
 message(STATUS "ReturnOfModdingBase")
 file(GLOB_RECURSE SRC_MAIN
