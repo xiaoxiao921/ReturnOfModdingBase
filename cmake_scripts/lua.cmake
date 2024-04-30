@@ -1,20 +1,29 @@
+include(FetchContent)
+
+message("lua")
+
 project(lua LANGUAGES C VERSION 5.2.1)
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.24")
+
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.24")
     cmake_policy(SET CMP0135 NEW)
 endif()
-include(FetchContent)
 
 option(LUA_SUPPORT_DL "Support dynamic loading of compiled modules" ON)
 option(LUA_BUILD_AS_CXX "Build lua as C++" OFF)
 option(LUA_BUILD_BINARY "Build lua binary" OFF)
 option(LUA_BUILD_COMPILER "Build luac compiler" OFF)
-if(WIN32)
-    #add_compile_definitions(LUA_BUILD_AS_DLL)
+option(LUA_BUILD_DLL "Build lua as DLL" OFF)
+set(LUA_GIT_HASH c8e96d6e91dc2e3d5b175cc4cd811398ab35c82d CACHE STRING "Build git hash. Default to 5.2.2")
+
+if (LUA_BUILD_DLL)
+    add_compile_definitions(LUA_BUILD_AS_DLL)
 endif()
+
+message("lua used git hash: ${LUA_GIT_HASH}")
 
 FetchContent_Declare(lua_static
     GIT_REPOSITORY https://github.com/lua/lua.git
-    GIT_TAG        c8e96d6e91dc2e3d5b175cc4cd811398ab35c82d # v5.2.2
+    GIT_TAG        ${LUA_GIT_HASH}
 )
 FetchContent_GetProperties(lua_static)
 FetchContent_Populate(lua_static)
@@ -81,16 +90,6 @@ install(TARGETS lua_static)
 set(LUA_INCLUDE_DIR "${lua_static_SOURCE_DIR}")
 set(LUA_LIBRARIES lua_static)
 
-message("toml++")
-FetchContent_Declare(
-	toml++
-	GIT_REPOSITORY "https://github.com/marzer/tomlplusplus.git"
-	GIT_SHALLOW ON
-    GIT_SUBMODULES ""
-	GIT_TAG "v3.4.0"
-)
-FetchContent_MakeAvailable(toml++)
-
 message("sol2")
 FetchContent_Declare(
 	sol2
@@ -100,13 +99,3 @@ FetchContent_Declare(
 	GIT_TAG "v3.3.0"
 )
 FetchContent_MakeAvailable(sol2)
-
-message("magic_enum")
-FetchContent_Declare(
-	magic_enum
-	GIT_REPOSITORY "https://github.com/Neargye/magic_enum.git"
-	GIT_SHALLOW ON
-    GIT_SUBMODULES ""
-	GIT_TAG "v0.9.5"
-)
-FetchContent_MakeAvailable(magic_enum)
