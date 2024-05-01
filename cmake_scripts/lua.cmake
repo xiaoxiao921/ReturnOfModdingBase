@@ -13,7 +13,10 @@ option(LUA_BUILD_AS_CXX "Build lua as C++" OFF)
 option(LUA_BUILD_BINARY "Build lua binary" OFF)
 option(LUA_BUILD_COMPILER "Build luac compiler" OFF)
 option(LUA_BUILD_DLL "Build lua as DLL" OFF)
-set(LUA_GIT_HASH c8e96d6e91dc2e3d5b175cc4cd811398ab35c82d CACHE STRING "Build git hash. Default to 5.2.2")
+
+if (NOT DEFINED LUA_GIT_HASH)
+    set(LUA_GIT_HASH c8e96d6e91dc2e3d5b175cc4cd811398ab35c82d) # Default to 5.2.2
+endif()
 
 if (LUA_BUILD_DLL)
     add_compile_definitions(LUA_BUILD_AS_DLL)
@@ -28,39 +31,8 @@ FetchContent_Declare(lua_static
 FetchContent_GetProperties(lua_static)
 FetchContent_Populate(lua_static)
 
-set(LUA_LIB_SRCS
-    ${lua_static_SOURCE_DIR}/lapi.c
-    ${lua_static_SOURCE_DIR}/lauxlib.c
-    ${lua_static_SOURCE_DIR}/lbaselib.c
-    ${lua_static_SOURCE_DIR}/lbitlib.c
-    ${lua_static_SOURCE_DIR}/lcode.c
-    ${lua_static_SOURCE_DIR}/lcorolib.c
-    ${lua_static_SOURCE_DIR}/lctype.c
-    ${lua_static_SOURCE_DIR}/ldblib.c
-    ${lua_static_SOURCE_DIR}/ldebug.c
-    ${lua_static_SOURCE_DIR}/ldo.c
-    ${lua_static_SOURCE_DIR}/ldump.c
-    ${lua_static_SOURCE_DIR}/lfunc.c
-    ${lua_static_SOURCE_DIR}/lgc.c
-    ${lua_static_SOURCE_DIR}/linit.c
-    ${lua_static_SOURCE_DIR}/liolib.c
-    ${lua_static_SOURCE_DIR}/llex.c
-    ${lua_static_SOURCE_DIR}/lmathlib.c
-    ${lua_static_SOURCE_DIR}/lmem.c
-    ${lua_static_SOURCE_DIR}/loadlib.c
-    ${lua_static_SOURCE_DIR}/lobject.c
-    ${lua_static_SOURCE_DIR}/lopcodes.c
-    ${lua_static_SOURCE_DIR}/loslib.c
-    ${lua_static_SOURCE_DIR}/lparser.c
-    ${lua_static_SOURCE_DIR}/lstate.c
-    ${lua_static_SOURCE_DIR}/lstring.c
-    ${lua_static_SOURCE_DIR}/lstrlib.c
-    ${lua_static_SOURCE_DIR}/ltable.c
-    ${lua_static_SOURCE_DIR}/ltablib.c
-    ${lua_static_SOURCE_DIR}/ltm.c
-    ${lua_static_SOURCE_DIR}/lundump.c
-    ${lua_static_SOURCE_DIR}/lvm.c
-    ${lua_static_SOURCE_DIR}/lzio.c
+file(GLOB LUA_LIB_SRCS
+    "${lua_static_SOURCE_DIR}/*.c"
 )
 
 if(LUA_BUILD_AS_CXX)
@@ -69,6 +41,7 @@ endif()
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 add_library(lua_static STATIC ${LUA_LIB_SRCS})
+source_group(TREE ${lua_static_SOURCE_DIR} PREFIX "lua" FILES ${LUA_LIB_SRCS})
 set_target_properties(lua_static PROPERTIES OUTPUT_NAME "lua52")
 target_include_directories(lua_static PUBLIC ${lua_static_SOURCE_DIR})
 if(UNIX)
