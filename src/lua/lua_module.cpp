@@ -3,6 +3,7 @@
 #include "file_manager/file_manager.hpp"
 #include "logger/logger.hpp"
 #include "lua_manager.hpp"
+#include "rom/rom.hpp"
 
 namespace big
 {
@@ -123,7 +124,14 @@ namespace big
 			// Table: mods
 			// Field: [Mod GUID]: string
 			// Each mod once loaded will have a key in this table, the key will be their guid string and the value their `_ENV`.
-			state.traverse_set(lua_manager::lua_api_namespace, "mods", m_info.m_guid, m_env);
+			if (rom::g_lua_api_namespace.size())
+			{
+				state.traverse_set(rom::g_lua_api_namespace, "mods", m_info.m_guid, m_env);
+			}
+			else
+			{
+				state.traverse_set("mods", m_info.m_guid, m_env);
+			}
 		}
 
 		return load_module_result::SUCCESS;
