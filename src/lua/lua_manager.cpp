@@ -115,11 +115,12 @@ namespace big
 		}};
 	}
 
-	lua_manager::lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder) :
+	lua_manager::lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init) :
 	    m_state(game_lua_state),
 	    m_config_folder(config_folder),
 	    m_plugins_data_folder(plugins_data_folder),
-	    m_plugins_folder(plugins_folder)
+	    m_plugins_folder(plugins_folder),
+	    m_on_lua_state_init(on_lua_state_init)
 	{
 		g_lua_manager = this;
 
@@ -210,8 +211,14 @@ namespace big
 	void lua_manager::init_lua_api()
 	{
 		sol::table global_table = m_state.globals();
-		sol::table lua_ext = lua_api_namespace.size() ? m_state.create_named_table(lua_api_namespace) : global_table;
-		sol::table mods    = lua_ext.create_named("mods");
+		sol::table lua_ext = rom::g_lua_api_namespace.size() ? m_state.create_named_table(rom::g_lua_api_namespace) : global_table;
+
+		if (m_on_lua_state_init)
+		{
+			m_on_lua_state_init(m_state, lua_ext);
+		}
+
+		sol::table mods = lua_ext.create_named("mods");
 		// Lua API: Function
 		// Table: mods
 		// Name: on_all_mods_loaded

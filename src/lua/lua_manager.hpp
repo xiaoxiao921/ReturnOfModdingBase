@@ -20,12 +20,16 @@ namespace big
 		folder m_plugins_data_folder;
 		folder m_plugins_folder;
 
+	public:
+		using on_lua_state_init_t = std::function<void(sol::state_view&, sol::table&)>;
+
+	private:
+		on_lua_state_init_t m_on_lua_state_init;
+
 		bool m_is_all_mods_loaded{};
 
 	public:
-		static inline std::string lua_api_namespace;
-
-		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder);
+		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr);
 		~lua_manager();
 
 		void init_lua_state();
