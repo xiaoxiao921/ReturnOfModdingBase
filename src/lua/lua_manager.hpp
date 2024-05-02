@@ -54,12 +54,6 @@ namespace big
 			return m_modules.size();
 		}
 
-		template<typename T>
-		inline std::vector<std::unique_ptr<T>>& get_modules()
-		{
-			return m_modules;
-		}
-
 		static std::optional<module_info> get_module_info(const std::filesystem::path& module_path);
 
 		void draw_menu_bar_callbacks();
