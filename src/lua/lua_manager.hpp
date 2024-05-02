@@ -8,6 +8,7 @@
 #include <file_manager/folder.hpp>
 #include <lua/bindings/imgui_window.hpp>
 #include <mutex>
+#include <stack>
 #include <thunderstore/v1/manifest.hpp>
 #include <unordered_set>
 

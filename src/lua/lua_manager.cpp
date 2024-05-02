@@ -10,8 +10,6 @@
 #include "file_manager/file_manager.hpp"
 #include "string/string.hpp"
 
-#include <stack>
-
 namespace big
 {
 	std::optional<module_info> lua_manager::get_module_info(const std::filesystem::path& module_path)
