@@ -156,7 +156,7 @@ namespace big
 	std::string lua_module::guid_from(sol::this_environment this_env)
 	{
 		sol::environment& env            = this_env;
-		sol::optional<std::string> _guid = get_PLUGIN_table(env)["!guid"];
+		sol::optional<std::string> _guid = get_PLUGIN_table(env)["guid"];
 		if (_guid)
 		{
 			return _guid.value();
@@ -168,7 +168,7 @@ namespace big
 	big::lua_module* lua_module::this_from(sol::this_environment this_env)
 	{
 		sol::environment& env                 = this_env;
-		sol::optional<big::lua_module*> _this = get_PLUGIN_table(env)["!this"];
+		sol::optional<big::lua_module*> _this = get_PLUGIN_table(env)["this"];
 
 		// That's weird.
 		if (_this && _this.value())
