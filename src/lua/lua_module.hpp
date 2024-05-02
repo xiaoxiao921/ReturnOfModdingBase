@@ -33,7 +33,7 @@ namespace big
 
 		lua_module_data m_data;
 
-		lua_module(const module_info& module_info, sol::state_view& state, on_lua_module_init_t on_lua_module_init = nullptr);
+		lua_module(const module_info& module_info, sol::state_view& state);
 
 		void cleanup();
 		~lua_module();

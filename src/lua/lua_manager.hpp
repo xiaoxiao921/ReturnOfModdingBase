@@ -17,7 +17,6 @@ namespace big
 		std::recursive_mutex m_module_lock;
 		std::vector<std::unique_ptr<lua_module>> m_modules;
 
-	private:
 		folder m_config_folder;
 		folder m_plugins_data_folder;
 		folder m_plugins_folder;
@@ -34,12 +33,17 @@ namespace big
 		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr);
 		~lua_manager();
 
+		template<typename T>
+		void init();
+
 		void init_lua_state();
 		void init_lua_api();
 
+		template<typename T>
 		void load_fallback_module();
 		lua_module* get_fallback_module();
 
+		template<typename T>
 		void load_all_modules();
 		void unload_all_modules();
 
@@ -50,19 +54,10 @@ namespace big
 			return m_modules.size();
 		}
 
-		inline const folder& get_config_folder() const
+		template<typename T>
+		inline std::vector<std::unique_ptr<T>>& get_modules()
 		{
-			return m_config_folder;
-		}
-
-		inline const folder& get_plugins_data_folder() const
-		{
-			return m_plugins_data_folder;
-		}
-
-		inline const folder& get_plugins_folder() const
-		{
-			return m_plugins_folder;
+			return m_modules;
 		}
 
 		static std::optional<module_info> get_module_info(const std::filesystem::path& module_path);
@@ -74,17 +69,9 @@ namespace big
 		bool module_exists(const std::string& module_guid);
 
 		void unload_module(const std::string& module_guid);
+
+		template<typename T>
 		load_module_result load_module(const module_info& module_info, bool ignore_failed_to_load = false);
-
-		inline void for_each_module(auto func)
-		{
-			std::scoped_lock guard(m_module_lock);
-
-			for (auto& module : m_modules)
-			{
-				func(module);
-			}
-		}
 	};
 
 	inline lua_manager* g_lua_manager;

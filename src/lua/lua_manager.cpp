@@ -124,13 +124,6 @@ namespace big
 	    m_on_lua_state_init(on_lua_state_init)
 	{
 		g_lua_manager = this;
-
-		init_lua_state();
-
-		load_fallback_module();
-		load_all_modules();
-
-		lua::window::deserialize();
 	}
 
 	lua_manager::~lua_manager()
@@ -325,6 +318,7 @@ namespace big
 		              });
 	}
 
+	template<typename T>
 	load_module_result lua_manager::load_module(const module_info& module_info, bool ignore_failed_to_load)
 	{
 		if (!std::filesystem::exists(module_info.m_path))
@@ -343,7 +337,7 @@ namespace big
 		}
 
 		const auto module_index = m_modules.size();
-		m_modules.push_back(std::make_unique<lua_module>(module_info, m_state));
+		m_modules.push_back(std::make_unique<T>(module_info, m_state));
 
 		const auto load_result = m_modules[module_index]->load_and_call_plugin(m_state);
 		if (load_result == load_module_result::SUCCESS || (load_result == load_module_result::FAILED_TO_LOAD && ignore_failed_to_load))
@@ -433,6 +427,17 @@ namespace big
 		return sorted_list;
 	}
 
+	template<typename T>
+	void lua_manager::init()
+	{
+		init_lua_state();
+
+		load_all_modules<T>();
+
+		lua::window::deserialize();
+	}
+
+	template<typename T>
 	void lua_manager::load_fallback_module()
 	{
 		try
@@ -451,7 +456,7 @@ namespace big
 			    .m_guid_with_version     = rom::g_project_name + "-GLOBAL-1.0.0",
 			    .m_manifest = {.name = "GLOBAL", .version_number = "1.0.0", .version = semver::version(1, 0, 0), .website_url = "", .description = "Fallback module"},
 			};
-			const auto load_result = load_module(mod_info);
+			const auto load_result = load_module<T>(mod_info);
 		}
 		catch (const std::exception& e)
 		{
@@ -468,8 +473,11 @@ namespace big
 		return m_modules[0].get();
 	}
 
+	template<typename T>
 	void lua_manager::load_all_modules()
 	{
+		load_fallback_module<T>();
+
 		// Map for lexicographical ordering.
 		std::map<std::string, module_info> module_guid_to_module_info{};
 
@@ -553,7 +561,7 @@ namespace big
 			if (not_missing_dependency)
 			{
 				const auto& module_info = module_guid_to_module_info[guid];
-				const auto load_result  = load_module(module_info);
+				const auto load_result  = load_module<T>(module_info);
 				if (load_result == load_module_result::FILE_MISSING)
 				{
 					// Don't log the fact that the mod loader failed to load, it's normal (see comment above)
