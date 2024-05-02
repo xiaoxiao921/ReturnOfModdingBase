@@ -3,6 +3,7 @@
 #include "bindings/gui.hpp"
 #include "bindings/imgui.hpp"
 #include "bindings/log.hpp"
+#include "bindings/memory.hpp"
 #include "bindings/path.hpp"
 #include "bindings/paths.hpp"
 #include "bindings/toml/toml_lua.hpp"
@@ -238,6 +239,7 @@ namespace big
 		lua::gui::bind(lua_ext);
 		lua::imgui::bind(lua_ext);
 		lua::log::bind(m_state, lua_ext);
+		lua::memory::bind(m_state);
 		lua::path::bind(lua_ext);
 		lua::paths::bind(lua_ext);
 	}
