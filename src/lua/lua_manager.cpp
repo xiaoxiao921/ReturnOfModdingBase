@@ -214,11 +214,6 @@ namespace big
 		sol::table global_table = m_state.globals();
 		sol::table lua_ext = rom::g_lua_api_namespace.size() ? m_state.create_named_table(rom::g_lua_api_namespace) : global_table;
 
-		if (m_on_lua_state_init)
-		{
-			m_on_lua_state_init(m_state, lua_ext);
-		}
-
 		sol::table mods = lua_ext.create_named("mods");
 		// Lua API: Function
 		// Table: mods
