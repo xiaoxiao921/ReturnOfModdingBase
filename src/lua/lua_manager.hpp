@@ -48,11 +48,153 @@ namespace big
 		void init_lua_api();
 
 		template<typename T>
-		void load_fallback_module();
+		void load_fallback_module()
+		{
+			try
+			{
+				auto tmp_path  = std::filesystem::temp_directory_path();
+				tmp_path      /= rom::g_project_name + "_fallback_module.lua";
+				std::ofstream ofs(tmp_path);
+				ofs << "#\n";
+				ofs.close();
+
+				const module_info mod_info = {
+				    .m_lua_file_entries_hash = "",
+				    .m_path                  = tmp_path,
+				    .m_folder_path           = m_plugins_folder.get_path(),
+				    .m_guid                  = rom::g_project_name + "-GLOBAL",
+				    .m_guid_with_version     = rom::g_project_name + "-GLOBAL-1.0.0",
+				    .m_manifest = {.name = "GLOBAL", .version_number = "1.0.0", .version = semver::version(1, 0, 0), .website_url = "", .description = "Fallback module"},
+				};
+				const auto load_result = load_module<T>(mod_info);
+			}
+			catch (const std::exception& e)
+			{
+				LOG(FATAL) << e.what();
+			}
+			catch (...)
+			{
+				LOG(FATAL) << "Unknown exception while trying to create fallback module";
+			}
+		}
+
 		lua_module* get_fallback_module();
 
 		template<typename T>
-		void load_all_modules();
+		void load_all_modules()
+		{
+			load_fallback_module<T>();
+
+			// Map for lexicographical ordering.
+			std::map<std::string, module_info> module_guid_to_module_info{};
+
+			// Get all the modules from the folder.
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_plugins_folder.get_path(), std::filesystem::directory_options::skip_permission_denied))
+			{
+				if (entry.is_regular_file() && entry.path().filename() == "main.lua")
+				{
+					const auto module_info = get_module_info(entry.path());
+					if (module_info)
+					{
+						const auto& guid = module_info.value().m_guid;
+
+						if (module_guid_to_module_info.contains(guid))
+						{
+							if (module_info.value().m_manifest.version > module_guid_to_module_info[guid].m_manifest.version)
+							{
+								LOG(INFO) << "Found a more recent version of " << guid << " ("
+								          << module_info.value().m_manifest.version << " > "
+								          << module_guid_to_module_info[guid].m_manifest.version << "): Using that instead.";
+
+								module_guid_to_module_info[guid] = module_info.value();
+							}
+						}
+						else
+						{
+							module_guid_to_module_info.insert({guid, module_info.value()});
+						}
+					}
+				}
+			}
+
+			// Get all the guids to prepare for sorting depending on their dependencies.
+			std::vector<std::string> module_guids;
+			for (const auto& [guid, info] : module_guid_to_module_info)
+			{
+				module_guids.push_back(guid);
+			}
+
+			// Sort depending on module dependencies.
+			const auto sorted_modules = topological_sort(module_guids,
+			                                             [&](const std::string& guid)
+			                                             {
+				                                             if (module_guid_to_module_info.contains(guid))
+				                                             {
+					                                             return module_guid_to_module_info[guid].m_manifest.dependencies_no_version_number;
+				                                             }
+				                                             return std::vector<std::string>();
+			                                             });
+
+			/*
+		for (const auto& guid : sorted_modules)
+		{
+			LOG(VERBOSE) << guid;
+		}
+		*/
+
+			std::unordered_set<std::string> missing_modules;
+			for (const auto& guid : sorted_modules)
+			{
+				const auto mod_loader_name = rom::g_project_name + "-" + rom::g_project_name;
+
+				bool not_missing_dependency = true;
+				for (const auto& dependency : module_guid_to_module_info[guid].m_manifest.dependencies_no_version_number)
+				{
+					// The mod loader is not a lua module,
+					// but might be put as a dependency in the mod manifest,
+					// don't mark the mod as unloadable because of that.
+					if (dependency.contains(mod_loader_name))
+					{
+						continue;
+					}
+
+					if (missing_modules.contains(dependency))
+					{
+						LOG(WARNING) << "Can't load " << guid << " because it's missing " << dependency;
+						not_missing_dependency = false;
+					}
+				}
+
+				if (not_missing_dependency)
+				{
+					const auto& module_info = module_guid_to_module_info[guid];
+					const auto load_result  = load_module<T>(module_info);
+					if (load_result == load_module_result::FILE_MISSING)
+					{
+						// Don't log the fact that the mod loader failed to load, it's normal (see comment above)
+						if (!guid.contains(mod_loader_name))
+						{
+							LOG(WARNING) << guid << " (file path: "
+							             << reinterpret_cast<const char*>(module_info.m_path.u8string().c_str()) << " does not exist in the filesystem. Not loading it.";
+						}
+
+						missing_modules.insert(guid);
+					}
+				}
+			}
+
+			std::scoped_lock guard(m_module_lock);
+			for (const auto& module : m_modules)
+			{
+				for (const auto& cb : module->m_data.m_on_all_mods_loaded_callbacks)
+				{
+					cb();
+				}
+			}
+
+			m_is_all_mods_loaded = true;
+		}
+
 		void unload_all_modules();
 
 		void update_file_watch_reload_modules();
@@ -73,7 +215,44 @@ namespace big
 		void unload_module(const std::string& module_guid);
 
 		template<typename T>
-		load_module_result load_module(const module_info& module_info, bool ignore_failed_to_load = false);
+		load_module_result load_module(const module_info& module_info, bool ignore_failed_to_load = false)
+		{
+			if (!std::filesystem::exists(module_info.m_path))
+			{
+				return load_module_result::FILE_MISSING;
+			}
+
+			std::scoped_lock guard(m_module_lock);
+			for (const auto& module : m_modules)
+			{
+				if (module->guid() == module_info.m_guid)
+				{
+					LOG(WARNING) << "Module with the guid " << module_info.m_guid << " already loaded.";
+					return load_module_result::ALREADY_LOADED;
+				}
+			}
+
+			const auto module_index = m_modules.size();
+			m_modules.push_back(std::make_unique<T>(module_info, m_state));
+
+			const auto load_result = m_modules[module_index]->load_and_call_plugin(m_state);
+			if (load_result == load_module_result::SUCCESS || (load_result == load_module_result::FAILED_TO_LOAD && ignore_failed_to_load))
+			{
+				if (m_is_all_mods_loaded)
+				{
+					for (const auto& cb : m_modules[module_index]->m_data.m_on_all_mods_loaded_callbacks)
+					{
+						cb();
+					}
+				}
+			}
+			else
+			{
+				m_modules.pop_back();
+			}
+
+			return load_result;
+		}
 	};
 
 	inline lua_manager* g_lua_manager;
