@@ -34,7 +34,14 @@ namespace big
 		~lua_manager();
 
 		template<typename T>
-		void init();
+		inline void init()
+		{
+			init_lua_state();
+
+			load_all_modules<T>();
+
+			lua::window::deserialize();
+		}
 
 		void init_lua_state();
 		void init_lua_api();

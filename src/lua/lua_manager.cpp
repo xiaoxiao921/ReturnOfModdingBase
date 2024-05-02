@@ -428,16 +428,6 @@ namespace big
 	}
 
 	template<typename T>
-	void lua_manager::init()
-	{
-		init_lua_state();
-
-		load_all_modules<T>();
-
-		lua::window::deserialize();
-	}
-
-	template<typename T>
 	void lua_manager::load_fallback_module()
 	{
 		try
