@@ -84,6 +84,63 @@ namespace big
 
 		lua_module* get_fallback_module();
 
+	private:
+		inline bool topological_sort_visit(const std::string& node, std::stack<std::string>& stack, std::vector<std::string>& sorted_list, const std::function<std::vector<std::string>(const std::string&)>& dependency_selector, std::unordered_set<std::string>& visited, std::unordered_set<std::string>& sorted)
+		{
+			if (visited.contains(node))
+			{
+				if (!sorted.contains(node))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				visited.insert(node);
+				stack.push(node);
+				for (const auto& dep : dependency_selector(node))
+				{
+					if (!topological_sort_visit(dep, stack, sorted_list, dependency_selector, visited, sorted))
+					{
+						return false;
+					}
+				}
+
+				sorted.insert(node);
+				sorted_list.push_back(node);
+
+				stack.pop();
+			}
+
+			return true;
+		}
+
+		inline std::vector<std::string> topological_sort(std::vector<std::string>& nodes, const std::function<std::vector<std::string>(const std::string&)>& dependency_selector)
+		{
+			std::vector<std::string> sorted_list;
+
+			std::unordered_set<std::string> visited;
+			std::unordered_set<std::string> sorted;
+
+			for (const auto& input : nodes)
+			{
+				std::stack<std::string> current_stack;
+				if (!topological_sort_visit(input, current_stack, sorted_list, dependency_selector, visited, sorted))
+				{
+					LOG(FATAL) << "Cyclic Dependency: " << input;
+					while (!current_stack.empty())
+					{
+						LOG(FATAL) << current_stack.top();
+						current_stack.pop();
+					}
+				}
+			}
+
+			return sorted_list;
+		}
+
+	public:
+
 		template<typename T>
 		void load_all_modules()
 		{
@@ -139,12 +196,11 @@ namespace big
 				                                             return std::vector<std::string>();
 			                                             });
 
-			/*
-		for (const auto& guid : sorted_modules)
-		{
-			LOG(VERBOSE) << guid;
-		}
-		*/
+
+			/*for (const auto& guid : sorted_modules)
+			{
+				LOG(VERBOSE) << guid;
+			}*/
 
 			std::unordered_set<std::string> missing_modules;
 			for (const auto& guid : sorted_modules)
