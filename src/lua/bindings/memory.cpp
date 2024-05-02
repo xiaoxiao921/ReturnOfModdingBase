@@ -2,6 +2,7 @@
 
 #include "memory/module.hpp"
 #include "memory/pattern.hpp"
+#include "rom/rom.hpp"
 
 namespace lua::memory
 {
@@ -74,10 +75,10 @@ namespace lua::memory
 	// Name: scan_pattern
 	// Param: pattern: string: byte pattern (IDA format)
 	// Returns: pointer: A pointer to the found address.
-	// Scans the specified memory pattern within the "Risk of Rain Returns.exe" module and returns a pointer to the found address.
+	// Scans the specified memory pattern within the target main module and returns a pointer to the found address.
 	static pointer scan_pattern(const std::string& pattern)
 	{
-		return pointer(::memory::module("Risk of Rain Returns.exe").scan(::memory::pattern(pattern)).value().as<uintptr_t>());
+		return pointer(::memory::module(rom::g_target_module_name).scan(::memory::pattern(pattern)).value().as<uintptr_t>());
 	}
 
 	// Lua API: Function
