@@ -7,10 +7,12 @@
 
 namespace big
 {
-	lua_module::lua_module(const module_info& module_info, sol::state_view& state) :
+	lua_module::lua_module(const module_info& module_info, sol::state_view& state, on_lua_module_init_t on_lua_module_init) :
 	    m_info(module_info),
 	    m_env(state, sol::create, state.globals())
 	{
+		auto ns = m_env["_PLUGIN"].get_or_create<sol::table>();
+
 		// Lua API: Table
 		// Name: _ENV - Plugin Specific Global Table
 		// Each mod/plugin have their own global table containing helpers, such as:
@@ -27,47 +29,52 @@ namespace big
 		// **Example Usage:**
 		//
 		// ```lua
-		// print(_ENV["!guid"])
+		// print(_ENV._PLUGIN.guid)
 		//
-		// for n in pairs({LUA_API_NAMESPACE}.mods[_ENV["!guid"]]) do
+		// for n in pairs({LUA_API_NAMESPACE}.mods[_ENV._PLUGIN.guid]) do
 		//     log.info(n)
 		// end
 		// ```
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
-		// Field: !guid: string
+		// Field: _PLUGIN.guid: string
 		// Guid of the mod.
-		m_env["!guid"] = m_info.m_guid;
+		ns["guid"] = m_info.m_guid;
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
-		// Field: !config_mod_folder_path: string
+		// Field: _PLUGIN.config_mod_folder_path: string
 		// Path to the mod folder inside `config`
 		auto config_mod_folder_path = g_file_manager.get_project_folder("config").get_path() / m_info.m_guid;
 		auto config_mod_folder_path_string = std::string(reinterpret_cast<const char*>(config_mod_folder_path.u8string().c_str()));
-		m_env["!config_mod_folder_path"] = config_mod_folder_path_string;
+		ns["config_mod_folder_path"] = config_mod_folder_path_string;
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
-		// Field: !plugins_data_mod_folder_path: string
+		// Field: _PLUGIN.plugins_data_mod_folder_path: string
 		// Path to the mod folder inside `plugins_data`
 		auto plugins_data_mod_folder_path = g_file_manager.get_project_folder("plugins_data").get_path() / m_info.m_guid;
 		auto plugins_data_mod_folder_path_string =
 		    std::string(reinterpret_cast<const char*>(plugins_data_mod_folder_path.u8string().c_str()));
-		m_env["!plugins_data_mod_folder_path"] = plugins_data_mod_folder_path_string;
+		ns["plugins_data_mod_folder_path"] = plugins_data_mod_folder_path_string;
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
-		// Field: !plugins_mod_folder_path: string
+		// Field: _PLUGIN.plugins_mod_folder_path: string
 		// Path to the mod folder inside `plugins`
 		auto plugins_mod_folder_path_string = std::string(reinterpret_cast<const char*>(m_info.m_folder_path.u8string().c_str()));
-		m_env["!plugins_mod_folder_path"] = plugins_mod_folder_path_string;
+		ns["plugins_mod_folder_path"] = plugins_mod_folder_path_string;
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
-		// Field: !this: lua_module*
-		m_env["!this"] = this;
+		// Field: _PLUGIN.this: lua_module*
+		ns["this"] = this;
+
+		if (on_lua_module_init)
+		{
+			on_lua_module_init(m_env);
+		}
 	}
 
 	void lua_module::cleanup()

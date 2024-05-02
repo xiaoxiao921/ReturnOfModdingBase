@@ -16,6 +16,8 @@ namespace big
 		sol::environment m_env;
 
 	public:
+		using on_lua_module_init_t = std::function<void(sol::environment&)>;
+
 		struct lua_module_data
 		{
 			std::vector<sol::protected_function> m_on_all_mods_loaded_callbacks;
@@ -31,7 +33,7 @@ namespace big
 
 		lua_module_data m_data;
 
-		lua_module(const module_info& module_info, sol::state_view& state);
+		lua_module(const module_info& module_info, sol::state_view& state, on_lua_module_init_t on_lua_module_init = nullptr);
 
 		void cleanup();
 		~lua_module();
