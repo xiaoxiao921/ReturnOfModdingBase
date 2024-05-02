@@ -1,8 +1,17 @@
 import os
+import sys
 from enum import Enum
 
-src_folder = "../../src/"
+# Check if exactly two arguments are provided
+if len(sys.argv) != 3:
+    raise ValueError("Provide ReturnOfModdingBase src folder path and your lib src folder path.")
 
+arg1 = sys.argv[1]
+arg2 = sys.argv[2]
+
+src_folders = [sys.argv[1], sys.argv[2]]
+
+lua_api_namespace = ""
 lua_api_comment_identifier = "lua api"
 lua_api_comment_separator = ":"
 
@@ -17,6 +26,7 @@ class DocKind(Enum):
     Field = "field"
     Constructor = "constructor"
     Function = "function"
+    Namespace = "namespace"
 
 
 class Table:
@@ -27,7 +37,9 @@ class Table:
         self.description = description
 
     def __str__(self):
-        s = f"# Table: {self.name}\n"
+        global lua_api_namespace
+
+        s = f"# Table: {lua_api_namespace}.{self.name}\n"
         s += "\n"
 
         if len(self.description) > 0:
@@ -52,6 +64,8 @@ class Table:
 
             s += "\n"
 
+        s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+
         return s
 
     def check_for_duplicate_fields_names(self):
@@ -74,7 +88,9 @@ class Class:
         self.description = description
 
     def __str__(self):
-        s = f"# Class: {self.name}\n"
+        global lua_api_namespace
+
+        s = f"# Class: {lua_api_namespace}.{self.name}\n"
         s += "\n"
 
         if len(self.inheritance) > 0:
@@ -110,6 +126,8 @@ class Class:
                 s += func.print_markdown(f"{self.name}:")
 
             s += "\n"
+
+        s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
 
         return s
 
@@ -244,7 +262,11 @@ class Function:
         s += "\n"
 
         if len(self.description) > 0:
-            s += f"{self.description}\n"
+            if "Global Table" not in prefix:
+                a = lua_api_namespace + "." + prefix + self.name
+                s += f"{self.description.replace(prefix + self.name, a)}\n"
+            else:
+                s += f"{self.description}\n"
             s += "\n"
 
         if len(self.parameters) > 0:
@@ -270,6 +292,9 @@ class Function:
 
         if "Global Table" in prefix:
             prefix = ""
+        else:
+            prefix = lua_api_namespace + "." + prefix
+
         s += f"{prefix}{self.name}({parameters_str})\n"
 
         s += "```\n"
@@ -300,75 +325,81 @@ def is_comment_a_lua_api_doc_comment(text_lower):
     )
 
 
-def parse_lua_api_doc(folder_path):
-    for root, dirs, files in os.walk(folder_path):
-        for file_name in files:
-            if os.path.splitext(file_name)[1].startswith((".c", ".h")):
-                file_path = os.path.join(root, file_name)
-                with open(file_path, "r") as file:
-                    doc_kind = None
-                    cur_table = None
-                    cur_class = None
-                    cur_function = None
-                    cur_field = None
-                    cur_constructor = None
+def parse_lua_api_doc(folder_paths):
+    for folder_path in folder_paths:
+        for root, dirs, files in os.walk(folder_path):
+            for file_name in files:
+                if os.path.splitext(file_name)[1].startswith((".c", ".h")):
+                    file_path = os.path.join(root, file_name)
+                    with open(file_path, "r") as file:
+                        doc_kind = None
+                        cur_table = None
+                        cur_class = None
+                        cur_function = None
+                        cur_field = None
+                        cur_constructor = None
 
-                    for line in file:
-                        line = line.strip()
-                        line_lower = line.lower()
-                        if is_comment_a_lua_api_doc_comment(line_lower):
-                            doc_kind = DocKind(
-                                line.split(lua_api_comment_separator, 1)[1]
-                                .strip()
-                                .lower()
-                            )
-                            continue
+                        for line in file:
+                            line = line.strip()
+                            line_lower = line.lower()
+                            if is_comment_a_lua_api_doc_comment(line_lower):
+                                doc_kind = DocKind(
+                                    line.split(lua_api_comment_separator, 1)[1]
+                                    .strip()
+                                    .lower()
+                                )
+                                continue
 
-                        if doc_kind is not None and "//" in line:
-                            match doc_kind:
-                                case DocKind.Table:
-                                    cur_table = parse_table_doc(
-                                        cur_table, line, line_lower
-                                    )
-                                case DocKind.Class:
-                                    cur_class = parse_class_doc(
-                                        cur_class, line, line_lower
-                                    )
-                                case DocKind.Function:
-                                    (
-                                        cur_function,
-                                        cur_table,
-                                        cur_class,
-                                    ) = parse_function_doc(
-                                        cur_function,
-                                        cur_table,
-                                        cur_class,
-                                        line,
-                                        line_lower,
-                                    )
-                                case DocKind.Field:
-                                    (cur_field, cur_table, cur_class) = parse_field_doc(
-                                        cur_field,
-                                        cur_table,
-                                        cur_class,
-                                        line,
-                                        line_lower,
-                                    )
-                                case DocKind.Constructor:
-                                    (
-                                        cur_constructor,
-                                        cur_class,
-                                    ) = parse_constructor_doc(
-                                        cur_constructor,
-                                        cur_class,
-                                        line,
-                                        line_lower,
-                                    )
-                                case _:
-                                    # print("unsupported doc kind: " + str(doc_kind))
-                                    pass
-                        else:
-                            doc_kind = None
+                            if doc_kind is not None and "//" in line:
+                                match doc_kind:
+                                    case DocKind.Table:
+                                        cur_table = parse_table_doc(
+                                            cur_table, line, line_lower
+                                        )
+                                    case DocKind.Class:
+                                        cur_class = parse_class_doc(
+                                            cur_class, line, line_lower
+                                        )
+                                    case DocKind.Function:
+                                        (
+                                            cur_function,
+                                            cur_table,
+                                            cur_class,
+                                        ) = parse_function_doc(
+                                            cur_function,
+                                            cur_table,
+                                            cur_class,
+                                            line,
+                                            line_lower,
+                                        )
+                                    case DocKind.Field:
+                                        (cur_field, cur_table, cur_class) = parse_field_doc(
+                                            cur_field,
+                                            cur_table,
+                                            cur_class,
+                                            line,
+                                            line_lower,
+                                        )
+                                    case DocKind.Constructor:
+                                        (
+                                            cur_constructor,
+                                            cur_class,
+                                        ) = parse_constructor_doc(
+                                            cur_constructor,
+                                            cur_class,
+                                            line,
+                                            line_lower,
+                                        )
+                                    case DocKind.Namespace:
+                                        parse_namespace(
+                                            line,
+                                            line_lower,
+                                        )
+                                    case _:
+                                        # print("unsupported doc kind: " + str(doc_kind))
+                                        pass
+                            else:
+                                doc_kind = None
 
 
 def parse_table_doc(cur_table, line, line_lower):
@@ -487,6 +518,14 @@ def parse_field_doc(cur_field, cur_table, cur_class, line, line_lower):
     return cur_field, cur_table, cur_class
 
 
+def parse_namespace(line, line_lower):
+    global lua_api_namespace
+    if (
+        is_lua_doc_comment_startswith(line_lower, "name")
+        and lua_api_comment_separator in line_lower
+    ):
+        lua_api_namespace = line.split(lua_api_comment_separator, 1)[1].strip()
+
 def parse_constructor_doc(cur_constructor, cur_class, line, line_lower):
     if (
         is_lua_doc_comment_startswith(line_lower, "class")
@@ -537,14 +576,24 @@ def is_lua_doc_comment_startswith(line_lower, starts_with_text):
     return line_lower.replace("//", "").strip().startswith(starts_with_text)
 
 
-parse_lua_api_doc(src_folder)
+def append_lua_api_namespace_to_str(thing):
+    if len(lua_api_namespace) > 0:
+        thing = lua_api_namespace + "." + thing
+    return thing
+
+
+parse_lua_api_doc(src_folders)
 
 try:
     os.makedirs("../lua/tables/")
 except:
     pass
 
+
 for table_name, table in tables.items():
+    if "Global Table" not in table_name:
+        table_name = append_lua_api_namespace_to_str(table_name)
+
     file_name = f"../lua/tables/{table_name}.md"
     if os.path.exists(file_name):
         os.remove(file_name)
@@ -558,6 +607,8 @@ except:
     pass
 
 for class_name, class_ in classes.items():
+    class_name = append_lua_api_namespace_to_str(class_name)
+
     file_name = f"../lua/classes/{class_name}.md"
     if os.path.exists(file_name):
         os.remove(file_name)

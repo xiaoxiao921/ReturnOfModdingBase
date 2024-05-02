@@ -22,14 +22,14 @@ namespace big
 		//
 		// - Path to their own folder inside `plugins`: Location of .lua, README, manifest.json files.
 		//
-		// You can access other mods helpers through the `mods[OTHER_MOD_GUID]` table.
+		// You can access other mods helpers through the `{LUA_API_NAMESPACE}.mods[OTHER_MOD_GUID]` table.
 		//
 		// **Example Usage:**
 		//
 		// ```lua
 		// print(_ENV["!guid"])
 		//
-		// for n in pairs(mods[_ENV["!guid"]]) do
+		// for n in pairs({LUA_API_NAMESPACE}.mods[_ENV["!guid"]]) do
 		//     log.info(n)
 		// end
 		// ```
