@@ -603,7 +603,7 @@ for table_name, table in tables.items():
     f = open(file_name, "ba")
     f.write(bytes(str(table), "UTF8"))
     f.close()
-
+print("Wrote tables")
 
 output_classes_folder_path = os.path.join(output_doc_folder_path, "classes")
 
@@ -621,12 +621,15 @@ for class_name, class_ in classes.items():
     f = open(file_name, "ba")
     f.write(bytes(str(class_), "UTF8"))
     f.close()
+print("Wrote classes")
 
 def copy_folder_contents(source_folder, destination_folder):
     # Make sure source folder exists
     if not os.path.exists(source_folder):
-        print(f"Source folder '{source_folder}' does not exist.")
+        #print(f"Source folder '{source_folder}' does not exist. Not copying folder. (This is most likely ok)")
         return
+    else:
+        print(f"Copying '{source_folder}' to '{destination_folder}'")
     
     # Make sure destination folder exists
     if not os.path.exists(destination_folder):
