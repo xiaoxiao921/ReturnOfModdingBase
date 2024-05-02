@@ -63,6 +63,8 @@ namespace big
 			return m_plugins_folder;
 		}
 
+		static std::optional<module_info> get_module_info(const std::filesystem::path& module_path);
+
 		void draw_menu_bar_callbacks();
 		void always_draw_independent_gui();
 		void draw_independent_gui();

@@ -20,7 +20,7 @@
 
 namespace big
 {
-	static std::optional<module_info> get_module_info(const std::filesystem::path& module_path)
+	std::optional<module_info> lua_manager::get_module_info(const std::filesystem::path& module_path)
 	{
 		constexpr auto thunderstore_manifest_json_file_name = "manifest.json";
 		std::filesystem::path manifest_path;
