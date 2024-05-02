@@ -18,7 +18,7 @@ namespace lua::paths
 	// Used for data that must persist between sessions and that can be manipulated by the user.
 	static std::string config()
 	{
-		return (char*)big::g_lua_manager->get_config_folder().get_path().u8string().c_str();
+		return (char*)big::g_lua_manager->m_config_folder.get_path().u8string().c_str();
 	}
 
 	// Lua API: Function
@@ -28,7 +28,17 @@ namespace lua::paths
 	// Used for data that must persist between sessions but not be manipulated by the user.
 	static std::string plugins_data()
 	{
-		return (char*)big::g_lua_manager->get_plugins_data_folder().get_path().u8string().c_str();
+		return (char*)big::g_lua_manager->m_plugins_data_folder.get_path().u8string().c_str();
+	}
+
+	// Lua API: Function
+	// Table: paths
+	// Name: plugins
+	// Returns: string: Returns the plugins folder path
+	// Location of .lua, README, manifest.json files.
+	static std::string plugins()
+	{
+		return (char*)big::g_lua_manager->m_plugins_folder.get_path().u8string().c_str();
 	}
 
 	void bind(sol::table& state)
@@ -36,5 +46,6 @@ namespace lua::paths
 		auto ns            = state.create_named("paths");
 		ns["config"]       = config;
 		ns["plugins_data"] = plugins_data;
+		ns["plugins"]      = plugins;
 	}
 } // namespace lua::paths
