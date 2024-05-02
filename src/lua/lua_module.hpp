@@ -35,7 +35,7 @@ namespace big
 
 		lua_module(const module_info& module_info, sol::state_view& state);
 
-		void cleanup();
+		virtual void cleanup();
 		~lua_module();
 
 		const std::filesystem::path& path() const;
