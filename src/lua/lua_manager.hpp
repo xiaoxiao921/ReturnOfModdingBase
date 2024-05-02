@@ -4,6 +4,7 @@
 #include "module_info.hpp"
 
 #include <file_manager/folder.hpp>
+#include <lua/bindings/imgui_window.hpp>
 #include <mutex>
 
 namespace big
