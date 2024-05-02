@@ -7,11 +7,16 @@
 
 namespace big
 {
+	static auto get_PLUGIN_table(sol::environment& env)
+	{
+		return env["_PLUGIN"].get_or_create<sol::table>();
+	}
+
 	lua_module::lua_module(const module_info& module_info, sol::state_view& state) :
 	    m_info(module_info),
 	    m_env(state, sol::create, state.globals())
 	{
-		auto ns = m_env["_PLUGIN"].get_or_create<sol::table>();
+		auto ns = get_PLUGIN_table(m_env);
 
 		// Lua API: Table
 		// Name: _ENV - Plugin Specific Global Table
@@ -151,7 +156,7 @@ namespace big
 	std::string lua_module::guid_from(sol::this_environment this_env)
 	{
 		sol::environment& env            = this_env;
-		sol::optional<std::string> _guid = env["!guid"];
+		sol::optional<std::string> _guid = get_PLUGIN_table(env)["!guid"];
 		if (_guid)
 		{
 			return _guid.value();
@@ -163,7 +168,7 @@ namespace big
 	big::lua_module* lua_module::this_from(sol::this_environment this_env)
 	{
 		sol::environment& env                 = this_env;
-		sol::optional<big::lua_module*> _this = env["!this"];
+		sol::optional<big::lua_module*> _this = get_PLUGIN_table(env)["!this"];
 
 		// That's weird.
 		if (_this && _this.value())
