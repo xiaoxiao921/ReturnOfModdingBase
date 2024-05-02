@@ -1,15 +1,16 @@
 import os
 import sys
+import shutil
 from enum import Enum
 
-# Check if exactly two arguments are provided
-if len(sys.argv) != 3:
-    raise ValueError("Provide ReturnOfModdingBase src folder path and your lib src folder path.")
+if len(sys.argv) != 4:
+    raise ValueError("Provide in that order: ReturnOfModdingBase src folder path, your lib src folder path, and the folder path where the doc will end up.")
 
-arg1 = sys.argv[1]
-arg2 = sys.argv[2]
+rom_base_src_folder = sys.argv[1]
 
-src_folders = [sys.argv[1], sys.argv[2]]
+src_folders = [rom_base_src_folder, sys.argv[2]]
+
+output_doc_folder_path = sys.argv[3]
 
 lua_api_namespace = ""
 lua_api_comment_identifier = "lua api"
@@ -584,8 +585,10 @@ def append_lua_api_namespace_to_str(thing):
 
 parse_lua_api_doc(src_folders)
 
+output_tables_folder_path = os.path.join(output_doc_folder_path, "tables")
+
 try:
-    os.makedirs("../lua/tables/")
+    os.makedirs(output_tables_folder_path)
 except:
     pass
 
@@ -594,24 +597,52 @@ for table_name, table in tables.items():
     if "Global Table" not in table_name:
         table_name = append_lua_api_namespace_to_str(table_name)
 
-    file_name = f"../lua/tables/{table_name}.md"
+    file_name = os.path.join(output_tables_folder_path, f"{table_name}.md")
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
     f.write(bytes(str(table), "UTF8"))
     f.close()
 
+
+output_classes_folder_path = os.path.join(output_doc_folder_path, "classes")
+
 try:
-    os.makedirs("../lua/classes/")
+    os.makedirs(output_classes_folder_path)
 except:
     pass
 
 for class_name, class_ in classes.items():
     class_name = append_lua_api_namespace_to_str(class_name)
 
-    file_name = f"../lua/classes/{class_name}.md"
+    file_name = os.path.join(output_classes_folder_path, f"{class_name}.md")
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
     f.write(bytes(str(class_), "UTF8"))
     f.close()
+
+def copy_folder_contents(source_folder, destination_folder):
+    # Make sure source folder exists
+    if not os.path.exists(source_folder):
+        print(f"Source folder '{source_folder}' does not exist.")
+        return
+    
+    # Make sure destination folder exists
+    if not os.path.exists(destination_folder):
+        os.makedirs(destination_folder)
+    
+    # Iterate over the files and subfolders in the source folder
+    for item in os.listdir(source_folder):
+        source_item = os.path.join(source_folder, item)
+        destination_item = os.path.join(destination_folder, item)
+        
+        # If it's a file, copy it to the destination folder
+        if os.path.isfile(source_item):
+            shutil.copy2(source_item, destination_item)
+        # If it's a subfolder, recursively copy its contents
+        elif os.path.isdir(source_item):
+            shutil.copytree(source_item, destination_item, symlinks=True)
+
+copy_folder_contents(os.path.join(rom_base_src_folder, "..", "docs", "lua", "classes"), os.path.join(output_doc_folder_path, "classes"))
+copy_folder_contents(os.path.join(rom_base_src_folder, "..", "docs", "lua", "tables"), os.path.join(output_doc_folder_path, "tables"))
