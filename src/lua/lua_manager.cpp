@@ -242,6 +242,11 @@ namespace big
 		lua::memory::bind(m_state);
 		lua::path::bind(lua_ext);
 		lua::paths::bind(lua_ext);
+
+		if (m_on_lua_state_init)
+		{
+			m_on_lua_state_init(m_state, lua_ext);
+		}
 	}
 
 	static void imgui_text(const char* fmt, const std::string& str)
