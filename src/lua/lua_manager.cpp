@@ -8,15 +8,9 @@
 #include "bindings/paths.hpp"
 #include "bindings/toml/toml_lua.hpp"
 #include "file_manager/file_manager.hpp"
-#include "logger/logger.hpp"
-#include "rom/rom.hpp"
 #include "string/string.hpp"
 
-#include <hooks/hooking.hpp>
-#include <memory/gm_address.hpp>
 #include <stack>
-#include <thunderstore/v1/manifest.hpp>
-#include <unordered_set>
 
 namespace big
 {

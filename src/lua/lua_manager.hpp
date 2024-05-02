@@ -1,11 +1,15 @@
 #pragma once
 #include "load_module_result.hpp"
+#include "logger/logger.hpp"
 #include "lua_module.hpp"
 #include "module_info.hpp"
+#include "rom/rom.hpp"
 
 #include <file_manager/folder.hpp>
 #include <lua/bindings/imgui_window.hpp>
 #include <mutex>
+#include <thunderstore/v1/manifest.hpp>
+#include <unordered_set>
 
 namespace big
 {
