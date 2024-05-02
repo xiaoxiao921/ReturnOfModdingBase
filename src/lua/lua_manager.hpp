@@ -13,9 +13,11 @@ namespace big
 	private:
 		sol::state_view m_state;
 
+	public:
 		std::recursive_mutex m_module_lock;
 		std::vector<std::unique_ptr<lua_module>> m_modules;
 
+	private:
 		folder m_config_folder;
 		folder m_plugins_data_folder;
 		folder m_plugins_folder;
