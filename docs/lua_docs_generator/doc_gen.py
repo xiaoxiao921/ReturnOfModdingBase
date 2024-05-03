@@ -40,7 +40,7 @@ class Table:
     def __str__(self):
         global lua_api_namespace
 
-        if len(lua_api_namespace) > 0:
+        if len(lua_api_namespace) > 0 and "Global Table" not in self.name:
             s = f"# Table: {lua_api_namespace}.{self.name}\n"
         else:
             s = f"# Table: {self.name}\n"
