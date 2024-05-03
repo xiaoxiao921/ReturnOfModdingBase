@@ -40,7 +40,10 @@ class Table:
     def __str__(self):
         global lua_api_namespace
 
-        s = f"# Table: {lua_api_namespace}.{self.name}\n"
+        if len(lua_api_namespace) > 0:
+            s = f"# Table: {lua_api_namespace}.{self.name}\n"
+        else:
+            s = f"# Table: {self.name}\n"
         s += "\n"
 
         if len(self.description) > 0:
@@ -65,7 +68,10 @@ class Table:
 
             s += "\n"
 
-        s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+        if len(lua_api_namespace) > 0:
+            s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+        else:
+            s = s.replace("{LUA_API_NAMESPACE}.", lua_api_namespace)
 
         return s
 
@@ -91,7 +97,10 @@ class Class:
     def __str__(self):
         global lua_api_namespace
 
-        s = f"# Class: {lua_api_namespace}.{self.name}\n"
+        if len(lua_api_namespace) > 0:
+            s = f"# Class: {lua_api_namespace}.{self.name}\n"
+        else:
+            s = f"# Class: {self.name}\n"
         s += "\n"
 
         if len(self.inheritance) > 0:
@@ -128,7 +137,10 @@ class Class:
 
             s += "\n"
 
-        s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+        if len(lua_api_namespace) > 0:
+            s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+        else:
+            s = s.replace("{LUA_API_NAMESPACE}.", lua_api_namespace)
 
         return s
 
@@ -264,7 +276,10 @@ class Function:
 
         if len(self.description) > 0:
             if "Global Table" not in prefix:
-                a = lua_api_namespace + "." + prefix + self.name
+                if len(lua_api_namespace) > 0:
+                    a = lua_api_namespace + "." + prefix + self.name
+                else:
+                    a = prefix + self.name
                 s += f"{self.description.replace(prefix + self.name, a)}\n"
             else:
                 s += f"{self.description}\n"
@@ -294,7 +309,10 @@ class Function:
         if "Global Table" in prefix:
             prefix = ""
         else:
-            prefix = lua_api_namespace + "." + prefix
+            if len(lua_api_namespace) > 0:
+                prefix = lua_api_namespace + "." + prefix
+            else:
+                prefix = prefix
 
         s += f"{prefix}{self.name}({parameters_str})\n"
 
