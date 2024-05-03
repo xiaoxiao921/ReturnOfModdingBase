@@ -1,10 +1,19 @@
 #pragma once
 
+#include <cxxopts.hpp>
 #include <string>
 #include <string_view>
+// clang-format off
+#include <windows.h>
+// clang-format on
+#include <shellapi.h>
 
 namespace rom
 {
+	extern LPSTR* CommandLineToArgvA(LPCSTR cmd_line, int* argc);
+
+	extern bool is_rom_enabled();
+
 	inline std::string g_project_name;
 	inline std::string g_target_module_name;
 	inline std::string g_lua_api_namespace;

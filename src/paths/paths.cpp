@@ -8,86 +8,6 @@
 
 namespace big::paths
 {
-	static LPSTR* CommandLineToArgvA(LPCSTR cmd_line, int* argc)
-	{
-		ULONG len = strlen(cmd_line);
-		ULONG i   = ((len + 2) / 2) * sizeof(LPVOID) + sizeof(LPVOID);
-
-		LPSTR* argv = (LPSTR*)GlobalAlloc(GMEM_FIXED, i + (len + 2) * sizeof(CHAR));
-
-		LPSTR _argv = (LPSTR)(((PUCHAR)argv) + i);
-
-		ULONG _argc   = 0;
-		argv[_argc]   = _argv;
-		BOOL in_qm    = FALSE;
-		BOOL in_text  = FALSE;
-		BOOL in_space = TRUE;
-		ULONG j       = 0;
-		i             = 0;
-
-		CHAR a;
-		while ((a = cmd_line[i]))
-		{
-			if (in_qm)
-			{
-				if (a == '\"')
-				{
-					in_qm = FALSE;
-				}
-				else
-				{
-					_argv[j] = a;
-					j++;
-				}
-			}
-			else
-			{
-				switch (a)
-				{
-				case '\"':
-					in_qm   = TRUE;
-					in_text = TRUE;
-					if (in_space)
-					{
-						argv[_argc] = _argv + j;
-						_argc++;
-					}
-					in_space = FALSE;
-					break;
-				case ' ':
-				case '\t':
-				case '\n':
-				case '\r':
-					if (in_text)
-					{
-						_argv[j] = '\0';
-						j++;
-					}
-					in_text  = FALSE;
-					in_space = TRUE;
-					break;
-				default:
-					in_text = TRUE;
-					if (in_space)
-					{
-						argv[_argc] = _argv + j;
-						_argc++;
-					}
-					_argv[j] = a;
-					j++;
-					in_space = FALSE;
-					break;
-				}
-			}
-			i++;
-		}
-		_argv[j]    = '\0';
-		argv[_argc] = NULL;
-
-		(*argc) = _argc;
-		return argv;
-	}
-
 	std::filesystem::path get_project_root_folder()
 	{
 		std::filesystem::path root_folder{};
@@ -113,7 +33,7 @@ namespace big::paths
 				cxxopts::Options options(rom::g_project_name);
 				auto* args  = GetCommandLineA();
 				int argc    = 0;
-				auto** argv = CommandLineToArgvA(args, &argc);
+				auto** argv = rom::CommandLineToArgvA(args, &argc);
 
 				options.add_options()(root_folder_arg_name, root_folder_arg_name, cxxopts::value<std::string>()->default_value(""));
 

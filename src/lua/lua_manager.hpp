@@ -147,6 +147,8 @@ namespace big
 		{
 			load_fallback_module<T>();
 
+			// m_on_after_fallback_module_loaded()
+
 			// Map for lexicographical ordering.
 			std::map<std::string, module_info> module_guid_to_module_info{};
 
