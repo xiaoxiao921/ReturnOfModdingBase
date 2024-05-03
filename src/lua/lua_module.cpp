@@ -7,11 +7,6 @@
 
 namespace big
 {
-	static auto get_PLUGIN_table(sol::environment& env)
-	{
-		return env["_PLUGIN"].get_or_create<sol::table>();
-	}
-
 	lua_module::lua_module(const module_info& module_info, sol::state_view& state) :
 	    m_info(module_info),
 	    m_env(state, sol::create, state.globals())

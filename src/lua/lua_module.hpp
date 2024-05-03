@@ -11,6 +11,7 @@ namespace big
 {
 	class lua_module
 	{
+	protected:
 		module_info m_info;
 
 		sol::environment m_env;
@@ -37,6 +38,11 @@ namespace big
 
 		virtual void cleanup();
 		~lua_module();
+
+		static inline auto get_PLUGIN_table(sol::environment& env)
+		{
+			return env["_PLUGIN"].get_or_create<sol::table>();
+		}
 
 		const std::filesystem::path& path() const;
 		const ts::v1::manifest& manifest() const;
