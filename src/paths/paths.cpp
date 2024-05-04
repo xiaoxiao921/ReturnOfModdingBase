@@ -31,12 +31,11 @@ namespace big::paths
 		{
 			try
 			{
-				cxxopts::Options options(rom::g_project_name);
 				auto* args  = GetCommandLineA();
 				int argc    = 0;
 				auto** argv = rom::CommandLineToArgvA(args, &argc);
 
-				options.add_options()(root_folder_arg_name, root_folder_arg_name, cxxopts::value<std::string>()->default_value(""));
+				auto options = rom::get_rom_cxx_options();
 
 				const auto result = options.parse(argc, argv);
 

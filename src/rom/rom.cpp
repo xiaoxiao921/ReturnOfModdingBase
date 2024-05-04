@@ -84,6 +84,17 @@ namespace rom
 		return argv;
 	}
 
+	cxxopts::Options get_rom_cxx_options()
+	{
+		constexpr auto root_folder_arg_name = "rom_modding_root_folder";
+		constexpr auto rom_enabled_arg_name = "rom_enabled";
+
+		cxxopts::Options options(rom::g_project_name);
+		options.add_options()(root_folder_arg_name, root_folder_arg_name, cxxopts::value<std::string>()->default_value(""));
+		options.add_options()(rom_enabled_arg_name, rom_enabled_arg_name, cxxopts::value<std::string>()->default_value("true"));
+		return options;
+	}
+
 	bool is_rom_enabled()
 	{
 		constexpr auto rom_enabled_arg_name = "rom_enabled";
@@ -108,12 +119,11 @@ namespace rom
 		{
 			try
 			{
-				cxxopts::Options options(rom::g_project_name);
 				auto* args  = GetCommandLineA();
 				int argc    = 0;
 				auto** argv = rom::CommandLineToArgvA(args, &argc);
 
-				options.add_options()(rom_enabled_arg_name, rom_enabled_arg_name, cxxopts::value<std::string>()->default_value("true"));
+				auto options = rom::get_rom_cxx_options();
 
 				const auto result = options.parse(argc, argv);
 

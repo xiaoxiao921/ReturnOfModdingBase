@@ -12,6 +12,8 @@ namespace rom
 {
 	extern LPSTR* CommandLineToArgvA(LPCSTR cmd_line, int* argc);
 
+	extern cxxopts::Options get_rom_cxx_options();
+
 	extern bool is_rom_enabled();
 
 	inline std::string g_project_name;
