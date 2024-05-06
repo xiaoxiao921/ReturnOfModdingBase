@@ -48,12 +48,21 @@ namespace big
 			return {};
 		}
 
-		std::ifstream manifest_file(manifest_path);
-		nlohmann::json manifest_json = nlohmann::json::parse(manifest_file, nullptr, false, true);
+		ts::v1::manifest manifest;
+		try
+		{
+			std::ifstream manifest_file(manifest_path);
+			nlohmann::json manifest_json = nlohmann::json::parse(manifest_file, nullptr, false, true);
 
-		ts::v1::manifest manifest = manifest_json.get<ts::v1::manifest>();
+			manifest = manifest_json.get<ts::v1::manifest>();
 
-		manifest.version = semver::version::parse(manifest.version_number);
+			manifest.version = semver::version::parse(manifest.version_number);
+		}
+		catch (const std::exception& e)
+		{
+			LOG(FATAL) << "Failed reading manifest.json: " << e.what();
+			return {};
+		}
 
 		for (const auto& dep : manifest.dependencies)
 		{
