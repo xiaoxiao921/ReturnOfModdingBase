@@ -88,9 +88,9 @@ namespace big
 		}
 
 		std::vector<std::string> lua_file_entries;
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(current_folder, std::filesystem::directory_options::skip_permission_denied))
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(current_folder, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 		{
-			if (entry.exists() && entry.path().extension() == ".lua")
+			if (entry.path().extension() == ".lua")
 			{
 				std::string lua_file_entry  = (char*)entry.path().filename().u8string().c_str();
 				lua_file_entry             += std::to_string(
@@ -360,7 +360,7 @@ namespace big
 			g_lua_file_watcher_last_time = time_now;
 
 			std::unordered_set<std::string> already_reloaded_this_frame;
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_plugins_folder.get_path(), std::filesystem::directory_options::skip_permission_denied))
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_plugins_folder.get_path(), std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 			{
 				if (entry.path().extension() == ".lua")
 				{

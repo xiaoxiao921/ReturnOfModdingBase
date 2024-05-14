@@ -153,9 +153,9 @@ namespace big
 			std::map<std::string, module_info> module_guid_to_module_info{};
 
 			// Get all the modules from the folder.
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_plugins_folder.get_path(), std::filesystem::directory_options::skip_permission_denied))
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_plugins_folder.get_path(), std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 			{
-				if (entry.is_regular_file() && entry.path().filename() == "main.lua")
+				if (entry.path().filename() == "main.lua")
 				{
 					const auto module_info = get_module_info(entry.path());
 					if (module_info)
