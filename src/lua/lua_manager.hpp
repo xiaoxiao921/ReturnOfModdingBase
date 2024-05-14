@@ -304,7 +304,7 @@ namespace big
 			{
 				m_modules.push_back(std::make_unique<T>(module_info, m_state));
 			}
-			else if
+			else
 			{
 				sol::environment env = m_get_env_for_module(m_state);
 				m_modules.push_back(std::make_unique<T>(module_info, env));
