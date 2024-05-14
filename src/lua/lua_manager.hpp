@@ -28,15 +28,18 @@ namespace big
 		folder m_plugins_folder;
 
 	public:
-		using on_lua_state_init_t = std::function<void(sol::state_view&, sol::table&)>;
+		using on_lua_state_init_t  = std::function<void(sol::state_view&, sol::table&)>;
+		using get_env_for_module_t = std::function<sol::environment()>;
 
 	private:
 		on_lua_state_init_t m_on_lua_state_init;
 
 		bool m_is_all_mods_loaded{};
 
+		get_env_for_module_t m_get_env_for_module;
+
 	public:
-		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr);
+		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr, get_env_for_module_t get_env_for_module = nullptr);
 		~lua_manager();
 
 		template<typename T>
@@ -71,7 +74,7 @@ namespace big
 				    .m_guid_with_version     = rom::g_project_name + "-GLOBAL-1.0.0",
 				    .m_manifest = {.name = "GLOBAL", .version_number = "1.0.0", .version = semver::version(1, 0, 0), .website_url = "", .description = "Fallback module"},
 				};
-				const auto load_result = load_module<T>(mod_info);
+				const auto load_result = load_module<T>(mod_info, true);
 			}
 			catch (const std::exception& e)
 			{
@@ -231,7 +234,7 @@ namespace big
 				if (not_missing_dependency)
 				{
 					const auto& module_info = module_guid_to_module_info[guid];
-					const auto load_result  = load_module<T>(module_info);
+					const auto load_result  = load_module<T>(module_info, false);
 					if (load_result == load_module_result::FILE_MISSING)
 					{
 						// Don't log the fact that the mod loader failed to load, it's normal (see comment above)
@@ -278,7 +281,7 @@ namespace big
 		void unload_module(const std::string& module_guid);
 
 		template<typename T>
-		load_module_result load_module(const module_info& module_info, bool ignore_failed_to_load = false)
+		load_module_result load_module(const module_info& module_info, bool is_fallback_module, bool ignore_failed_to_load = false)
 		{
 			if (!std::filesystem::exists(module_info.m_path))
 			{
@@ -296,7 +299,16 @@ namespace big
 			}
 
 			const auto module_index = m_modules.size();
-			m_modules.push_back(std::make_unique<T>(module_info, m_state));
+
+			if (is_fallback_module || !m_get_env_for_module)
+			{
+				m_modules.push_back(std::make_unique<T>(module_info, m_state));
+			}
+			else if
+			{
+				sol::environment env = m_get_env_for_module();
+				m_modules.push_back(std::make_unique<T>(module_info, env));
+			}
 
 			const auto load_result = m_modules[module_index]->load_and_call_plugin(m_state);
 			if (load_result == load_module_result::SUCCESS || (load_result == load_module_result::FAILED_TO_LOAD && ignore_failed_to_load))

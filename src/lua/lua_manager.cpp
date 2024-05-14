@@ -117,12 +117,13 @@ namespace big
 		}};
 	}
 
-	lua_manager::lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init) :
+	lua_manager::lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init, get_env_for_module_t get_env_for_module) :
 	    m_state(game_lua_state),
 	    m_config_folder(config_folder),
 	    m_plugins_data_folder(plugins_data_folder),
 	    m_plugins_folder(plugins_folder),
-	    m_on_lua_state_init(on_lua_state_init)
+	    m_on_lua_state_init(on_lua_state_init),
+	    m_get_env_for_module(get_env_for_module)
 	{
 		g_lua_manager = this;
 	}

@@ -7,9 +7,7 @@
 
 namespace big
 {
-	lua_module::lua_module(const module_info& module_info, sol::state_view& state) :
-	    m_info(module_info),
-	    m_env(state, sol::create, state.globals())
+	void lua_module::init()
 	{
 		auto ns = get_PLUGIN_table(m_env);
 
@@ -70,6 +68,20 @@ namespace big
 		// Table: _ENV - Plugin Specific Global Table
 		// Field: _PLUGIN.this: lua_module*
 		ns["this"] = this;
+	}
+
+	lua_module::lua_module(const module_info& module_info, sol::state_view& state) :
+	    m_info(module_info),
+	    m_env(state, sol::create, state.globals())
+	{
+		init();
+	}
+
+	lua_module::lua_module(const module_info& module_info, sol::environment& env) :
+	    m_info(module_info),
+	    m_env(env)
+	{
+		init();
 	}
 
 	void lua_module::cleanup()

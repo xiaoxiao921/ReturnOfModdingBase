@@ -35,6 +35,12 @@ namespace big
 		lua_module_data m_data;
 
 		lua_module(const module_info& module_info, sol::state_view& state);
+		lua_module(const module_info& module_info, sol::environment& env);
+
+	private:
+		void init();
+
+	public:
 
 		virtual void cleanup();
 		~lua_module();
