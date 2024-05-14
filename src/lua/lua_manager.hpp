@@ -29,7 +29,7 @@ namespace big
 
 	public:
 		using on_lua_state_init_t  = std::function<void(sol::state_view&, sol::table&)>;
-		using get_env_for_module_t = std::function<sol::environment()>;
+		using get_env_for_module_t = std::function<sol::environment(sol::state_view&)>;
 
 	private:
 		on_lua_state_init_t m_on_lua_state_init;
@@ -306,7 +306,7 @@ namespace big
 			}
 			else if
 			{
-				sol::environment env = m_get_env_for_module();
+				sol::environment env = m_get_env_for_module(m_state);
 				m_modules.push_back(std::make_unique<T>(module_info, env));
 			}
 
