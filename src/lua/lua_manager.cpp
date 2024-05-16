@@ -159,6 +159,7 @@ namespace big
 				    }
 
 				    std::unordered_set<std::wstring> already_changed_this_frame;
+				    std::unordered_set<lua_module*> already_changed_this_frame_mod;
 
 				    FILE_NOTIFY_INFORMATION* next = notify.get();
 				    while (next != nullptr)
@@ -171,11 +172,23 @@ namespace big
 
 					    if (fullPath.ends_with(L".lua") && !already_changed_this_frame.contains(fullPath))
 					    {
-						    if (get_module_info(fullPath))
+						    const auto mod_info = get_module_info(fullPath);
+						    if (mod_info.has_value())
 						    {
-							    std::scoped_lock l(m_to_reload_lock);
-							    m_to_reload_queue.push(fullPath);
 							    already_changed_this_frame.insert(fullPath);
+
+							    std::scoped_lock l(m_module_lock);
+							    for (const auto& mod : m_modules)
+							    {
+								    if (mod->guid() == mod_info->m_guid && !already_changed_this_frame_mod.contains(mod.get()))
+								    {
+									    std::scoped_lock l(m_to_reload_lock);
+									    m_to_reload_queue.push(mod.get());
+									    already_changed_this_frame_mod.insert(mod.get());
+
+									    break;
+								    }
+							    }
 						    }
 					    }
 
@@ -194,6 +207,21 @@ namespace big
 			    }
 		    })
 		    .detach();
+	}
+
+	void lua_manager::process_file_watcher_queue()
+	{
+		std::scoped_lock l(g_lua_manager->m_to_reload_lock);
+		while (g_lua_manager->m_to_reload_queue.size())
+		{
+			auto& mod = g_lua_manager->m_to_reload_queue.front();
+
+			std::scoped_lock l(g_lua_manager->m_module_lock);
+			mod->cleanup();
+			mod->load_and_call_plugin(m_state);
+
+			g_lua_manager->m_to_reload_queue.pop();
+		}
 	}
 
 	// https://sol2.readthedocs.io/en/latest/exceptions.html
@@ -404,19 +432,5 @@ namespace big
 		std::scoped_lock guard(m_module_lock);
 
 		m_modules.clear();
-	}
-
-	void lua_manager::update_file_watch_reload_modules()
-	{
-		// get a lock on the to reload queue mutex.
-		// if there is anything inside the queue
-		// get a lock on the modules mutex
-
-		{
-			std::scoped_lock guard(m_module_lock);
-
-			//mod->cleanup();
-			//mod->load_and_call_plugin(m_state);
-		}
 	}
 } // namespace big

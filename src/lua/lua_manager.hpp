@@ -19,9 +19,11 @@ namespace big
 	private:
 		sol::state_view m_state;
 
-	public:
+	private:
 		std::recursive_mutex m_to_reload_lock;
-		std::queue<std::wstring> m_to_reload_queue;
+		std::queue<lua_module*> m_to_reload_queue;
+
+	public:
 
 		std::recursive_mutex m_module_lock;
 		std::vector<std::unique_ptr<lua_module>> m_modules;
@@ -49,6 +51,7 @@ namespace big
 		void init_file_watcher(const std::filesystem::path& directory);
 
 	public:
+		void process_file_watcher_queue();
 
 		template<typename T>
 		inline void init()
@@ -272,8 +275,6 @@ namespace big
 		}
 
 		void unload_all_modules();
-
-		void update_file_watch_reload_modules();
 
 		inline auto get_module_count() const
 		{
