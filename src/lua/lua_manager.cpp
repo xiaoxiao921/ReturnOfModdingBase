@@ -158,9 +158,6 @@ namespace big
 					    return;
 				    }
 
-				    std::unordered_set<std::wstring> already_changed_this_frame;
-				    std::unordered_set<lua_module*> already_changed_this_frame_mod;
-
 				    FILE_NOTIFY_INFORMATION* next = notify.get();
 				    while (next != nullptr)
 				    {
@@ -168,23 +165,21 @@ namespace big
 					    fullPath.append(L"\\");
 					    fullPath.append(std::wstring_view(next->FileName, next->FileNameLength / sizeof(wchar_t)));
 
-					    LOG(INFO) << "notif for: " << (char*)std::filesystem::path(fullPath).u8string().c_str();
-
-					    if (fullPath.ends_with(L".lua") && !already_changed_this_frame.contains(fullPath))
+					    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
 					    {
 						    const auto mod_info = get_module_info(fullPath);
 						    if (mod_info.has_value())
 						    {
-							    already_changed_this_frame.insert(fullPath);
+							    g_lua_manager->m_to_reload_duplicate_checker_2.insert(fullPath);
 
 							    std::scoped_lock l(g_lua_manager->m_module_lock);
 							    for (const auto& mod : g_lua_manager->m_modules)
 							    {
-								    if (mod->guid() == mod_info->m_guid && !already_changed_this_frame_mod.contains(mod.get()))
+								    if (mod->guid() == mod_info->m_guid && !g_lua_manager->m_to_reload_duplicate_checker.contains(mod->guid()))
 								    {
 									    std::scoped_lock l(g_lua_manager->m_to_reload_lock);
 									    g_lua_manager->m_to_reload_queue.push(mod.get());
-									    already_changed_this_frame_mod.insert(mod.get());
+									    g_lua_manager->m_to_reload_duplicate_checker.insert(mod->guid());
 
 									    break;
 								    }
@@ -212,8 +207,11 @@ namespace big
 	void lua_manager::process_file_watcher_queue()
 	{
 		std::scoped_lock l(m_to_reload_lock);
+		bool entered = false;
 		while (m_to_reload_queue.size())
 		{
+			entered = true;
+
 			std::scoped_lock l(m_module_lock);
 
 			auto& mod = m_to_reload_queue.front();
@@ -222,6 +220,12 @@ namespace big
 			mod->load_and_call_plugin(m_state);
 
 			m_to_reload_queue.pop();
+		}
+
+		if (entered)
+		{
+			m_to_reload_duplicate_checker.clear();
+			m_to_reload_duplicate_checker_2.clear();
 		}
 	}
 

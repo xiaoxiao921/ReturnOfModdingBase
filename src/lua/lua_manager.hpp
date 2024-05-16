@@ -22,6 +22,8 @@ namespace big
 	private:
 		std::recursive_mutex m_to_reload_lock;
 		std::queue<lua_module*> m_to_reload_queue;
+		std::unordered_set<std::string> m_to_reload_duplicate_checker;
+		std::unordered_set<std::wstring> m_to_reload_duplicate_checker_2;
 
 	public:
 
