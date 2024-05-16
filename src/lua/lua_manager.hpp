@@ -80,11 +80,10 @@ namespace big
 				ofs.close();
 
 				const module_info mod_info = {
-				    .m_lua_file_entries_hash = "",
-				    .m_path                  = tmp_path,
-				    .m_folder_path           = m_plugins_folder.get_path(),
-				    .m_guid                  = rom::g_project_name + "-GLOBAL",
-				    .m_guid_with_version     = rom::g_project_name + "-GLOBAL-1.0.0",
+				    .m_path              = tmp_path,
+				    .m_folder_path       = m_plugins_folder.get_path(),
+				    .m_guid              = rom::g_project_name + "-GLOBAL",
+				    .m_guid_with_version = rom::g_project_name + "-GLOBAL-1.0.0",
 				    .m_manifest = {.name = "GLOBAL", .version_number = "1.0.0", .version = semver::version(1, 0, 0), .website_url = "", .description = "Fallback module"},
 				};
 				const auto load_result = load_module<T>(mod_info, true);
