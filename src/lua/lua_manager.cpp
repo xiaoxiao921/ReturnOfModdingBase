@@ -120,7 +120,7 @@ namespace big
 	void lua_manager::init_file_watcher(const std::filesystem::path& directory)
 	{
 		std::thread(
-		    [&, directory]
+		    [directory]
 		    {
 			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 			    if (directory_handle == INVALID_HANDLE_VALUE)
@@ -177,13 +177,13 @@ namespace big
 						    {
 							    already_changed_this_frame.insert(fullPath);
 
-							    std::scoped_lock l(m_module_lock);
-							    for (const auto& mod : m_modules)
+							    std::scoped_lock l(g_lua_manager->m_module_lock);
+							    for (const auto& mod : g_lua_manager->m_modules)
 							    {
 								    if (mod->guid() == mod_info->m_guid && !already_changed_this_frame_mod.contains(mod.get()))
 								    {
-									    std::scoped_lock l(m_to_reload_lock);
-									    m_to_reload_queue.push(mod.get());
+									    std::scoped_lock l(g_lua_manager->m_to_reload_lock);
+									    g_lua_manager->m_to_reload_queue.push(mod.get());
 									    already_changed_this_frame_mod.insert(mod.get());
 
 									    break;
@@ -211,16 +211,17 @@ namespace big
 
 	void lua_manager::process_file_watcher_queue()
 	{
-		std::scoped_lock l(g_lua_manager->m_to_reload_lock);
-		while (g_lua_manager->m_to_reload_queue.size())
+		std::scoped_lock l(m_to_reload_lock);
+		while (m_to_reload_queue.size())
 		{
-			auto& mod = g_lua_manager->m_to_reload_queue.front();
+			std::scoped_lock l(m_module_lock);
 
-			std::scoped_lock l(g_lua_manager->m_module_lock);
+			auto& mod = m_to_reload_queue.front();
+
 			mod->cleanup();
 			mod->load_and_call_plugin(m_state);
 
-			g_lua_manager->m_to_reload_queue.pop();
+			m_to_reload_queue.pop();
 		}
 	}
 
