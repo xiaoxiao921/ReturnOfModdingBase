@@ -151,15 +151,6 @@ namespace big
 		return load_module_result::SUCCESS;
 	}
 
-	bool lua_module::update_lua_file_entries(const std::string& new_hash)
-	{
-		const bool is_different = m_info.m_lua_file_entries_hash != new_hash;
-
-		m_info.m_lua_file_entries_hash = new_hash;
-
-		return is_different;
-	}
-
 	std::string lua_module::guid_from(sol::this_environment this_env)
 	{
 		sol::environment& env            = this_env;

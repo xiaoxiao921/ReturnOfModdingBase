@@ -20,6 +20,9 @@ namespace big
 		sol::state_view m_state;
 
 	public:
+		std::recursive_mutex m_to_reload_lock;
+		std::queue<std::wstring> m_to_reload_queue;
+
 		std::recursive_mutex m_module_lock;
 		std::vector<std::unique_ptr<lua_module>> m_modules;
 
@@ -42,6 +45,11 @@ namespace big
 		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr, get_env_for_module_t get_env_for_module = nullptr);
 		~lua_manager();
 
+	private:
+		void init_file_watcher(const std::filesystem::path& directory);
+
+	public:
+
 		template<typename T>
 		inline void init()
 		{
@@ -50,6 +58,8 @@ namespace big
 			load_all_modules<T>();
 
 			lua::window::deserialize();
+
+			init_file_watcher(m_plugins_folder.get_path());
 		}
 
 		void init_lua_state();

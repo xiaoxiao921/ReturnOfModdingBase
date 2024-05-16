@@ -87,33 +87,13 @@ namespace big
 			     manifest.name);
 		}
 
-		std::vector<std::string> lua_file_entries;
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(current_folder, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
-		{
-			if (entry.path().extension() == ".lua")
-			{
-				std::string lua_file_entry  = (char*)entry.path().filename().u8string().c_str();
-				lua_file_entry             += std::to_string(
-                    std::chrono::duration_cast<std::chrono::milliseconds>(entry.last_write_time().time_since_epoch()).count());
-				lua_file_entries.push_back(lua_file_entry);
-			}
-		}
-
-		std::sort(lua_file_entries.begin(), lua_file_entries.end());
-		std::string final_hash = "";
-		for (const auto& file_entry : lua_file_entries)
-		{
-			final_hash += file_entry;
-		}
-
 		const std::string guid = folder_name;
 		return {{
-		    .m_lua_file_entries_hash = final_hash,
-		    .m_path                  = module_path,
-		    .m_folder_path           = current_folder,
-		    .m_guid                  = guid,
-		    .m_guid_with_version     = guid + "-" + manifest.version_number,
-		    .m_manifest              = manifest,
+		    .m_path              = module_path,
+		    .m_folder_path       = current_folder,
+		    .m_guid              = guid,
+		    .m_guid_with_version = guid + "-" + manifest.version_number,
+		    .m_manifest          = manifest,
 		}};
 	}
 
@@ -135,6 +115,85 @@ namespace big
 		unload_all_modules();
 
 		g_lua_manager = nullptr;
+	}
+
+	void lua_manager::init_file_watcher(const std::filesystem::path& directory)
+	{
+		std::thread(
+		    [&, directory]
+		    {
+			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+			    if (directory_handle == INVALID_HANDLE_VALUE)
+			    {
+				    LOG(FATAL) << "Failed to get handle to directory. Error: " << GetLastError();
+				    return;
+			    }
+
+			    std::unique_ptr<FILE_NOTIFY_INFORMATION> notify;
+			    const size_t c_bufferSize = sizeof(FILE_NOTIFY_INFORMATION) * 100;
+			    notify.reset(reinterpret_cast<FILE_NOTIFY_INFORMATION*>(new char[c_bufferSize]));
+
+			    OVERLAPPED overlapped{};
+
+			    while (g_lua_manager)
+			    {
+				    DWORD returned;
+
+				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, &overlapped, nullptr))
+				    {
+					    LOG(FATAL) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
+					    CloseHandle(directory_handle);
+					    return;
+				    }
+
+				    DWORD transferred;
+				    if (!GetOverlappedResult(directory_handle, &overlapped, &transferred, TRUE))
+				    {
+					    DWORD error = GetLastError();
+					    if (error != ERROR_OPERATION_ABORTED)
+					    {
+						    LOG(FATAL) << "GetOverlappedResult failed. Error: " << error;
+					    }
+					    CloseHandle(directory_handle);
+					    return;
+				    }
+
+				    std::unordered_set<std::wstring> already_changed_this_frame;
+
+				    FILE_NOTIFY_INFORMATION* next = notify.get();
+				    while (next != nullptr)
+				    {
+					    std::wstring fullPath(directory);
+					    fullPath.append(L"\\");
+					    fullPath.append(std::wstring_view(next->FileName, next->FileNameLength / sizeof(wchar_t)));
+
+					    LOG(INFO) << "notif for: " << (char*)std::filesystem::path(fullPath).u8string().c_str();
+
+					    if (fullPath.ends_with(L".lua") && !already_changed_this_frame.contains(fullPath))
+					    {
+						    if (get_module_info(fullPath))
+						    {
+							    std::scoped_lock l(m_to_reload_lock);
+							    m_to_reload_queue.push(fullPath);
+							    already_changed_this_frame.insert(fullPath);
+						    }
+					    }
+
+					    if (next->NextEntryOffset)
+					    {
+						    next = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(reinterpret_cast<char*>(next) + next->NextEntryOffset);
+					    }
+					    else
+					    {
+						    next = nullptr;
+					    }
+				    }
+
+				    using namespace std::chrono_literals;
+				    std::this_thread::sleep_for(500ms);
+			    }
+		    })
+		    .detach();
 	}
 
 	// https://sol2.readthedocs.io/en/latest/exceptions.html
@@ -347,48 +406,17 @@ namespace big
 		m_modules.clear();
 	}
 
-	static auto g_lua_file_watcher_last_time = std::chrono::high_resolution_clock::now();
-
 	void lua_manager::update_file_watch_reload_modules()
 	{
-		std::scoped_lock guard(m_module_lock);
+		// get a lock on the to reload queue mutex.
+		// if there is anything inside the queue
+		// get a lock on the modules mutex
 
-		using namespace std::chrono_literals;
-
-		const auto time_now = std::chrono::high_resolution_clock::now();
-		if ((time_now - g_lua_file_watcher_last_time) > 500ms)
 		{
-			g_lua_file_watcher_last_time = time_now;
+			std::scoped_lock guard(m_module_lock);
 
-			std::unordered_set<std::string> already_reloaded_this_frame;
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_plugins_folder.get_path(), std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
-			{
-				if (entry.path().extension() == ".lua")
-				{
-					const auto module_info = get_module_info(entry.path());
-					if (module_info)
-					{
-						if (already_reloaded_this_frame.contains(module_info.value().m_guid))
-						{
-							continue;
-						}
-
-						for (const auto& already_loaded_module : m_modules)
-						{
-							if (already_loaded_module->guid() == module_info.value().m_guid)
-							{
-								if (already_loaded_module->update_lua_file_entries(module_info.value().m_lua_file_entries_hash))
-								{
-									already_loaded_module->cleanup();
-									already_loaded_module->load_and_call_plugin(m_state);
-									already_reloaded_this_frame.insert(module_info.value().m_guid);
-									break;
-								}
-							}
-						}
-					}
-				}
-			}
+			//mod->cleanup();
+			//mod->load_and_call_plugin(m_state);
 		}
 	}
 } // namespace big

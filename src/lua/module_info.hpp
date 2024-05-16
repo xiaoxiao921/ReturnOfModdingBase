@@ -5,7 +5,6 @@ namespace big
 {
 	struct module_info
 	{
-		std::string m_lua_file_entries_hash{};
 		std::filesystem::path m_path{};
 		std::filesystem::path m_folder_path{};
 		std::string m_guid{};
