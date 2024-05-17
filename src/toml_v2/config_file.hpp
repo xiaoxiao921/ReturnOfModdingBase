@@ -60,7 +60,7 @@ namespace toml_v2
 			{
 				// TODO: clamp value if needed before assigning.
 
-				if (m_boxed_value->type() == typeid(T) && *m_boxed_value == new_value)
+				if (m_boxed_value->type() == typeid(T) && get_value_base<T> == new_value)
 				{
 					return;
 				}
