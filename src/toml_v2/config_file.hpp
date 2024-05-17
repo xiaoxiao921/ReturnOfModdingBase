@@ -118,7 +118,7 @@ namespace toml_v2
 
 			ValueType get_value()
 			{
-				return get_value_unsafe<ValueType>();
+				return get_value_base<ValueType>();
 			}
 
 			void set_value(ValueType new_value)
