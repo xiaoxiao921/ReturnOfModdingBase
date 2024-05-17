@@ -1,4 +1,6 @@
 #pragma once
+#include <logger/logger.hpp>
+#include <string>
 
 namespace big::string_conversions
 {
