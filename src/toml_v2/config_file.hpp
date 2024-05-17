@@ -127,6 +127,26 @@ namespace toml_v2
 			}
 		};
 
+		template<>
+		class config_entry<const char*> : public config_entry_base
+		{
+		public:
+			config_entry(config_file* configFile, config_definition definition, const char* default_value, config_description description) :
+			    config_entry_base(configFile, definition, std::any(std::string(default_value)), description)
+			{
+			}
+
+			std::string get_value()
+			{
+				return get_value_base<std::string>();
+			}
+
+			void set_value(std::string_view new_value)
+			{
+				set_value_base<std::string>(std::string(new_value));
+			}
+		};
+
 	public:
 		std::string m_owner_guid;
 
@@ -287,7 +307,6 @@ namespace toml_v2
 			if (m_owner_guid.size())
 			{
 				writer << "## Settings file was created by plugin " << m_owner_guid << std::endl;
-				writer << std::endl;
 			}
 
 			struct all_config_entry_t
