@@ -300,11 +300,11 @@ namespace toml_v2
 			std::map<config_definition, all_config_entry_t> allConfigEntries;
 			for (const auto& [k, v] : m_entries)
 			{
-				allConfigEntries[k] = all_config_entry_t{.m_key = k, .m_entry = v, .m_value = v->get_serialized_value()};
+				allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = v, .m_value = v->get_serialized_value()});
 			}
 			for (const auto& [k, v] : m_orphaned_entries)
 			{
-				allConfigEntries[k] = all_config_entry_t{.m_key = k, .m_entry = nullptr, .m_value = v};
+				allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = nullptr, .m_value = v});
 			}
 
 			std::unordered_set<std::string> already_written_section_headers;
