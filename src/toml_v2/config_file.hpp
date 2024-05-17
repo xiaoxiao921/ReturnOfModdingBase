@@ -336,7 +336,7 @@ namespace toml_v2
 			auto existing_entry = try_get_entry(config_def);
 			if (existing_entry)
 			{
-				return existing_entry;
+				return (config_entry<ValueType>*)existing_entry;
 			}
 
 			auto entry = std::make_shared<config_entry<ValueType>>(this, config_def, defaultValue, config_description(description));
