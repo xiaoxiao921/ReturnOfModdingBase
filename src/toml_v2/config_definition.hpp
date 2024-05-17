@@ -1,6 +1,7 @@
 #pragma once
 #include <logger/logger.hpp>
 #include <map>
+#include <string/string.hpp>
 #include <string>
 
 namespace toml_v2
