@@ -4,7 +4,6 @@
 #include "toml_type_converter.hpp"
 
 #include <any>
-#include <linq/linq.hpp>
 #include <logger/logger.hpp>
 #include <map>
 #include <string/string.hpp>
