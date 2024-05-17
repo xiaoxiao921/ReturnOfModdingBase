@@ -312,6 +312,7 @@ namespace toml_v2
 			{
 				if (!already_written_section_headers.contains(k.m_section))
 				{
+					writer << std::endl;
 					writer << std::format("[{}]", k.m_section) << std::endl;
 					already_written_section_headers.insert(k.m_section);
 				}
