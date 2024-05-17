@@ -310,7 +310,7 @@ namespace toml_v2
 			std::unordered_set<std::string> already_written_section_headers;
 			for (const auto& [k, v] : allConfigEntries)
 			{
-				if (already_written_section_headers.contains(k.m_section))
+				if (!already_written_section_headers.contains(k.m_section))
 				{
 					writer << std::format("[{}]", k.m_section) << std::endl;
 					already_written_section_headers.insert(k.m_section);
