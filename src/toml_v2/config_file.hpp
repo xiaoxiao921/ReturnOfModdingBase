@@ -110,6 +110,7 @@ namespace toml_v2
 		template<typename ValueType>
 		class config_entry : public config_entry_base
 		{
+		public:
 			config_entry(config_file* configFile, config_definition definition, ValueType default_value, config_description description) :
 			    config_entry_base(configFile, definition, std::any(default_value), description)
 			{
