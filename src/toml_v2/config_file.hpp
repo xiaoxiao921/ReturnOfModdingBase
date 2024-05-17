@@ -328,7 +328,8 @@ namespace toml_v2
 			writer.close();
 		}
 
-		config_entry_base* bind(const std::string& section, const std::string& key, std::any defaultValue, const std::string& description)
+		template<typename ValueType>
+		config_entry<ValueType>* bind(const std::string& section, const std::string& key, ValueType defaultValue, const std::string& description)
 		{
 			auto config_def     = config_definition(section, key);
 			auto existing_entry = try_get_entry(config_def);
@@ -337,7 +338,7 @@ namespace toml_v2
 				return existing_entry;
 			}
 
-			auto entry = std::make_shared<config_entry_base>(this, config_def, defaultValue, config_description(description));
+			auto entry = std::make_shared<config_entry<ValueType>>(this, config_def, defaultValue, config_description(description));
 
 			m_entries.emplace(config_def, entry);
 
