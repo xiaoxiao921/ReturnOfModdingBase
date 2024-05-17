@@ -77,14 +77,39 @@ namespace big
 			}
 		}
 
-		const std::string folder_name = (char*)current_folder.filename().u8string().c_str();
-		const auto sep_count          = std::ranges::count(folder_name, '-');
+		std::string folder_name = (char*)current_folder.filename().u8string().c_str();
+		const auto sep_count    = std::ranges::count(folder_name, '-');
 		if (sep_count != 1)
 		{
 			LOGF(FATAL,
 			     "Bad folder name ({}) for the following mod: {}. Should be the following format: AuthorName-ModName",
 			     folder_name,
 			     manifest.name);
+		}
+
+		if (sep_count > 1)
+		{
+			auto remove_extra_separators = [](std::string& input)
+			{
+				size_t sep_count = 0;
+				for (size_t i = 0; i < input.size(); i++)
+				{
+					if (input[i] == '-')
+					{
+						sep_count++;
+
+						// is second '-' separator
+						if (sep_count == 2)
+						{
+							input.resize(i);
+							LOG(WARNING) << "Using folder name as " << input;
+							return;
+						}
+					}
+				}
+			};
+
+			remove_extra_separators(folder_name);
 		}
 
 		const std::string guid = folder_name;
