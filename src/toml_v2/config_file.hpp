@@ -50,13 +50,13 @@ namespace toml_v2
 			}
 
 			template<typename T>
-			T get_value()
+			T get_value_base()
 			{
 				return std::any_cast<T>(*m_boxed_value);
 			}
 
 			template<typename T>
-			void set_value(T new_value)
+			void set_value_base(T new_value)
 			{
 				// TODO: clamp value if needed before assigning.
 
@@ -104,6 +104,25 @@ namespace toml_v2
 				stream_ << "# Default value: " << toml_type_converter::convert_to_string(*m_default_value);
 
 				// todo acceptable values
+			}
+		};
+
+		template<typename ValueType>
+		class config_entry : public config_entry_base
+		{
+			config_entry(config_file* configFile, config_definition definition, ValueType default_value, config_description description) :
+			    config_entry_base(configFile, definition, std::any(default_value), description)
+			{
+			}
+
+			ValueType get_value()
+			{
+				return get_value_unsafe<ValueType>();
+			}
+
+			void set_value(ValueType new_value)
+			{
+				set_value_base(new_value);
 			}
 		};
 
