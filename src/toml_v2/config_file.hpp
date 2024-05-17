@@ -94,9 +94,9 @@ namespace toml_v2
 			template<typename T>
 			void write_description(T& stream_)
 			{
-				if (m_description->m_description.size())
+				if (m_description.m_description.size())
 				{
-					stream_ << "## " << big::string::replace(m_description->m_description, "\n", "\n## ") << std::endl;
+					stream_ << "## " << big::string::replace(m_description.m_description, "\n", "\n## ") << std::endl;
 				}
 
 				stream_ << "# Setting type: " << m_boxed_value->type().name() << std::endl;
