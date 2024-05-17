@@ -7,6 +7,7 @@
 #include "bindings/path.hpp"
 #include "bindings/paths.hpp"
 #include "bindings/toml/toml_lua.hpp"
+#include "bindings/toml_v2/toml_lua_v2.hpp"
 #include "file_manager/file_manager.hpp"
 #include "string/string.hpp"
 
@@ -343,6 +344,7 @@ namespace big
 
 		// Let's keep that list sorted the same as the solution file explorer
 		lua::toml_lua::bind(lua_ext);
+		lua::toml_lua_v2::bind(lua_ext);
 		lua::gui::bind(lua_ext);
 		lua::imgui::bind(lua_ext);
 		lua::log::bind(m_state, lua_ext);
