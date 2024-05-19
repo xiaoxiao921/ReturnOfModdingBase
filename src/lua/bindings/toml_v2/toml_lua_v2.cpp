@@ -94,6 +94,18 @@ namespace lua::toml_lua_v2
 
 		// Lua API: Field
 		// Class: config.config_file
+		// Field: owner_guid: string
+		// The owner GUID of this config file.
+		config_file_ut["owner_guid"] = &toml_v2::config_file::m_owner_guid;
+
+		// Lua API: Field
+		// Class: config.config_file
+		// Field: config_file_path: string
+		// The file path of this config file.
+		config_file_ut["config_file_path"] = &toml_v2::config_file::m_config_file_path;
+
+		// Lua API: Field
+		// Class: config.config_file
 		// Field: entries: table<config_definition, config_entry>
 		// All config entries of the config file.
 		config_file_ut["entries"] = &toml_v2::config_file::m_entries;
