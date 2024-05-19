@@ -183,8 +183,7 @@ namespace toml_v2
 
 			if (!config_path.ends_with(".cfg"))
 			{
-				LOG(WARNING) << "It's recommended to use `.cfg` as the file extension. The mod manager will pick it up "
-				                "and make it show nicely inside the mod manager UI.";
+				LOGF(WARNING, "It's recommended to use `.cfg` as the file extension (Owner GUID: {}) (Current file path: {}). The mod manager will pick it up and make it show nicely inside the mod manager UI.", owner_guid, config_path);
 			}
 
 			m_config_file_path = std::filesystem::absolute(config_path);
