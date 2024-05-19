@@ -1,5 +1,6 @@
 #pragma once
 #include <any>
+#include <charconv>
 #include <logger/logger.hpp>
 #include <map>
 #include <string>
@@ -46,52 +47,56 @@ namespace toml_v2
 		    to_any_visitor_ser<uint8_t>(
 		        [](uint8_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        // use std format instead of to_string for making it locale invariant:
+			        // C locale might be set by rombase lib user and
+			        // will cause issues on config files shared between users with diff locales.
+
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<int8_t>(
 		        [](int8_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<int16_t>(
 		        [](int16_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<uint16_t>(
 		        [](uint16_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<int32_t>(
 		        [](int32_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<uint32_t>(
 		        [](uint32_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<int64_t>(
 		        [](int64_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<uint64_t>(
 		        [](uint64_t x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<float>(
 		        [](float x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<double>(
 		        [](double x) -> std::string
 		        {
-			        return std::to_string(x);
+			        return std::format("{}", x);
 		        }),
 		    to_any_visitor_ser<void>(
 		        []() -> std::string
