@@ -104,7 +104,14 @@ namespace toml_v2
 					stream_ << "## " << big::string::replace(m_description.m_description, "\n", "\n## ") << std::endl;
 				}
 
-				stream_ << "# Setting type: " << m_boxed_value->type().name() << std::endl;
+				if (type() == typeid(std::string))
+				{
+					stream_ << "# Setting type: string" << std::endl;
+				}
+				else
+				{
+					stream_ << "# Setting type: " << type().name() << std::endl;
+				}
 
 				stream_ << "# Default value: " << toml_type_converter::convert_to_string(*m_default_value);
 
