@@ -83,6 +83,18 @@ namespace lua::toml_lua_v2
 			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                }));
 
+		ns["config_files"] = &toml_v2::config_file::g_config_files;
+
+		config_file_ut["entries"] = &toml_v2::config_file::m_entries;
+
+		// Lua API: Class
+		// Name: config.config_definition
+		//  Section and key of a setting.
+		auto config_definition_ut = ns.new_usertype<toml_v2::config_definition>("config_definition", sol::no_constructor);
+
+		config_definition_ut["key"]     = &toml_v2::config_definition::m_key;
+		config_definition_ut["section"] = &toml_v2::config_definition::m_section;
+
 		// Lua API: Function
 		// Class: config.config_file
 		// Name: bind

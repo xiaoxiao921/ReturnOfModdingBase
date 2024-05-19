@@ -169,6 +169,8 @@ namespace toml_v2
 		std::vector<std::function<void()>> m_on_config_reloaded;
 		std::vector<std::function<void(config_entry_base*)>> m_on_setting_changed;
 
+		static inline std::vector<toml_v2::config_file*> g_config_files;
+
 		config_file(std::string_view configPath, bool saveOnInit, std::string_view owner_guid)
 		{
 			m_owner_guid = owner_guid;
@@ -189,6 +191,17 @@ namespace toml_v2
 			{
 				save();
 			}
+
+			g_config_files.push_back(this);
+		}
+
+		~config_file()
+		{
+			std::erase_if(g_config_files,
+			              [&](auto& cfg)
+			              {
+				              return cfg == this;
+			              });
 		}
 
 		config_entry_base* try_get_entry(config_definition& key)
