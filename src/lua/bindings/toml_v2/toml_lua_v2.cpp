@@ -73,7 +73,7 @@ namespace lua::toml_lua_v2
 
 		// Lua API: Constructor
 		// Class: config.config_file
-		// Param: config_path: string: Full path to a file that contains settings. The file will be created as needed.
+		// Param: config_path: string: Full path to a file that contains settings. The file will be created as needed. It's recommended to use `.cfg` as the file extension. The mod manager will pick it up and make it show nicely inside the mod manager UI.
 		// Param: save_on_init: bool: If the config file/directory doesn't exist, create it immediately.
 		// Create a new config file at the specified config path.
 		auto config_file_ut = ns.new_usertype<toml_v2::config_file>("config_file",

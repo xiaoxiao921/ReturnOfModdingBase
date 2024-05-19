@@ -171,23 +171,29 @@ namespace toml_v2
 
 		static inline std::vector<toml_v2::config_file*> g_config_files;
 
-		config_file(std::string_view configPath, bool saveOnInit, std::string_view owner_guid)
+		config_file(std::string_view config_path, bool save_on_init, std::string_view owner_guid)
 		{
 			m_owner_guid = owner_guid;
 
-			if (configPath.empty())
+			if (config_path.empty())
 			{
-				LOG(FATAL) << "configPath cannot be empty";
+				LOG(FATAL) << "config_path cannot be empty";
 				return;
 			}
 
-			m_config_file_path = std::filesystem::absolute(configPath);
+			if (!config_path.ends_with(".cfg"))
+			{
+				LOG(WARNING) << "It's recommended to use `.cfg` as the file extension. The mod manager will pick it up "
+				                "and make it show nicely inside the mod manager UI.";
+			}
+
+			m_config_file_path = std::filesystem::absolute(config_path);
 
 			if (std::filesystem::exists(m_config_file_path))
 			{
 				reload();
 			}
-			else if (saveOnInit)
+			else if (save_on_init)
 			{
 				save();
 			}
