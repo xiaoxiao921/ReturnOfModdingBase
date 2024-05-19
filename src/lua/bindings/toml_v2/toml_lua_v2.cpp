@@ -63,7 +63,7 @@ namespace lua::toml_lua_v2
 
 		// Lua API: Field
 		// Table: config
-		// Field: config_files
+		// Field: config_files: table of config.config_file instances
 		// All currently active config_file instances.
 		ns["config_files"] = &toml_v2::config_file::g_config_files;
 
@@ -143,13 +143,13 @@ namespace lua::toml_lua_v2
 
 		// Lua API: Field
 		// Class: config.config_definition
-		// Field: section
+		// Field: section: string
 		// Group of the setting. All settings within a config file are grouped by this.
 		config_definition_ut["section"] = &toml_v2::config_definition::m_section;
 
 		// Lua API: Field
 		// Class: config.config_definition
-		// Field: key
+		// Field: key: string
 		// Name of the setting.
 		config_definition_ut["key"] = &toml_v2::config_definition::m_key;
 	}
