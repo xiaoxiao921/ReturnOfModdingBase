@@ -129,13 +129,13 @@ namespace lua::toml_lua_v2
 		auto config_entry_ut = ns.new_usertype<toml_v2::config_file::config_entry_base>("config_entry", sol::no_constructor);
 
 		// Lua API: Function
-		// Class: config.config_file
+		// Class: config.config_entry
 		// Name: get
 		// Returns: val: bool or double or string. Value of this setting
 		config_entry_ut.set_function("get", get_value);
 
 		// Lua API: Function
-		// Class: config.config_file
+		// Class: config.config_entry
 		// Name: set
 		// Param: new_value: bool or double or string: New value of this setting.
 		config_entry_ut.set_function("set", sol::overload(set_value_bool, set_value_double, set_value_string));
