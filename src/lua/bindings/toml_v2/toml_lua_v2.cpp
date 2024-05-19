@@ -74,13 +74,13 @@ namespace lua::toml_lua_v2
 		                                                                // passed in
 		                                                                [](const std::string& config_path, bool save_on_init, sol::this_environment env)
 		                                                                {
-			                                                                return toml_v2::config_file(config_path, save_on_init, big::lua_module::guid_from(env));
+			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                },
 		                                                                // -- colon syntax, passes in the
 		                                                                // "self" value as first argument implicitly
 		                                                                [](sol::object, const std::string& config_path, bool save_on_init, sol::this_environment env)
 		                                                                {
-			                                                                return toml_v2::config_file(config_path, save_on_init, big::lua_module::guid_from(env));
+			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                }));
 
 		// Lua API: Function
