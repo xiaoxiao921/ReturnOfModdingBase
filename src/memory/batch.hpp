@@ -1,5 +1,6 @@
 #pragma once
-#include "logger/logger.hpp"
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
 #include "pattern.hpp"
 #include "range.hpp"
 #include "signature.hpp"

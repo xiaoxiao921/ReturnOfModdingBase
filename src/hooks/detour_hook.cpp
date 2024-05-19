@@ -1,8 +1,9 @@
 #include "detour_hook.hpp"
 
-#include "logger/logger.hpp"
 #include "memory/handle.hpp"
 #include "threads/util.hpp"
+
+#include <logger/logger.hpp>
 
 namespace big
 {

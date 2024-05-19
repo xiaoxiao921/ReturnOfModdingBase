@@ -1,7 +1,9 @@
 #pragma once
 
 #include "file_manager/file_manager.hpp"
-#include "logger/logger.hpp"
+
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
 #include "rom/rom.hpp"
 #include "toml.hpp"
 

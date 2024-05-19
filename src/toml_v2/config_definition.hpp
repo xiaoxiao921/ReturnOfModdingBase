@@ -1,7 +1,8 @@
 #pragma once
-#include <logger/logger.hpp>
+#include <AsyncLogger/Logger.hpp>
 #include <map>
 #include <string/string.hpp>
+using namespace al;
 #include <string>
 
 namespace toml_v2

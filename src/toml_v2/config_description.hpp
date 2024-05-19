@@ -1,7 +1,6 @@
 #pragma once
 #include "acceptable_value_base.hpp"
 
-#include <logger/logger.hpp>
 #include <string>
 
 namespace toml_v2

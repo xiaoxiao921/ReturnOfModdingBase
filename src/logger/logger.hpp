@@ -3,6 +3,7 @@
 
 #include <AsyncLogger/Logger.hpp>
 #include <fstream>
+#include <toml_v2/config_file.hpp>
 #include <Windows.h>
 using namespace al;
 
@@ -60,6 +61,12 @@ namespace big
 		std::ofstream m_file_out;
 
 		file m_file;
+
+		toml_v2::config_file::config_entry<const char*>* m_log_level_filter_console_cfg{};
+		eLogLevel m_log_level_filter_console_value{};
+
+		toml_v2::config_file::config_entry<const char*>* m_log_level_filter_file_cfg{};
+		eLogLevel m_log_level_filter_file_value{};
 	};
 
 	inline logger* g_log = nullptr;

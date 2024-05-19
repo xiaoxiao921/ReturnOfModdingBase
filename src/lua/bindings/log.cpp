@@ -1,7 +1,8 @@
 #pragma once
 #include "log.hpp"
 
-#include "logger/logger.hpp"
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
 #include "lua/lua_module.hpp"
 
 namespace lua::log

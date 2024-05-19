@@ -1,8 +1,9 @@
 #pragma once
 #include "path.hpp"
 
+#include <AsyncLogger/Logger.hpp>
 #include <filesystem>
-#include <logger/logger.hpp>
+using namespace al;
 
 namespace lua::path
 {

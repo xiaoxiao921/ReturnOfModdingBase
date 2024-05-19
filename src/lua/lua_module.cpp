@@ -1,7 +1,9 @@
 #include "lua_module.hpp"
 
 #include "file_manager/file_manager.hpp"
-#include "logger/logger.hpp"
+
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
 #include "lua_manager.hpp"
 #include "rom/rom.hpp"
 

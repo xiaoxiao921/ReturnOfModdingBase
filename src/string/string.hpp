@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace big::string
 {
 	inline bool starts_with(const char* pre, const char* str)

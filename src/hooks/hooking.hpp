@@ -1,7 +1,9 @@
 #pragma once
 #include "call_hook.hpp"
 #include "detour_hook.hpp"
-#include "logger/logger.hpp"
+
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
 #include "vmt_hook.hpp"
 #include "vtable_hook.hpp"
 

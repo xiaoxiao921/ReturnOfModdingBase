@@ -1,6 +1,7 @@
 #include "exception_handler.hpp"
 
 #include "hooks/hooking.hpp"
+#include "logger.hpp"
 #include "paths/paths.hpp"
 #include "rom/rom.hpp"
 #include "stack_trace.hpp"

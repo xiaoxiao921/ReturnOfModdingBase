@@ -1,9 +1,9 @@
 #include "stack_trace.hpp"
 
-#include "logger.hpp"
 #include "memory/module.hpp"
 
 #include <DbgHelp.h>
+#include <logger/logger.hpp>
 #include <map>
 #include <mutex>
 #include <winternl.h>

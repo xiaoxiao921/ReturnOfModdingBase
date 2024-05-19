@@ -1,7 +1,6 @@
 #pragma once
 #include <any>
 #include <charconv>
-#include <logger/logger.hpp>
 #include <map>
 #include <string>
 #include <typeindex>

@@ -1,6 +1,8 @@
 #pragma once
 #include "load_module_result.hpp"
-#include "logger/logger.hpp"
+
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
 #include "lua_module.hpp"
 #include "module_info.hpp"
 #include "rom/rom.hpp"

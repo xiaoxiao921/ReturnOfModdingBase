@@ -1,6 +1,8 @@
 #include "hotkey.hpp"
 
-#include <logger/logger.hpp>
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+#include <file_manager/file_manager.hpp>
 #include <rom/rom.hpp>
 #include <windows.h>
 
