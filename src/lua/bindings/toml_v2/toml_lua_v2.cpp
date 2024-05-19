@@ -102,7 +102,11 @@ namespace lua::toml_lua_v2
 		// Class: config.config_file
 		// Field: config_file_path: string
 		// The file path of this config file.
-		config_file_ut["config_file_path"] = &toml_v2::config_file::m_config_file_path;
+		config_file_ut["config_file_path"] = sol::property(
+		    [](const toml_v2::config_file& self) -> std::string
+		    {
+			    return (char*)self.m_config_file_path.u8string().c_str();
+		    });
 
 		// Lua API: Field
 		// Class: config.config_file
