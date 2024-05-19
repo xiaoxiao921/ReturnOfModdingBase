@@ -92,6 +92,10 @@ namespace lua::toml_lua_v2
 			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                }));
 
+		// Lua API: Field
+		// Class: config.config_file
+		// Field: entries: table<config_definition, config_entry>
+		// All config entries of the config file.
 		config_file_ut["entries"] = &toml_v2::config_file::m_entries;
 
 		// Lua API: Function
