@@ -49,6 +49,11 @@ namespace toml_v2
 				    });
 			}
 
+			auto& type()
+			{
+				return m_boxed_value->type();
+			}
+
 			template<typename T>
 			T get_value_base()
 			{
