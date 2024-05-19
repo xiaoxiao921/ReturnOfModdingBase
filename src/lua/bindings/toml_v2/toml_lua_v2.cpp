@@ -56,7 +56,16 @@ namespace lua::toml_lua_v2
 
 	void bind(sol::table& state)
 	{
+		// Lua API: Table
+		// Name: config
+		// Table containing helpers for mod configs.
 		sol::table ns = state.create_named("config");
+
+		// Lua API: Field
+		// Table: config
+		// Field: config_files
+		// All currently active config_file instances.
+		ns["config_files"] = &toml_v2::config_file::g_config_files;
 
 		// Lua API: Class
 		// Name: config.config_file
@@ -83,17 +92,7 @@ namespace lua::toml_lua_v2
 			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                }));
 
-		ns["config_files"] = &toml_v2::config_file::g_config_files;
-
 		config_file_ut["entries"] = &toml_v2::config_file::m_entries;
-
-		// Lua API: Class
-		// Name: config.config_definition
-		//  Section and key of a setting.
-		auto config_definition_ut = ns.new_usertype<toml_v2::config_definition>("config_definition", sol::no_constructor);
-
-		config_definition_ut["key"]     = &toml_v2::config_definition::m_key;
-		config_definition_ut["section"] = &toml_v2::config_definition::m_section;
 
 		// Lua API: Function
 		// Class: config.config_file
@@ -136,5 +135,22 @@ namespace lua::toml_lua_v2
 		// Name: set
 		// Param: new_value: bool or double or string: New value of this setting.
 		config_entry_ut.set_function("set", sol::overload(set_value_bool, set_value_double, set_value_string));
+
+		// Lua API: Class
+		// Name: config.config_definition
+		// Section and key of a setting.
+		auto config_definition_ut = ns.new_usertype<toml_v2::config_definition>("config_definition", sol::no_constructor);
+
+		// Lua API: Field
+		// Class: config.config_definition
+		// Field: section
+		// Group of the setting. All settings within a config file are grouped by this.
+		config_definition_ut["section"] = &toml_v2::config_definition::m_section;
+
+		// Lua API: Field
+		// Class: config.config_definition
+		// Field: key
+		// Name of the setting.
+		config_definition_ut["key"] = &toml_v2::config_definition::m_key;
 	}
 } // namespace lua::toml_lua_v2
