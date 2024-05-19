@@ -159,52 +159,76 @@ namespace toml_v2
 		    to_any_visitor_deser<int8_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (int8_t)std::stoi(x);
+			        // use from_chars instead of to_string for making it locale invariant:
+			        // C locale might be set by rombase lib user and
+			        // will cause issues on config files shared between users with diff locales.
+
+			        int8_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<uint8_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (uint8_t)std::stoul(x);
+			        uint8_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<int16_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (int16_t)std::stoi(x);
+			        int16_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<uint16_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (uint16_t)std::stoul(x);
+			        uint16_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<int32_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (int32_t)std::stoi(x);
+			        int32_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<uint32_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (uint32_t)std::stoul(x);
+			        uint32_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<int64_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (int64_t)std::stoll(x);
+			        int64_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<uint64_t>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return (uint64_t)std::stoull(x);
+			        uint64_t result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<float>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return std::stof(x);
+			        float result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<double>(
 		        [](const std::string& x) -> std::any
 		        {
-			        return std::stod(x);
+			        double result{};
+			        auto [ptr, ec] = std::from_chars(x.data(), x.data() + x.size(), result);
+			        return result;
 		        }),
 		    to_any_visitor_deser<void>(
 		        []() -> std::any
