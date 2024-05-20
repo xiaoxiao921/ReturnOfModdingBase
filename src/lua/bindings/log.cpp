@@ -69,12 +69,6 @@ namespace lua::log
 	// Name: error
 	// Param: args: any
 	// Logs an error message.
-	static sol::reference error(sol::variadic_args args, sol::this_environment env)
-	{
-		log_internal(args, env, FATAL);
-
-		return env.env.value()["_rom_error"](args);
-	}
 
 	// Lua API: Function
 	// Table: log
@@ -92,15 +86,13 @@ namespace lua::log
 	{
 		state["_rom_tostring"] = state["tostring"];
 
-		state["print"]      = info;
-		state["_rom_error"] = state["error"];
-		state["error"]      = error;
+		state["print"] = info;
 
 		auto ns       = lua_ext.create_named("log");
 		ns["info"]    = info;
 		ns["warning"] = warning;
 		ns["debug"]   = debug;
-		ns["error"]   = error;
+		ns["error"]   = state["error"];
 
 		ns["refresh_filters"] = refresh_filters;
 	}
