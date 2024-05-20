@@ -67,8 +67,9 @@ namespace lua::log
 	// Lua API: Function
 	// Table: log
 	// Name: error
-	// Param: args: any
-	// Logs an error message.
+	// Param: arg: any
+	// Param: level: integer
+	// Logs an error message. This is a mirror of lua classic `error` function.
 
 	// Lua API: Function
 	// Table: log
