@@ -106,7 +106,7 @@ namespace big
 		    [this](LogMessagePtr msg)
 		    {
 			    const auto msg_lvl = msg->Level();
-			    if (bits::has_bits_set((int*)&msg_lvl, (int)m_log_level_filter_file_value))
+			    if (bits::has_bits_set((int*)&m_log_level_filter_file_value, (int)msg_lvl))
 			    {
 				    format_file(std::move(msg));
 			    }
@@ -116,7 +116,7 @@ namespace big
 		    [this](LogMessagePtr msg)
 		    {
 			    const auto msg_lvl = msg->Level();
-			    if (bits::has_bits_set((int*)&msg_lvl, (int)m_log_level_filter_console_value))
+			    if (bits::has_bits_set((int*)&m_log_level_filter_console_value, (int)msg_lvl))
 			    {
 				    (this->*m_console_logger)(std::move(msg));
 			    }
