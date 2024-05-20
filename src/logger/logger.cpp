@@ -192,9 +192,15 @@ namespace big
 
 	const char* get_level_string(const eLogLevel level)
 	{
-		constexpr std::array<const char*, 4> levelStrings = {{{"DEBUG"}, {"INFO"}, {"WARN"}, {"FATAL"}}};
+		switch (level)
+		{
+		case VERBOSE: return "DEBUG";
+		case INFO:    return "INFO";
+		case WARNING: return "WARN";
+		case FATAL:   return "FATAL";
+		}
 
-		return levelStrings[level];
+		return "INFO";
 	}
 
 	void logger::format_console(const LogMessagePtr msg)
