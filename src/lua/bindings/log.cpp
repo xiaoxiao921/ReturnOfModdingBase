@@ -5,6 +5,8 @@
 using namespace al;
 #include "lua/lua_module.hpp"
 
+#include <logger/logger.hpp>
+
 namespace lua::log
 {
 	static void log_internal(sol::variadic_args& args, sol::this_environment& env, al::eLogLevel level)
@@ -74,6 +76,18 @@ namespace lua::log
 		return env.env.value()["_rom_error"](args);
 	}
 
+	// Lua API: Function
+	// Table: log
+	// Name: refresh_filters
+	// Refresh the log filters (Console and File) from the config file.
+	static void refresh_filters()
+	{
+		if (big::g_log)
+		{
+			big::g_log->refresh_log_filter_values_from_config();
+		}
+	}
+
 	void bind(sol::state_view& state, sol::table& lua_ext)
 	{
 		state["_rom_tostring"] = state["tostring"];
@@ -87,5 +101,7 @@ namespace lua::log
 		ns["warning"] = warning;
 		ns["debug"]   = debug;
 		ns["error"]   = error;
+
+		ns["refresh_filters"] = refresh_filters;
 	}
 } // namespace lua::log

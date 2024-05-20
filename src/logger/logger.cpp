@@ -74,31 +74,7 @@ namespace big
 
 		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "VERBOSE, INFO, WARNING, FATAL", "Only displays the specified log levels in the console.");
 		m_log_level_filter_file_cfg = big::config::general().bind("Logging", "File LogLevels", "VERBOSE, INFO, WARNING, FATAL", "Only displays the specified log levels in the log file.");
-		auto init_log_filter = [](toml_v2::config_file::config_entry<const char*>* cfg, int* flag)
-		{
-			const auto str = cfg->get_value();
-			auto res       = *flag;
-			if (str.contains("VERBOSE"))
-			{
-				res |= VERBOSE;
-			}
-			if (str.contains("INFO"))
-			{
-				res |= INFO;
-			}
-			if (str.contains("WARNING"))
-			{
-				res |= WARNING;
-			}
-			if (str.contains("FATAL"))
-			{
-				res |= FATAL;
-			}
-
-			*flag = res;
-		};
-		init_log_filter(m_log_level_filter_console_cfg, (int*)&m_log_level_filter_console_value);
-		init_log_filter(m_log_level_filter_file_cfg, (int*)&m_log_level_filter_file_value);
+		refresh_log_filter_values_from_config();
 
 		Logger::Init();
 
@@ -250,5 +226,34 @@ namespace big
 		           << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_file_out.flush();
+	}
+
+	void logger::refresh_log_filter_values_from_config()
+	{
+		auto init_log_filter = [](toml_v2::config_file::config_entry<const char*>* cfg, int* flag)
+		{
+			const auto str = cfg->get_value();
+			auto res       = *flag;
+			if (str.contains("VERBOSE"))
+			{
+				res |= VERBOSE;
+			}
+			if (str.contains("INFO"))
+			{
+				res |= INFO;
+			}
+			if (str.contains("WARNING"))
+			{
+				res |= WARNING;
+			}
+			if (str.contains("FATAL"))
+			{
+				res |= FATAL;
+			}
+
+			*flag = res;
+		};
+		init_log_filter(m_log_level_filter_console_cfg, (int*)&m_log_level_filter_console_value);
+		init_log_filter(m_log_level_filter_file_cfg, (int*)&m_log_level_filter_file_value);
 	}
 } // namespace big

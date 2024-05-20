@@ -37,6 +37,8 @@ namespace big
 		void initialize();
 		void destroy();
 
+		void refresh_log_filter_values_from_config();
+
 	private:
 		void create_backup();
 
