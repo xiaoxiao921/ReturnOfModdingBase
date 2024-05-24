@@ -2,6 +2,8 @@
 
 #include "logger/logger.hpp"
 
+#undef ERROR
+
 namespace big
 {
 	thread_pool::thread_pool(const std::size_t preallocated_thread_count) :
