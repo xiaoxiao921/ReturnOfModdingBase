@@ -1,11 +1,13 @@
 #pragma once
 
 #include "file_manager/file_manager.hpp"
-
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
 #include "rom/rom.hpp"
 #include "toml.hpp"
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace lua::window
 {

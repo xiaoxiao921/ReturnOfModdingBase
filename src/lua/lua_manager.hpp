@@ -1,8 +1,7 @@
 #pragma once
 #include "load_module_result.hpp"
 
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
+
 #include "lua_module.hpp"
 #include "module_info.hpp"
 #include "rom/rom.hpp"
@@ -13,6 +12,11 @@ using namespace al;
 #include <stack>
 #include <thunderstore/v1/manifest.hpp>
 #include <unordered_set>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace big
 {
@@ -94,11 +98,11 @@ namespace big
 			}
 			catch (const std::exception& e)
 			{
-				LOG(FATAL) << e.what();
+				LOG(ERROR) << e.what();
 			}
 			catch (...)
 			{
-				LOG(FATAL) << "Unknown exception while trying to create fallback module";
+				LOG(ERROR) << "Unknown exception while trying to create fallback module";
 			}
 		}
 
@@ -147,10 +151,10 @@ namespace big
 				std::stack<std::string> current_stack;
 				if (!topological_sort_visit(input, current_stack, sorted_list, dependency_selector, visited, sorted))
 				{
-					LOG(FATAL) << "Cyclic Dependency: " << input;
+					LOG(ERROR) << "Cyclic Dependency: " << input;
 					while (!current_stack.empty())
 					{
-						LOG(FATAL) << current_stack.top();
+						LOG(ERROR) << current_stack.top();
 						current_stack.pop();
 					}
 				}
@@ -221,7 +225,7 @@ namespace big
 
 			/*for (const auto& guid : sorted_modules)
 			{
-				LOG(VERBOSE) << guid;
+				LOG(DEBUG) << guid;
 			}*/
 
 			std::unordered_set<std::string> missing_modules;

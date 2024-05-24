@@ -2,6 +2,8 @@
 
 #include "logger/logger.hpp"
 
+#undef ERROR
+
 namespace big
 {
 	thread_pool::thread_pool(const std::size_t preallocated_thread_count) :
@@ -20,7 +22,7 @@ namespace big
 
 	void thread_pool::rescale_thread_pool()
 	{
-		LOG(VERBOSE) << "Resizing thread pool from " << m_thread_pool.size() << " to " << m_allocated_thread_count;
+		LOG(DEBUG) << "Resizing thread pool from " << m_thread_pool.size() << " to " << m_allocated_thread_count;
 		m_thread_pool.reserve(m_allocated_thread_count);
 
 		if (m_thread_pool.size() < m_allocated_thread_count)
@@ -62,7 +64,7 @@ namespace big
 
 					if (m_allocated_thread_count++ >= MAX_POOL_SIZE)
 					{
-						LOG(FATAL) << "The thread pool limit has been reached, whatever you did this should not occur "
+						LOG(ERROR) << "The thread pool limit has been reached, whatever you did this should not occur "
 						              "in production.";
 					}
 					if (m_accept_jobs && m_allocated_thread_count <= MAX_POOL_SIZE)
@@ -105,8 +107,8 @@ namespace big
 			try
 			{
 				const auto source_file = std::filesystem::path(job.m_source_location.file_name()).filename().string();
-				LOG(VERBOSE) << "Thread " << std::this_thread::get_id() << " executing " << source_file << ":"
-				             << job.m_source_location.line();
+				LOG(DEBUG) << "Thread " << std::this_thread::get_id() << " executing " << source_file << ":"
+				           << job.m_source_location.line();
 
 				std::invoke(job.m_func);
 			}
@@ -118,6 +120,6 @@ namespace big
 			m_allocated_thread_count++;
 		}
 
-		LOG(VERBOSE) << "Thread " << std::this_thread::get_id() << " exiting...";
+		LOG(DEBUG) << "Thread " << std::this_thread::get_id() << " exiting...";
 	}
 } // namespace big

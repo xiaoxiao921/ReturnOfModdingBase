@@ -1,11 +1,13 @@
 #pragma once
 #include "call_hook.hpp"
 #include "detour_hook.hpp"
-
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
 #include "vmt_hook.hpp"
 #include "vtable_hook.hpp"
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace big
 {
@@ -45,7 +47,7 @@ namespace big
 			{
 				if (!m_target_func_to_detour_hook.contains(target))
 				{
-					LOG(FATAL) << "This is fucked.";
+					LOG(ERROR) << "This is fucked.";
 					Logger::FlushQueue();
 				}
 

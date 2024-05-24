@@ -39,7 +39,7 @@ namespace big
 			DbgHelp_module = ::LoadLibraryW(L"DBGHELP.DLL");
 			if (!DbgHelp_module)
 			{
-				LOG(FATAL) << "Failed loading DbgHelp";
+				LOG(ERROR) << "Failed loading DbgHelp";
 			}
 		}
 
@@ -145,7 +145,7 @@ namespace big
 		const auto trace_hash = hash_stack_trace(trace.frame_pointers());
 		if (const auto it = logged_exceptions.find(trace_hash); it == logged_exceptions.end())
 		{
-			LOG(FATAL) << trace;
+			LOG(ERROR) << trace;
 			Logger::FlushQueue();
 
 			logged_exceptions.insert(trace_hash);

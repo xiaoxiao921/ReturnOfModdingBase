@@ -27,7 +27,7 @@ namespace big
 		auto module = memory::module("ntdll.dll");
 		if (const auto env_no_color = std::getenv("NO_COLOR"); module.get_export("wine_get_version") || (env_no_color && strlen(env_no_color)))
 		{
-			LOG(VERBOSE) << "Using simple logger.";
+			LOG(DEBUG) << "Using simple logger.";
 			m_console_logger = &logger::format_console_simple;
 		}
 
@@ -72,8 +72,8 @@ namespace big
 		create_backup();
 		open_outstreams();
 
-		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "VERBOSE, INFO, WARNING, FATAL", "Only displays the specified log levels in the console.");
-		m_log_level_filter_file_cfg = big::config::general().bind("Logging", "File LogLevels", "VERBOSE, INFO, WARNING, FATAL", "Only displays the specified log levels in the log file.");
+		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the console.");
+		m_log_level_filter_file_cfg = big::config::general().bind("Logging", "File LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the log file.");
 		refresh_log_filter_values_from_config();
 
 		Logger::Init();
@@ -158,10 +158,10 @@ namespace big
 	{
 		switch (level)
 		{
-		case VERBOSE: return LogColor::BLUE;
+		case DEBUG:   return LogColor::BLUE;
 		case INFO:    return LogColor::GREEN;
 		case WARNING: return LogColor::YELLOW;
-		case FATAL:   return LogColor::RED;
+		case ERROR:   return LogColor::RED;
 		}
 		return LogColor::WHITE;
 	}
@@ -170,10 +170,10 @@ namespace big
 	{
 		switch (level)
 		{
-		case VERBOSE: return "DEBUG";
+		case DEBUG:   return "DEBUG";
 		case INFO:    return "INFO";
-		case WARNING: return "WARN";
-		case FATAL:   return "FATAL";
+		case WARNING: return "WARNING";
+		case ERROR:   return "FATERRORL";
 		}
 
 		return "INFO";
@@ -203,8 +203,7 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_console_out << "[" << timestamp << "]"
-		              << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_console_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_console_out.flush();
 	}
@@ -222,8 +221,7 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_file_out << "[" << timestamp << "]"
-		           << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_file_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_file_out.flush();
 	}
@@ -234,9 +232,9 @@ namespace big
 		{
 			const auto str = cfg->get_value();
 			auto res       = *flag;
-			if (str.contains("VERBOSE"))
+			if (str.contains("DEBUG"))
 			{
-				res |= VERBOSE;
+				res |= DEBUG;
 			}
 			if (str.contains("INFO"))
 			{
@@ -246,9 +244,9 @@ namespace big
 			{
 				res |= WARNING;
 			}
-			if (str.contains("FATAL"))
+			if (str.contains("ERROR"))
 			{
-				res |= FATAL;
+				res |= ERROR;
 			}
 
 			*flag = res;

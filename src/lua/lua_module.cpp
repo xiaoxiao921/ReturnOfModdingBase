@@ -1,11 +1,13 @@
 #include "lua_module.hpp"
 
 #include "file_manager/file_manager.hpp"
-
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
 #include "lua_manager.hpp"
 #include "rom/rom.hpp"
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace big
 {
@@ -127,7 +129,7 @@ namespace big
 
 		if (!result.valid())
 		{
-			LOG(FATAL) << m_info.m_guid << " failed to load: " << result.get<sol::error>().what();
+			LOG(ERROR) << m_info.m_guid << " failed to load: " << result.get<sol::error>().what();
 			Logger::FlushQueue();
 
 			return load_module_result::FAILED_TO_LOAD;

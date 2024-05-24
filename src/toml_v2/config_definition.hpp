@@ -1,9 +1,12 @@
 #pragma once
-#include <AsyncLogger/Logger.hpp>
 #include <map>
 #include <string/string.hpp>
-using namespace al;
 #include <string>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace toml_v2
 {
@@ -27,7 +30,7 @@ namespace toml_v2
 		{
 			if (val.empty())
 			{
-				LOG(FATAL) << "invalid empty val";
+				LOG(ERROR) << "invalid empty val";
 				return;
 			}
 
@@ -35,7 +38,7 @@ namespace toml_v2
 			big::string::trim(val_trimed);
 			if (val != val_trimed)
 			{
-				LOG(FATAL) << "Cannot use whitespace characters at start or end of section and key names: " << val << " | " << name;
+				LOG(ERROR) << "Cannot use whitespace characters at start or end of section and key names: " << val << " | " << name;
 				return;
 			}
 
@@ -45,7 +48,7 @@ namespace toml_v2
 				{
 					if (c == cc)
 					{
-						LOG(FATAL) << R"(Cannot use any of the following characters in section and key names: = \n \t \ "" ' [ ])";
+						LOG(ERROR) << R"(Cannot use any of the following characters in section and key names: = \n \t \ "" ' [ ])";
 						return;
 					}
 				}
