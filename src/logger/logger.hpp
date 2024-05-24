@@ -1,11 +1,14 @@
 #pragma once
 #include "file_manager/file_manager.hpp"
 
-#include <AsyncLogger/Logger.hpp>
 #include <fstream>
 #include <toml_v2/config_file.hpp>
 #include <Windows.h>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
 using namespace al;
+// clang-format off
 
 namespace big
 {

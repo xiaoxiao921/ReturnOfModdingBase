@@ -1,10 +1,13 @@
 #include "hotkey.hpp"
 
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
 #include <file_manager/file_manager.hpp>
 #include <rom/rom.hpp>
 #include <windows.h>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format off
 
 namespace big
 {
