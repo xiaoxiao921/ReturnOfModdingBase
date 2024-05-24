@@ -1,9 +1,12 @@
 #pragma once
 #include "path.hpp"
 
-#include <AsyncLogger/Logger.hpp>
 #include <filesystem>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
 using namespace al;
+// clang-format on
 
 namespace lua::path
 {

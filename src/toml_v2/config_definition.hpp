@@ -1,9 +1,12 @@
 #pragma once
-#include <AsyncLogger/Logger.hpp>
 #include <map>
 #include <string/string.hpp>
-using namespace al;
 #include <string>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace toml_v2
 {

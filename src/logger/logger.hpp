@@ -8,7 +8,7 @@
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
-// clang-format off
+// clang-format on
 
 namespace big
 {

@@ -1,8 +1,7 @@
 #pragma once
 #include "load_module_result.hpp"
 
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
+
 #include "lua_module.hpp"
 #include "module_info.hpp"
 #include "rom/rom.hpp"
@@ -13,6 +12,11 @@ using namespace al;
 #include <stack>
 #include <thunderstore/v1/manifest.hpp>
 #include <unordered_set>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace big
 {

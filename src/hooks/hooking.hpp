@@ -1,11 +1,13 @@
 #pragma once
 #include "call_hook.hpp"
 #include "detour_hook.hpp"
-
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
 #include "vmt_hook.hpp"
 #include "vtable_hook.hpp"
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace big
 {

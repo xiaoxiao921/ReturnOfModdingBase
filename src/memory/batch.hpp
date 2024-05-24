@@ -1,12 +1,15 @@
 #pragma once
-#include <AsyncLogger/Logger.hpp>
-using namespace al;
 #include "pattern.hpp"
 #include "range.hpp"
 #include "signature.hpp"
 
 #include <future>
 #include <rom/rom.hpp>
+
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
 
 namespace memory
 {
