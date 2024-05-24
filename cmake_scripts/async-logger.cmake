@@ -4,7 +4,7 @@ message("AsyncLogger")
 FetchContent_Declare(
     AsyncLogger
     GIT_REPOSITORY https://github.com/xiaoxiao921/AsyncLogger.git
-    GIT_TAG 364a1a92e74718185e56f7921c555f027312e4ec
+    GIT_TAG e32d649a412ca31dbf56e510371c2e16e7c43b96
 )
 FetchContent_MakeAvailable(AsyncLogger)
 
