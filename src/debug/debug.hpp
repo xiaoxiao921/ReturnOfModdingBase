@@ -13,7 +13,7 @@ namespace big::debug
 			std::this_thread::sleep_for(1s);
 		}
 #else
-		LOG(VERBOSE) << "Not waiting for debugger because it's a release build.";
+		LOG(DEBUG) << "Not waiting for debugger because it's a release build.";
 		Logger::FlushQueue();
 #endif
 	}

@@ -6,7 +6,7 @@ toml_v2::config_file::config_file(std::string_view config_path, bool save_on_ini
 
 	if (config_path.empty())
 	{
-		LOG(FATAL) << "config_path cannot be empty";
+		LOG(ERROR) << "config_path cannot be empty";
 		return;
 	}
 
@@ -37,7 +37,7 @@ void toml_v2::config_file::save()
 	}
 	catch (const std::exception& e)
 	{
-		LOG(FATAL) << "Failed writing config file: " << e.what();
+		LOG(ERROR) << "Failed writing config file: " << e.what();
 		return;
 	}
 
@@ -45,7 +45,7 @@ void toml_v2::config_file::save()
 
 	if (!writer.is_open())
 	{
-		LOG(FATAL) << "failed open";
+		LOG(ERROR) << "failed open";
 		return;
 	}
 

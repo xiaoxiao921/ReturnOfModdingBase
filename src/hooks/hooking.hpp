@@ -45,7 +45,7 @@ namespace big
 			{
 				if (!m_target_func_to_detour_hook.contains(target))
 				{
-					LOG(FATAL) << "This is fucked.";
+					LOG(ERROR) << "This is fucked.";
 					Logger::FlushQueue();
 				}
 

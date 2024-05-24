@@ -366,7 +366,7 @@ namespace big
 	{
 		if (!name.size())
 		{
-			LOG(FATAL) << "Invalid hotkey";
+			LOG(ERROR) << "Invalid hotkey";
 			*(int*)0xDE'AD = 0;
 		}
 		m_name       = name;
@@ -417,7 +417,7 @@ namespace big
 				hotkey_entry->m_vk_string = m_table.get(hotkey_entry->m_name);
 				if (hotkey_entry->m_vk_string == nullptr)
 				{
-					LOG(FATAL) << "what";
+					LOG(ERROR) << "what";
 				}
 				else
 				{
@@ -455,7 +455,7 @@ namespace big
 					hotkey_entry->m_vk_string = m_table.get(hotkey_entry->m_name);
 					if (hotkey_entry->m_vk_string == nullptr)
 					{
-						LOG(FATAL) << "what2";
+						LOG(ERROR) << "what2";
 					}
 					else
 					{

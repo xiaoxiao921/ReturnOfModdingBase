@@ -61,7 +61,7 @@ namespace big
 		}
 		catch (const std::exception& e)
 		{
-			LOG(FATAL) << "Failed reading manifest.json: " << e.what();
+			LOG(ERROR) << "Failed reading manifest.json: " << e.what();
 			return {};
 		}
 
@@ -74,7 +74,7 @@ namespace big
 			}
 			else
 			{
-				LOG(FATAL) << "Invalid dependency string " << dep << " inside the following manifest: " << manifest_path << ". Example format: AuthorName-ModName-1.0.0";
+				LOG(ERROR) << "Invalid dependency string " << dep << " inside the following manifest: " << manifest_path << ". Example format: AuthorName-ModName-1.0.0";
 			}
 		}
 
@@ -151,7 +151,7 @@ namespace big
 			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 			    if (directory_handle == INVALID_HANDLE_VALUE)
 			    {
-				    LOG(FATAL) << "Failed to get handle to directory. Error: " << GetLastError();
+				    LOG(ERROR) << "Failed to get handle to directory. Error: " << GetLastError();
 				    return;
 			    }
 
@@ -167,7 +167,7 @@ namespace big
 
 				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, &overlapped, nullptr))
 				    {
-					    LOG(FATAL) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
+					    LOG(ERROR) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
 					    CloseHandle(directory_handle);
 					    return;
 				    }
@@ -178,7 +178,7 @@ namespace big
 					    DWORD error = GetLastError();
 					    if (error != ERROR_OPERATION_ABORTED)
 					    {
-						    LOG(FATAL) << "GetOverlappedResult failed. Error: " << error;
+						    LOG(ERROR) << "GetOverlappedResult failed. Error: " << error;
 					    }
 					    CloseHandle(directory_handle);
 					    return;
@@ -264,11 +264,11 @@ namespace big
 		if (maybe_exception)
 		{
 			const std::exception& ex = *maybe_exception;
-			LOG(FATAL) << ex.what();
+			LOG(ERROR) << ex.what();
 		}
 		else
 		{
-			LOG(FATAL) << description;
+			LOG(ERROR) << description;
 		}
 		Logger::FlushQueue();
 
@@ -281,11 +281,11 @@ namespace big
 
 	static void panic_handler(sol::optional<std::string> maybe_msg)
 	{
-		LOG(FATAL) << "Lua is in a panic state and will now abort() the application";
+		LOG(ERROR) << "Lua is in a panic state and will now abort() the application";
 		if (maybe_msg)
 		{
 			const std::string& msg = maybe_msg.value();
-			LOG(FATAL) << "error message: " << msg;
+			LOG(ERROR) << "error message: " << msg;
 		}
 		Logger::FlushQueue();
 
@@ -308,7 +308,7 @@ namespace big
 			const sol::string_view& traceback = maybetraceback.value();
 			msg.assign(traceback.data(), traceback.size());
 		}
-		LOG(FATAL) << msg;
+		LOG(ERROR) << msg;
 		return sol::stack::push(L, msg);
 	}
 

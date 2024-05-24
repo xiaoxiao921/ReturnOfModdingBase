@@ -141,7 +141,7 @@ private:
 
 		if (debug_name)
 		{
-			LOG(FATAL) << "Missed " << debug_name;
+			LOG(ERROR) << "Missed " << debug_name;
 		}
 		return {0};
 	}

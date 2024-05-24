@@ -90,7 +90,7 @@ namespace big
 
 			if (!m_detour_object->hook())
 			{
-				LOG(FATAL) << std::format("Failed to create hook '{}' at 0x{:X}", m_name, uintptr_t(m_target));
+				LOG(ERROR) << std::format("Failed to create hook '{}' at 0x{:X}", m_name, uintptr_t(m_target));
 			}
 
 			if (suspended_thread_here)
@@ -116,7 +116,7 @@ namespace big
 
 			if (m_detour_object->unHook())
 			{
-				LOG(FATAL) << "Failed to disable hook '" << m_name << "' at 0x" << HEX_TO_UPPER(uintptr_t(m_target)) << "(error: " << m_name << ")";
+				LOG(ERROR) << "Failed to disable hook '" << m_name << "' at 0x" << HEX_TO_UPPER(uintptr_t(m_target)) << "(error: " << m_name << ")";
 			}
 
 			if (threads::are_suspended)

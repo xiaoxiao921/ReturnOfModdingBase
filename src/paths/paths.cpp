@@ -94,7 +94,7 @@ namespace big::paths
 		}
 		catch (const std::exception& e)
 		{
-			LOG(FATAL) << e.what();
+			LOG(ERROR) << e.what();
 		}
 
 		return dump_file_path;

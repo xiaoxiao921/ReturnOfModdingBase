@@ -127,7 +127,7 @@ namespace big
 
 		if (!result.valid())
 		{
-			LOG(FATAL) << m_info.m_guid << " failed to load: " << result.get<sol::error>().what();
+			LOG(ERROR) << m_info.m_guid << " failed to load: " << result.get<sol::error>().what();
 			Logger::FlushQueue();
 
 			return load_module_result::FAILED_TO_LOAD;

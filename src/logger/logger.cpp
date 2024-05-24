@@ -27,7 +27,7 @@ namespace big
 		auto module = memory::module("ntdll.dll");
 		if (const auto env_no_color = std::getenv("NO_COLOR"); module.get_export("wine_get_version") || (env_no_color && strlen(env_no_color)))
 		{
-			LOG(VERBOSE) << "Using simple logger.";
+			LOG(DEBUG) << "Using simple logger.";
 			m_console_logger = &logger::format_console_simple;
 		}
 
@@ -158,7 +158,7 @@ namespace big
 	{
 		switch (level)
 		{
-		case VERBOSE: return LogColor::BLUE;
+		case DEBUG:   return LogColor::BLUE;
 		case INFO:    return LogColor::GREEN;
 		case WARNING: return LogColor::YELLOW;
 		case FATAL:   return LogColor::RED;
@@ -170,9 +170,9 @@ namespace big
 	{
 		switch (level)
 		{
-		case VERBOSE: return "DEBUG";
+		case DEBUG:   return "DEBUG";
 		case INFO:    return "INFO";
-		case WARNING: return "WARN";
+		case WARNING: return "WARNING";
 		case FATAL:   return "FATAL";
 		}
 
@@ -203,8 +203,7 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_console_out << "[" << timestamp << "]"
-		              << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_console_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_console_out.flush();
 	}
@@ -222,8 +221,7 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_file_out << "[" << timestamp << "]"
-		           << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_file_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_file_out.flush();
 	}
