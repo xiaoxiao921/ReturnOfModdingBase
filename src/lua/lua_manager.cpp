@@ -82,7 +82,7 @@ namespace big
 		const auto sep_count    = std::ranges::count(folder_name, '-');
 		if (sep_count != 1)
 		{
-			LOGF(FATAL,
+			LOGF(ERROR,
 			     "Bad folder name ({}) for the following mod: {}. Should be the following format: AuthorName-ModName",
 			     folder_name,
 			     manifest.name);

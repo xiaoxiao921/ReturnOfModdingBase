@@ -61,7 +61,7 @@ namespace lua::log
 	// Logs a debug message.
 	static void debug(sol::variadic_args args, sol::this_environment env)
 	{
-		log_internal(args, env, VERBOSE);
+		log_internal(args, env, DEBUG);
 	}
 
 	// Lua API: Function

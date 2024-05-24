@@ -72,8 +72,8 @@ namespace big
 		create_backup();
 		open_outstreams();
 
-		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "VERBOSE, INFO, WARNING, FATAL", "Only displays the specified log levels in the console.");
-		m_log_level_filter_file_cfg = big::config::general().bind("Logging", "File LogLevels", "VERBOSE, INFO, WARNING, FATAL", "Only displays the specified log levels in the log file.");
+		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the console.");
+		m_log_level_filter_file_cfg = big::config::general().bind("Logging", "File LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the log file.");
 		refresh_log_filter_values_from_config();
 
 		Logger::Init();
@@ -161,7 +161,7 @@ namespace big
 		case DEBUG:   return LogColor::BLUE;
 		case INFO:    return LogColor::GREEN;
 		case WARNING: return LogColor::YELLOW;
-		case FATAL:   return LogColor::RED;
+		case ERROR:   return LogColor::RED;
 		}
 		return LogColor::WHITE;
 	}
@@ -173,7 +173,7 @@ namespace big
 		case DEBUG:   return "DEBUG";
 		case INFO:    return "INFO";
 		case WARNING: return "WARNING";
-		case FATAL:   return "FATAL";
+		case ERROR:   return "FATERRORL";
 		}
 
 		return "INFO";
@@ -232,9 +232,9 @@ namespace big
 		{
 			const auto str = cfg->get_value();
 			auto res       = *flag;
-			if (str.contains("VERBOSE"))
+			if (str.contains("DEBUG"))
 			{
-				res |= VERBOSE;
+				res |= DEBUG;
 			}
 			if (str.contains("INFO"))
 			{
@@ -244,9 +244,9 @@ namespace big
 			{
 				res |= WARNING;
 			}
-			if (str.contains("FATAL"))
+			if (str.contains("ERROR"))
 			{
-				res |= FATAL;
+				res |= ERROR;
 			}
 
 			*flag = res;
