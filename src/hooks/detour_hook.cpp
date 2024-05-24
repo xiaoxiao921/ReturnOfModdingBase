@@ -49,7 +49,7 @@ namespace big
 			return;
 		}
 
-		//fix_hook_address();
+		fix_hook_address();
 
 		m_detour_object = std::make_unique<PLH::x64Detour>((uintptr_t)m_target, (uintptr_t)m_detour, (uintptr_t*)&m_original);
 	}
