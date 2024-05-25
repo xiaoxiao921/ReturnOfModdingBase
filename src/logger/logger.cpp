@@ -16,8 +16,7 @@ namespace big
 		return system_clock::to_time_t(sctp);
 	}
 
-	logger::logger(std::string_view console_title, file file, bool attach_console) :
-	    m_attach_console(attach_console),
+	logger::logger(std::string_view console_title, file file) :
 	    m_did_console_exist(false),
 	    m_console_logger(&logger::format_console),
 	    m_console_title(console_title),
@@ -44,7 +43,9 @@ namespace big
 
 	void logger::initialize()
 	{
-		if (m_attach_console)
+		m_attach_console_cfg = big::config::general().bind("Logging", "Console Enabled", true, "Enables showing a console for log output.");
+
+		if (m_attach_console_cfg->get_value())
 		{
 			if (m_did_console_exist = ::AttachConsole(GetCurrentProcessId()); !m_did_console_exist)
 			{
@@ -110,7 +111,7 @@ namespace big
 			SetConsoleMode(m_console_handle, m_original_console_mode);
 		}
 
-		if (!m_did_console_exist && m_attach_console)
+		if (!m_did_console_exist && m_attach_console_cfg->get_value())
 		{
 			FreeConsole();
 		}
@@ -137,7 +138,7 @@ namespace big
 
 	void logger::open_outstreams()
 	{
-		if (m_attach_console)
+		if (m_attach_console_cfg->get_value())
 		{
 			m_console_out.open("CONOUT$", std::ios_base::out | std::ios_base::app);
 		}
@@ -147,7 +148,7 @@ namespace big
 
 	void logger::close_outstreams()
 	{
-		if (m_attach_console)
+		if (m_attach_console_cfg->get_value())
 		{
 			m_console_out.close();
 		}

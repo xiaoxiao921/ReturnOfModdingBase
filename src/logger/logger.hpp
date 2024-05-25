@@ -8,6 +8,7 @@
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
+
 // clang-format on
 
 namespace big
@@ -34,7 +35,7 @@ namespace big
 	class logger final
 	{
 	public:
-		logger(std::string_view console_title, file file, bool attach_console = true);
+		logger(std::string_view console_title, file file);
 		virtual ~logger();
 
 		void initialize();
@@ -53,7 +54,7 @@ namespace big
 		void format_file(const LogMessagePtr msg);
 
 	private:
-		bool m_attach_console;
+		toml_v2::config_file::config_entry<bool>* m_attach_console_cfg;
 		bool m_did_console_exist;
 
 		void (logger::*m_console_logger)(const LogMessagePtr msg);
