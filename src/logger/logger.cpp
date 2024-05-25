@@ -173,7 +173,7 @@ namespace big
 		case DEBUG:   return "DEBUG";
 		case INFO:    return "INFO";
 		case WARNING: return "WARNING";
-		case ERROR:   return "FATERRORL";
+		case ERROR:   return "ERROR";
 		}
 
 		return "INFO";
