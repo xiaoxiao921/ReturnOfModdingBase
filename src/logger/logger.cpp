@@ -4,6 +4,7 @@
 #include "bits/bits.hpp"
 #include "config/config.hpp"
 #include "memory/module.hpp"
+#undef ERROR
 
 namespace big
 {
@@ -203,7 +204,8 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_console_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_console_out << "[" << timestamp << "]"
+		              << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_console_out.flush();
 	}
@@ -221,7 +223,8 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_file_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_file_out << "[" << timestamp << "]"
+		           << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_file_out.flush();
 	}
@@ -232,7 +235,7 @@ namespace big
 		{
 			const auto str = cfg->get_value();
 			auto res       = *flag;
-			if (str.contains("DEBUG"))
+			if (str.contains("DEBUG") || str.contains("VERBOSE"))
 			{
 				res |= DEBUG;
 			}
@@ -244,7 +247,7 @@ namespace big
 			{
 				res |= WARNING;
 			}
-			if (str.contains("ERROR"))
+			if (str.contains("ERROR") || str.contains("FATAL"))
 			{
 				res |= ERROR;
 			}
