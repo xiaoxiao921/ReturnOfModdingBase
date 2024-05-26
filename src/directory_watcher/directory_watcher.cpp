@@ -94,7 +94,7 @@ namespace big
 		}
 	}
 
-	std::vector<std::filesystem::path> directory_watcher::check()
+	std::vector<std::filesystem::path> directory_watcher::check() const
 	{
 		DWORD transferred         = 0;
 		ULONG_PTR key             = 0;
