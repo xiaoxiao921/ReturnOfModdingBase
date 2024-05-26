@@ -63,7 +63,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		    while (true)
 		    {
 			    size_t i = 0;
-			    for (const auto& watcher : watchers)
+			    for (auto& watcher : watchers)
 			    {
 				    auto modified_files = watcher.check();
 				    for (const auto& file_path : modified_files)
@@ -78,15 +78,23 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 				    }
 			    }
 
+
 			    using namespace std::chrono_literals;
 			    std::this_thread::sleep_for(500ms);
 		    }
 	    })
 	    .detach();
 
+	size_t i = 0;
 	while (true)
 	{
-		Sleep(1000);
+		i++;
+
+		if (i <= 500)
+		{
+			LOG(INFO) << "lua file changed";
+		}
+		Sleep(1);
 	}
 
 	return 0;
