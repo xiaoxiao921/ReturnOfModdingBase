@@ -100,25 +100,29 @@ namespace big
 		ULONG_PTR key             = 0;
 		LPOVERLAPPED lpOverlapped = nullptr;
 
-		std::vector<std::filesystem::path> modifications;
-		//std::unordered_set<std::wstring> last_modifications;
+		std::unordered_set<std::wstring> current_modifications;
 
-		BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 500);
+		std::vector<std::filesystem::path> modifications;
+
+		BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 0);
 		if (!result)
 		{
 			DWORD error = GetLastError();
 			if (error == WAIT_TIMEOUT)
 			{
+				last_modifications = current_modifications;
 				return modifications;
 			}
 			else if (error == ERROR_INVALID_HANDLE)
 			{
 				LOG(ERROR) << "GetQueuedCompletionStatus failed: Invalid handle";
+				last_modifications = current_modifications;
 				return modifications;
 			}
 			else
 			{
 				LOG(ERROR) << "GetQueuedCompletionStatus failed: " << error;
+				last_modifications = current_modifications;
 				return modifications;
 			}
 		}
@@ -128,7 +132,13 @@ namespace big
 		while (true)
 		{
 			const std::wstring filename(record->FileName, record->FileNameLength / sizeof(WCHAR));
-			modifications.push_back(_path / filename);
+
+			const std::wstring full_path = std::filesystem::path(_path / filename).wstring();
+			if (!last_modifications.contains(full_path))
+			{
+				modifications.push_back(full_path);
+				current_modifications.insert(full_path);
+			}
 
 			if (record->NextEntryOffset == 0)
 			{
@@ -144,6 +154,7 @@ namespace big
 			LOG(ERROR) << "ReadDirectoryChangesW failed: " << GetLastError();
 		}
 
+		last_modifications = current_modifications;
 		return modifications;
 	}
 } // namespace big

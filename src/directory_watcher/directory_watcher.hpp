@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <unordered_set>
 #include <vector>
 #include <Windows.h>
 
@@ -28,6 +29,7 @@ namespace big
 		void* _file_handle;
 		HANDLE _completion_handle;
 		OVERLAPPED _overlapped;
+		std::unordered_set<std::wstring> last_modifications;
 
 		void close_handles();
 	};
