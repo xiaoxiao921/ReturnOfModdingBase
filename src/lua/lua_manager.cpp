@@ -160,7 +160,6 @@ namespace big
 			    hdir = CreateFileW(directory.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 
 			    memset(&ov, 0, sizeof(ov));
-			    ov.hEvent = (void*)0xde'ad'be'ef;
 			    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME, NULL, &ov, readdirectorychanges_cr);
 
 			    LOG(INFO) << "waiting until smth happen";
