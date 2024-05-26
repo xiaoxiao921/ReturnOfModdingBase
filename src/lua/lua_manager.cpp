@@ -169,8 +169,6 @@ namespace big
 					    auto modified_files = watcher.check();
 					    for (const auto& file_path : modified_files)
 					    {
-						    LOG(INFO) << (char*)file_path.u8string().c_str();
-
 						    auto fullPath = file_path.wstring();
 						    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
 						    {
