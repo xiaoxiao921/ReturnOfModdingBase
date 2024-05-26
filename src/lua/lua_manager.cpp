@@ -146,9 +146,13 @@ namespace big
 
 	void lua_manager::init_file_watcher(const std::filesystem::path& directory)
 	{
+		LOG(INFO) << "init_file_watcher entered";
+
 		std::thread(
 		    [directory]
 		    {
+			    LOG(INFO) << "thread made";
+
 			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 			    if (directory_handle == INVALID_HANDLE_VALUE)
 			    {
@@ -156,13 +160,19 @@ namespace big
 				    return;
 			    }
 
+			    LOG(INFO) << "got directory_handle: " << directory_handle;
+
 			    constexpr size_t notify_element_count = 100;
 			    const size_t c_bufferSize             = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
 			    std::unique_ptr<FILE_NOTIFY_INFORMATION[]> notify(new FILE_NOTIFY_INFORMATION[notify_element_count]);
 
+			    LOG(INFO) << "notify: " << HEX_TO_UPPER(notify);
+			    LOG(INFO) << "g_lua_manager: " << HEX_TO_UPPER(g_lua_manager);
+
 			    while (g_lua_manager)
 			    {
 				    DWORD returned;
+				    LOG(INFO) << "About to ReadDirectoryChangesW";
 				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, nullptr, nullptr))
 				    {
 					    LOG(ERROR) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
