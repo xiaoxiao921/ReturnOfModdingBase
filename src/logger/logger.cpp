@@ -4,6 +4,8 @@
 #include "bits/bits.hpp"
 #include "config/config.hpp"
 #include "memory/module.hpp"
+
+#include <sstream>
 #undef ERROR
 
 namespace big
@@ -181,11 +183,28 @@ namespace big
 		return "INFO";
 	}
 
+	static std::string get_local_timestamp(const std::chrono::system_clock::time_point& timestamp)
+	{
+		using namespace std::chrono;
+
+		auto time_t_timestamp = system_clock::to_time_t(timestamp);
+		auto local_time       = *std::localtime(&time_t_timestamp);
+
+		auto mks         = duration_cast<microseconds>(timestamp.time_since_epoch());
+		std::string smks = std::to_string(mks.count() % 10'000'000);
+		while (smks.size() < 7)
+		{
+			smks.insert(smks.begin(), '0');
+		}
+
+		return std::format("{}:{}:{}.{}", local_time.tm_hour, local_time.tm_min, local_time.tm_sec, smks);
+	}
+
 	void logger::format_console(const LogMessagePtr msg)
 	{
 		const auto color = get_color(msg->Level());
 
-		const auto timestamp = std::format("{0:%H:%M:%S}", msg->Timestamp());
+		const auto timestamp = get_local_timestamp(msg->Timestamp());
 		const auto& location = msg->Location();
 		const auto level     = msg->Level();
 
@@ -199,14 +218,13 @@ namespace big
 	{
 		const auto color = get_color(msg->Level());
 
-		const auto timestamp = std::format("{0:%H:%M:%S}", msg->Timestamp());
+		const auto timestamp = get_local_timestamp(msg->Timestamp());
 		const auto& location = msg->Location();
 		const auto level     = msg->Level();
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_console_out << "[" << timestamp << "]"
-		              << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_console_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_console_out.flush();
 	}
@@ -218,14 +236,13 @@ namespace big
 			return;
 		}
 
-		const auto timestamp = std::format("{0:%H:%M:%S}", msg->Timestamp());
+		const auto timestamp = get_local_timestamp(msg->Timestamp());
 		const auto& location = msg->Location();
 		const auto level     = msg->Level();
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_file_out << "[" << timestamp << "]"
-		           << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_file_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_file_out.flush();
 	}
