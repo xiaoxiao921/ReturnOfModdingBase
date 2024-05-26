@@ -1,12 +1,12 @@
 #include "directory_watcher.hpp"
 
-#include <AsyncLogger/Logger.hpp>
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
 #include <Windows.h>
 
 // clang-format off
+#include <AsyncLogger/Logger.hpp>
 using namespace al;
 // clang-format on
 #undef ERROR
