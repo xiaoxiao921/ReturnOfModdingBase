@@ -166,7 +166,7 @@ namespace big
 			    const size_t c_bufferSize             = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
 			    std::unique_ptr<FILE_NOTIFY_INFORMATION[]> notify(new FILE_NOTIFY_INFORMATION[notify_element_count]);
 
-			    LOG(INFO) << "notify: " << HEX_TO_UPPER(notify);
+			    LOG(INFO) << "notify: " << HEX_TO_UPPER(notify.get());
 			    LOG(INFO) << "g_lua_manager: " << HEX_TO_UPPER(g_lua_manager);
 
 			    while (g_lua_manager)
