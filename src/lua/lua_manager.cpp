@@ -151,19 +151,20 @@ namespace big
 		std::thread(
 		    [directory]
 		    {
-			    HANDLE file = CreateFile(path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
-			    assert(file != INVALID_HANDLE_VALUE);
+			    LOG(INFO) << (char*)directory.u8string().c_str();
+
+			    HANDLE file = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+			    LOG(INFO) << (file != INVALID_HANDLE_VALUE);
 			    OVERLAPPED overlapped;
 			    overlapped.hEvent = CreateEvent(NULL, FALSE, 0, NULL);
 
-			    constexpr size_t buffer_size = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
+			    constexpr size_t notify_element_count = 100;
+			    constexpr size_t buffer_size          = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
 			    uint8_t change_buf[buffer_size];
 
 			    BOOL success;
-			    auto queue_next_event = [&]()
-			    {
-				    success = ReadDirectoryChangesW(file, change_buf, buffer_size, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &overlapped, NULL);
-			    };
+
+			    success = ReadDirectoryChangesW(file, change_buf, buffer_size, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &overlapped, NULL);
 
 			    while (g_lua_manager)
 			    {
@@ -230,11 +231,14 @@ namespace big
 						    }
 					    }
 
-					    queue_next_event();
+					    success = ReadDirectoryChangesW(file, change_buf, buffer_size, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &overlapped, NULL);
 				    }
+
+				    using namespace std::chrono_literals;
+				    std::this_thread::sleep_for(500ms);
 			    }
 
-			    LOG(INFO) << "thread made";
+			    /*LOG(INFO) << "thread made";
 
 			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 			    if (directory_handle == INVALID_HANDLE_VALUE)
@@ -308,7 +312,7 @@ namespace big
 				    using namespace std::chrono_literals;
 				    std::this_thread::sleep_for(500ms);
 			    }
-			    CloseHandle(directory_handle);
+			    CloseHandle(directory_handle);*/
 		    })
 		    .detach();
 	}
