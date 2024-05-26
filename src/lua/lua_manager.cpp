@@ -164,11 +164,8 @@ namespace big
 
 			    while (g_lua_manager)
 			    {
-				    size_t i = 0;
-				    for (auto& watcher : watchers)
+				    for (const auto& watcher : watchers)
 				    {
-					    LOG(INFO) << "watcher " << i;
-					    i++;
 					    auto modified_files = watcher.check();
 					    for (const auto& file_path : modified_files)
 					    {
