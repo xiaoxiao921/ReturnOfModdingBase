@@ -156,18 +156,15 @@ namespace big
 			    FILE_NOTIFY_INFORMATION fni[1024], *fni_next;
 			    OVERLAPPED ov;
 			    HANDLE hdir, hfile;
-			    NTSTATUS r;
 
-			    hdir = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
-			    ok(hdir != INVALID_HANDLE_VALUE, "failed to open directory\n");
+			    hdir = CreateFileW(directory.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 
 			    memset(&ov, 0, sizeof(ov));
 			    ov.hEvent = (void*)0xde'ad'be'ef;
-			    r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME, NULL, &ov, readdirectorychanges_cr);
-			    ok(r == TRUE, "ReadDirectoryChangesW failed\n");
+			    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME, NULL, &ov, readdirectorychanges_cr);
 
 			    LOG(INFO) << "waiting until smth happen";
-			    r = SleepEx(INFINITE, TRUE);
+			    auto sleep_res = SleepEx(INFINITE, TRUE);
 			    if (fni->FileNameLength)
 			    {
 				    LOG(INFO) << "got a file change";
