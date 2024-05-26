@@ -144,11 +144,6 @@ namespace big
 		g_lua_manager = nullptr;
 	}
 
-	static void CALLBACK readdirectorychanges_cr(DWORD error, DWORD len, LPOVERLAPPED ov)
-	{
-		LOG(INFO) << "readdirectorychanges_cr";
-	}
-
 	void lua_manager::init_file_watcher(const std::filesystem::path& directory)
 	{
 		LOG(INFO) << "init_file_watcher entered";
@@ -156,8 +151,6 @@ namespace big
 		std::thread(
 		    [directory]
 		    {
-			    LOG(INFO) << (char*)directory.u8string().c_str();
-
 			    FILE_NOTIFY_INFORMATION fni[1024], *fni_next;
 			    OVERLAPPED ov;
 			    HANDLE hdir, hfile;
@@ -165,7 +158,7 @@ namespace big
 			    hdir = CreateFileW(directory.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 
 			    memset(&ov, 0, sizeof(ov));
-			    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME, NULL, &ov, readdirectorychanges_cr);
+			    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &ov, nullptr);
 
 			    LOG(INFO) << "waiting until smth happen";
 			    auto sleep_res = SleepEx(INFINITE, TRUE);
