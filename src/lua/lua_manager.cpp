@@ -185,37 +185,42 @@ namespace big
 						    {
 						    case FILE_ACTION_ADDED:
 						    {
+							    LOG(INFO) << "FILE_ACTION_ADDED";
 							    wprintf(L"       Added: %.*s\n", name_len, event->FileName);
 						    }
 						    break;
 
 						    case FILE_ACTION_REMOVED:
 						    {
+							    LOG(INFO) << "FILE_ACTION_REMOVED";
 							    wprintf(L"     Removed: %.*s\n", name_len, event->FileName);
 						    }
 						    break;
 
 						    case FILE_ACTION_MODIFIED:
 						    {
+							    LOG(INFO) << "FILE_ACTION_MODIFIED";
 							    wprintf(L"    Modified: %.*s\n", name_len, event->FileName);
 						    }
 						    break;
 
 						    case FILE_ACTION_RENAMED_OLD_NAME:
 						    {
+							    LOG(INFO) << "FILE_ACTION_RENAMED_OLD_NAME";
 							    wprintf(L"Renamed from: %.*s\n", name_len, event->FileName);
 						    }
 						    break;
 
 						    case FILE_ACTION_RENAMED_NEW_NAME:
 						    {
+							    LOG(INFO) << "FILE_ACTION_RENAMED_NEW_NAME";
 							    wprintf(L"          to: %.*s\n", name_len, event->FileName);
 						    }
 						    break;
 
 						    default:
 						    {
-							    printf("Unknown action!\n");
+							    LOG(INFO) << "Unknown action!";
 						    }
 						    break;
 						    }
