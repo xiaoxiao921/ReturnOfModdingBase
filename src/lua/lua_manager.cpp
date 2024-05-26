@@ -9,6 +9,7 @@
 #include "bindings/toml/toml_lua.hpp"
 #include "bindings/toml_v2/toml_lua_v2.hpp"
 #include "file_manager/file_manager.hpp"
+#include "logger.hpp"
 #include "string/string.hpp"
 
 namespace big
