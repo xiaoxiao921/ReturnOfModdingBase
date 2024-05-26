@@ -148,48 +148,36 @@ namespace big
 		std::thread(
 		    [directory]
 		    {
-			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 			    if (directory_handle == INVALID_HANDLE_VALUE)
 			    {
 				    LOG(ERROR) << "Failed to get handle to directory. Error: " << GetLastError();
 				    return;
 			    }
 
-			    std::unique_ptr<FILE_NOTIFY_INFORMATION> notify;
-			    const size_t c_bufferSize = sizeof(FILE_NOTIFY_INFORMATION) * 100;
-			    notify.reset(reinterpret_cast<FILE_NOTIFY_INFORMATION*>(new char[c_bufferSize]));
-
-			    OVERLAPPED overlapped{};
+			    constexpr size_t notify_element_count = 100;
+			    const size_t c_bufferSize             = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
+			    std::unique_ptr<FILE_NOTIFY_INFORMATION[]> notify(new FILE_NOTIFY_INFORMATION[notify_element_count]);
 
 			    while (g_lua_manager)
 			    {
 				    DWORD returned;
-
-				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, &overlapped, nullptr))
+				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, nullptr, nullptr))
 				    {
 					    LOG(ERROR) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
 					    CloseHandle(directory_handle);
 					    return;
 				    }
 
-				    DWORD transferred;
-				    if (!GetOverlappedResult(directory_handle, &overlapped, &transferred, TRUE))
-				    {
-					    DWORD error = GetLastError();
-					    if (error != ERROR_OPERATION_ABORTED)
-					    {
-						    LOG(ERROR) << "GetOverlappedResult failed. Error: " << error;
-					    }
-					    CloseHandle(directory_handle);
-					    return;
-				    }
-
 				    FILE_NOTIFY_INFORMATION* next = notify.get();
-				    while (next != nullptr)
+				    LOG(INFO) << "next: " << HEX_TO_UPPER(next);
+				    while (next)
 				    {
 					    std::wstring fullPath(directory);
 					    fullPath.append(L"\\");
 					    fullPath.append(std::wstring_view(next->FileName, next->FileNameLength / sizeof(wchar_t)));
+
+					    LOG(INFO) << (char*)std::filesystem::path(fullPath).u8string().c_str();
 
 					    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
 					    {
@@ -226,6 +214,7 @@ namespace big
 				    using namespace std::chrono_literals;
 				    std::this_thread::sleep_for(500ms);
 			    }
+			    CloseHandle(directory_handle);
 		    })
 		    .detach();
 	}
