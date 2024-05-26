@@ -101,8 +101,9 @@ namespace big
 		LPOVERLAPPED lpOverlapped = nullptr;
 
 		std::vector<std::filesystem::path> modifications;
+		//std::unordered_set<std::wstring> last_modifications;
 
-		BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 0);
+		BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 500);
 		if (!result)
 		{
 			DWORD error = GetLastError();
