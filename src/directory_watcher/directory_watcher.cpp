@@ -35,6 +35,8 @@ namespace big
 
 		if (!GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &overlapped, 0))
 		{
+			ReadDirectoryChangesW(_file_handle, _buffer.data(), static_cast<DWORD>(_buffer.size()), FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE, nullptr, overlapped, empty_cb);
+
 			return {};
 		}
 
