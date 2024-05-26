@@ -153,94 +153,29 @@ namespace big
 		    {
 			    LOG(INFO) << (char*)directory.u8string().c_str();
 
-			    HANDLE file = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
-			    LOG(INFO) << (file != INVALID_HANDLE_VALUE);
-			    OVERLAPPED overlapped;
-			    overlapped.hEvent = CreateEvent(NULL, FALSE, 0, NULL);
+			    FILE_NOTIFY_INFORMATION fni[1024], *fni_next;
+			    OVERLAPPED ov;
+			    HANDLE hdir, hfile;
+			    NTSTATUS r;
 
-			    constexpr size_t notify_element_count = 100;
-			    constexpr size_t buffer_size          = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
-			    uint8_t change_buf[buffer_size];
+			    hdir = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+			    ok(hdir != INVALID_HANDLE_VALUE, "failed to open directory\n");
 
-			    BOOL success;
+			    memset(&ov, 0, sizeof(ov));
+			    ov.hEvent = (void*)0xde'ad'be'ef;
+			    r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME, NULL, &ov, readdirectorychanges_cr);
+			    ok(r == TRUE, "ReadDirectoryChangesW failed\n");
 
-			    success = ReadDirectoryChangesW(file, change_buf, buffer_size, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &overlapped, NULL);
-
-			    while (g_lua_manager)
+			    LOG(INFO) << "waiting until smth happen";
+			    r = SleepEx(INFINITE, TRUE);
+			    if (fni->FileNameLength)
 			    {
-				    DWORD result = WaitForSingleObject(overlapped.hEvent, 0);
-
-				    if (result == WAIT_OBJECT_0)
-				    {
-					    DWORD bytes_transferred;
-					    GetOverlappedResult(file, &overlapped, &bytes_transferred, FALSE);
-
-					    FILE_NOTIFY_INFORMATION* event = (FILE_NOTIFY_INFORMATION*)change_buf;
-
-					    for (;;)
-					    {
-						    DWORD name_len = event->FileNameLength / sizeof(wchar_t);
-
-						    switch (event->Action)
-						    {
-						    case FILE_ACTION_ADDED:
-						    {
-							    LOG(INFO) << "FILE_ACTION_ADDED";
-							    wprintf(L"       Added: %.*s\n", name_len, event->FileName);
-						    }
-						    break;
-
-						    case FILE_ACTION_REMOVED:
-						    {
-							    LOG(INFO) << "FILE_ACTION_REMOVED";
-							    wprintf(L"     Removed: %.*s\n", name_len, event->FileName);
-						    }
-						    break;
-
-						    case FILE_ACTION_MODIFIED:
-						    {
-							    LOG(INFO) << "FILE_ACTION_MODIFIED";
-							    wprintf(L"    Modified: %.*s\n", name_len, event->FileName);
-						    }
-						    break;
-
-						    case FILE_ACTION_RENAMED_OLD_NAME:
-						    {
-							    LOG(INFO) << "FILE_ACTION_RENAMED_OLD_NAME";
-							    wprintf(L"Renamed from: %.*s\n", name_len, event->FileName);
-						    }
-						    break;
-
-						    case FILE_ACTION_RENAMED_NEW_NAME:
-						    {
-							    LOG(INFO) << "FILE_ACTION_RENAMED_NEW_NAME";
-							    wprintf(L"          to: %.*s\n", name_len, event->FileName);
-						    }
-						    break;
-
-						    default:
-						    {
-							    LOG(INFO) << "Unknown action!";
-						    }
-						    break;
-						    }
-
-						    // Are there more events to handle?
-						    if (event->NextEntryOffset)
-						    {
-							    *((uint8_t**)&event) += event->NextEntryOffset;
-						    }
-						    else
-						    {
-							    break;
-						    }
-					    }
-
-					    success = ReadDirectoryChangesW(file, change_buf, buffer_size, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &overlapped, NULL);
-				    }
-
-				    using namespace std::chrono_literals;
-				    std::this_thread::sleep_for(500ms);
+				    LOG(INFO) << "got a file change";
+				    LOG(INFO) << (char*)std::filesystem::path(fni->FileName).u8string().c_str();
+			    }
+			    else
+			    {
+				    LOG(INFO) << "no file name length";
 			    }
 
 			    /*LOG(INFO) << "thread made";
