@@ -22,7 +22,7 @@ namespace big
 		directory_watcher(directory_watcher&& other) noexcept;
 		directory_watcher& operator=(directory_watcher&& other) noexcept;
 
-		std::vector<std::filesystem::path> check() const;
+		std::vector<std::filesystem::path> check();
 
 	private:
 		std::filesystem::path _path;
