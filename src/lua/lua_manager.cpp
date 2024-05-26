@@ -160,7 +160,7 @@ namespace big
 			    while (g_lua_manager)
 			    {
 				    memset(&ov, 0, sizeof(ov));
-				    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &ov, nullptr);
+				    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME, NULL, &ov, nullptr);
 
 				    LOG(INFO) << "waiting until smth happen";
 				    auto sleep_res = SleepEx(INFINITE, TRUE);
