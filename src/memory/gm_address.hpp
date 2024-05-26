@@ -4,6 +4,12 @@
 #include <processthreadsapi.h>
 #include <Psapi.h>
 
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
+#undef ERROR
+
 struct module_info_helper
 {
 	static inline void get_module_base_and_size(uintptr_t* base, size_t* size, const char* module_name = nullptr)
