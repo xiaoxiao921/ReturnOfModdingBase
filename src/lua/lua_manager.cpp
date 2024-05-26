@@ -157,19 +157,36 @@ namespace big
 
 			    hdir = CreateFileW(directory.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 
-			    memset(&ov, 0, sizeof(ov));
-			    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &ov, nullptr);
+			    while (g_lua_manager)
+			    {
+				    memset(&ov, 0, sizeof(ov));
+				    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &ov, nullptr);
 
-			    LOG(INFO) << "waiting until smth happen";
-			    auto sleep_res = SleepEx(INFINITE, TRUE);
-			    if (fni->FileNameLength)
-			    {
-				    LOG(INFO) << "got a file change";
-				    LOG(INFO) << (char*)std::filesystem::path(fni->FileName).u8string().c_str();
-			    }
-			    else
-			    {
-				    LOG(INFO) << "no file name length";
+				    LOG(INFO) << "waiting until smth happen";
+				    auto sleep_res = SleepEx(INFINITE, TRUE);
+				    fni_next       = fni;
+
+				    while (true)
+				    {
+					    if (fni_next->FileNameLength)
+					    {
+						    LOG(INFO) << "got a file change";
+						    LOG(INFO) << (char*)std::filesystem::path(fni_next->FileName).u8string().c_str();
+					    }
+					    else
+					    {
+						    LOG(INFO) << "no file name length";
+					    }
+
+					    if (fni_next->NextEntryOffset)
+					    {
+						    fni_next = (FILE_NOTIFY_INFORMATION*)((char*)fni_next + fni_next->NextEntryOffset);
+					    }
+					    else
+					    {
+						    break;
+					    }
+				    }
 			    }
 
 			    /*LOG(INFO) << "thread made";
