@@ -151,6 +151,7 @@ namespace big
 		    [directory]
 		    {
 			    std::vector<big::directory_watcher> watchers;
+			    watchers.emplace_back(directory);
 			    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
 			    {
 				    if (!entry.is_directory())
@@ -163,11 +164,16 @@ namespace big
 
 			    while (g_lua_manager)
 			    {
+				    size_t i = 0;
 				    for (auto& watcher : watchers)
 				    {
+					    LOG(INFO) << "watcher " << i;
+					    i++;
 					    auto modified_files = watcher.check();
 					    for (const auto& file_path : modified_files)
 					    {
+						    LOG(INFO) << (char*)file_path.u8string().c_str();
+
 						    auto fullPath = file_path.wstring();
 						    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
 						    {
