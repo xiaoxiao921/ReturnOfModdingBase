@@ -8,6 +8,7 @@
 #include "bindings/paths.hpp"
 #include "bindings/toml/toml_lua.hpp"
 #include "bindings/toml_v2/toml_lua_v2.hpp"
+#include "directory_watcher/directory_watcher.hpp"
 #include "file_manager/file_manager.hpp"
 #include "logger/logger.hpp"
 #include "string/string.hpp"
@@ -144,133 +145,58 @@ namespace big
 		g_lua_manager = nullptr;
 	}
 
-	static void CALLBACK readdirectorychanges_cr(DWORD error, DWORD len, LPOVERLAPPED ov)
-	{
-	}
-
 	void lua_manager::init_file_watcher(const std::filesystem::path& directory)
 	{
-		LOG(INFO) << "init_file_watcher entered";
-
 		std::thread(
 		    [directory]
 		    {
-			    FILE_NOTIFY_INFORMATION fni[1024], *fni_next;
-			    OVERLAPPED ov;
-			    HANDLE hdir, hfile;
+			    std::vector<big::directory_watcher> watchers;
+			    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
+			    {
+				    if (!entry.is_directory())
+				    {
+					    continue;
+				    }
 
-			    hdir = CreateFileW(directory.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+				    watchers.emplace_back(entry.path());
+			    }
 
 			    while (g_lua_manager)
 			    {
-				    memset(&ov, 0, sizeof(ov));
-				    auto r = ReadDirectoryChangesW(hdir, fni, sizeof(fni), TRUE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE, NULL, &ov, readdirectorychanges_cr);
-
-				    LOG(INFO) << "waiting until smth happen";
-				    auto sleep_res = SleepEx(INFINITE, TRUE);
-				    fni_next       = fni;
-				    LOG(INFO) << "smth happened";
-
-				    while (true)
+				    for (const auto& watcher : watchers)
 				    {
-					    if (fni_next->FileNameLength)
+					    auto modified_files = watcher.check();
+					    for (const auto& file_path : modified_files)
 					    {
-						    LOG(INFO) << "got a file change";
-						    LOG(INFO) << (char*)std::filesystem::path(fni_next->FileName).u8string().c_str();
-					    }
-					    else
-					    {
-						    LOG(INFO) << "no file name length";
-					    }
-
-					    if (fni_next->NextEntryOffset)
-					    {
-						    fni_next = (FILE_NOTIFY_INFORMATION*)((char*)fni_next + fni_next->NextEntryOffset);
-						    LOG(INFO) << "got next info";
-					    }
-					    else
-					    {
-						    LOG(INFO) << "no more info";
-						    break;
-					    }
-				    }
-			    }
-
-			    /*LOG(INFO) << "thread made";
-
-			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-			    if (directory_handle == INVALID_HANDLE_VALUE)
-			    {
-				    LOG(ERROR) << "Failed to get handle to directory. Error: " << GetLastError();
-				    return;
-			    }
-
-			    LOG(INFO) << "got directory_handle: " << directory_handle;
-
-			    constexpr size_t notify_element_count = 100;
-			    const size_t c_bufferSize             = sizeof(FILE_NOTIFY_INFORMATION) * notify_element_count;
-			    std::unique_ptr<FILE_NOTIFY_INFORMATION[]> notify(new FILE_NOTIFY_INFORMATION[notify_element_count]);
-
-			    LOG(INFO) << "notify: " << HEX_TO_UPPER(notify.get());
-			    LOG(INFO) << "g_lua_manager: " << HEX_TO_UPPER(g_lua_manager);
-
-			    while (g_lua_manager)
-			    {
-				    DWORD returned;
-				    LOG(INFO) << "About to ReadDirectoryChangesW";
-				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, nullptr, nullptr))
-				    {
-					    LOG(ERROR) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
-					    CloseHandle(directory_handle);
-					    return;
-				    }
-
-				    FILE_NOTIFY_INFORMATION* next = notify.get();
-				    LOG(INFO) << "next: " << HEX_TO_UPPER(next);
-				    while (next)
-				    {
-					    std::wstring fullPath(directory);
-					    fullPath.append(L"\\");
-					    fullPath.append(std::wstring_view(next->FileName, next->FileNameLength / sizeof(wchar_t)));
-
-					    LOG(INFO) << (char*)std::filesystem::path(fullPath).u8string().c_str();
-
-					    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
-					    {
-						    const auto mod_info = get_module_info(fullPath);
-						    if (mod_info.has_value())
+						    auto fullPath = file_path.wstring();
+						    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
 						    {
-							    g_lua_manager->m_to_reload_duplicate_checker_2.insert(fullPath);
-
-							    std::scoped_lock l(g_lua_manager->m_module_lock);
-							    for (const auto& mod : g_lua_manager->m_modules)
+							    const auto mod_info = get_module_info(fullPath);
+							    if (mod_info.has_value())
 							    {
-								    if (mod->guid() == mod_info->m_guid && !g_lua_manager->m_to_reload_duplicate_checker.contains(mod->guid()))
-								    {
-									    std::scoped_lock l(g_lua_manager->m_to_reload_lock);
-									    g_lua_manager->m_to_reload_queue.push(mod.get());
-									    g_lua_manager->m_to_reload_duplicate_checker.insert(mod->guid());
+								    g_lua_manager->m_to_reload_duplicate_checker_2.insert(fullPath);
 
-									    break;
+								    std::scoped_lock l(g_lua_manager->m_module_lock);
+								    for (const auto& mod : g_lua_manager->m_modules)
+								    {
+									    if (mod->guid() == mod_info->m_guid
+									        && !g_lua_manager->m_to_reload_duplicate_checker.contains(mod->guid()))
+									    {
+										    std::scoped_lock l(g_lua_manager->m_to_reload_lock);
+										    g_lua_manager->m_to_reload_queue.push(mod.get());
+										    g_lua_manager->m_to_reload_duplicate_checker.insert(mod->guid());
+
+										    break;
+									    }
 								    }
 							    }
 						    }
-					    }
-
-					    if (next->NextEntryOffset)
-					    {
-						    next = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(reinterpret_cast<char*>(next) + next->NextEntryOffset);
-					    }
-					    else
-					    {
-						    next = nullptr;
 					    }
 				    }
 
 				    using namespace std::chrono_literals;
 				    std::this_thread::sleep_for(500ms);
 			    }
-			    CloseHandle(directory_handle);*/
 		    })
 		    .detach();
 	}
