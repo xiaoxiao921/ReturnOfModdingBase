@@ -136,7 +136,7 @@ namespace big
 			record = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(reinterpret_cast<const BYTE*>(record) + record->NextEntryOffset);
 		}
 
-		ZeroMemory(&_overlapped, sizeof(OVERLAPPED));
+		ZeroMemory((void*)&_overlapped, sizeof(OVERLAPPED));
 		DWORD buffer_length;
 		if (!ReadDirectoryChangesW(_file_handle, _buffer.data(), static_cast<DWORD>(_buffer.size()), FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE, &buffer_length, &_overlapped, nullptr))
 		{
