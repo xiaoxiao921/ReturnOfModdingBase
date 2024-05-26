@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <unordered_set>
 #include <vector>
 #include <Windows.h>
