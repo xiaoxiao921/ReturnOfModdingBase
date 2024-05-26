@@ -144,6 +144,11 @@ namespace big
 		g_lua_manager = nullptr;
 	}
 
+	static void CALLBACK readdirectorychanges_cr(DWORD error, DWORD len, LPOVERLAPPED ov)
+	{
+		LOG(INFO) << "readdirectorychanges_cr";
+	}
+
 	void lua_manager::init_file_watcher(const std::filesystem::path& directory)
 	{
 		LOG(INFO) << "init_file_watcher entered";
