@@ -138,7 +138,7 @@ namespace big
 
 		ZeroMemory((void*)&_overlapped, sizeof(OVERLAPPED));
 		DWORD buffer_length;
-		if (!ReadDirectoryChangesW(_file_handle, (void*)_buffer.data(), static_cast<DWORD>(_buffer.size()), FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE, &buffer_length, &_overlapped, nullptr))
+		if (!ReadDirectoryChangesW(_file_handle, (void*)_buffer.data(), static_cast<DWORD>(_buffer.size()), FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE, &buffer_length, (LPOVERLAPPED)&_overlapped, nullptr))
 		{
 			LOG(ERROR) << "ReadDirectoryChangesW failed: " << GetLastError();
 		}
