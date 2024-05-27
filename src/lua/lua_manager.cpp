@@ -8,7 +8,9 @@
 #include "bindings/paths.hpp"
 #include "bindings/toml/toml_lua.hpp"
 #include "bindings/toml_v2/toml_lua_v2.hpp"
+#include "directory_watcher/directory_watcher.hpp"
 #include "file_manager/file_manager.hpp"
+#include "logger/logger.hpp"
 #include "string/string.hpp"
 
 namespace big
@@ -148,78 +150,48 @@ namespace big
 		std::thread(
 		    [directory]
 		    {
-			    HANDLE directory_handle = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
-			    if (directory_handle == INVALID_HANDLE_VALUE)
+			    std::vector<big::directory_watcher> watchers;
+			    watchers.emplace_back(directory);
+			    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
 			    {
-				    LOG(ERROR) << "Failed to get handle to directory. Error: " << GetLastError();
-				    return;
+				    if (!entry.is_directory())
+				    {
+					    continue;
+				    }
+
+				    watchers.emplace_back(entry.path());
 			    }
-
-			    std::unique_ptr<FILE_NOTIFY_INFORMATION> notify;
-			    const size_t c_bufferSize = sizeof(FILE_NOTIFY_INFORMATION) * 100;
-			    notify.reset(reinterpret_cast<FILE_NOTIFY_INFORMATION*>(new char[c_bufferSize]));
-
-			    OVERLAPPED overlapped{};
 
 			    while (g_lua_manager)
 			    {
-				    DWORD returned;
-
-				    if (!ReadDirectoryChangesW(directory_handle, notify.get(), c_bufferSize, TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &returned, &overlapped, nullptr))
+				    for (auto& watcher : watchers)
 				    {
-					    LOG(ERROR) << "ReadDirectoryChangesW failed. Error: " << GetLastError();
-					    CloseHandle(directory_handle);
-					    return;
-				    }
-
-				    DWORD transferred;
-				    if (!GetOverlappedResult(directory_handle, &overlapped, &transferred, TRUE))
-				    {
-					    DWORD error = GetLastError();
-					    if (error != ERROR_OPERATION_ABORTED)
+					    auto modified_files = watcher.check();
+					    for (const auto& file_path : modified_files)
 					    {
-						    LOG(ERROR) << "GetOverlappedResult failed. Error: " << error;
-					    }
-					    CloseHandle(directory_handle);
-					    return;
-				    }
-
-				    FILE_NOTIFY_INFORMATION* next = notify.get();
-				    while (next != nullptr)
-				    {
-					    std::wstring fullPath(directory);
-					    fullPath.append(L"\\");
-					    fullPath.append(std::wstring_view(next->FileName, next->FileNameLength / sizeof(wchar_t)));
-
-					    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
-					    {
-						    const auto mod_info = get_module_info(fullPath);
-						    if (mod_info.has_value())
+						    auto fullPath = file_path.wstring();
+						    if (fullPath.ends_with(L".lua") && !g_lua_manager->m_to_reload_duplicate_checker_2.contains(fullPath))
 						    {
-							    g_lua_manager->m_to_reload_duplicate_checker_2.insert(fullPath);
-
-							    std::scoped_lock l(g_lua_manager->m_module_lock);
-							    for (const auto& mod : g_lua_manager->m_modules)
+							    const auto mod_info = get_module_info(fullPath);
+							    if (mod_info.has_value())
 							    {
-								    if (mod->guid() == mod_info->m_guid && !g_lua_manager->m_to_reload_duplicate_checker.contains(mod->guid()))
-								    {
-									    std::scoped_lock l(g_lua_manager->m_to_reload_lock);
-									    g_lua_manager->m_to_reload_queue.push(mod.get());
-									    g_lua_manager->m_to_reload_duplicate_checker.insert(mod->guid());
+								    g_lua_manager->m_to_reload_duplicate_checker_2.insert(fullPath);
 
-									    break;
+								    std::scoped_lock l(g_lua_manager->m_module_lock);
+								    for (const auto& mod : g_lua_manager->m_modules)
+								    {
+									    if (mod->guid() == mod_info->m_guid
+									        && !g_lua_manager->m_to_reload_duplicate_checker.contains(mod->guid()))
+									    {
+										    std::scoped_lock l(g_lua_manager->m_to_reload_lock);
+										    g_lua_manager->m_to_reload_queue.push(mod.get());
+										    g_lua_manager->m_to_reload_duplicate_checker.insert(mod->guid());
+
+										    break;
+									    }
 								    }
 							    }
 						    }
-					    }
-
-					    if (next->NextEntryOffset)
-					    {
-						    next = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(reinterpret_cast<char*>(next) + next->NextEntryOffset);
-					    }
-					    else
-					    {
-						    next = nullptr;
 					    }
 				    }
 

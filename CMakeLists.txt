@@ -33,6 +33,7 @@ add_compile_options(/bigobj)
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
+#add_executable(ReturnOfModdingBase WIN32 "${SRC_MAIN}")
 add_library(ReturnOfModdingBase STATIC "${SRC_MAIN}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
