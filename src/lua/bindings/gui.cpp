@@ -106,11 +106,44 @@ namespace lua::gui
 		return el_ptr;
 	}
 
+	std::function<bool()> g_on_is_open = nullptr;
+
+	// Lua API: Function
+	// Table: gui
+	// Name: is_open
+	// Returns: bool: Returns true if the GUI is open.
+	static bool is_open()
+	{
+		if (g_on_is_open)
+		{
+			return g_on_is_open();
+		}
+
+		return false;
+	}
+
+	std::function<void()> g_on_toggle = nullptr;
+
+	// Lua API: Function
+	// Table: gui
+	// Name: toggle
+	// Opens or closes the GUI.
+	static void toggle()
+	{
+		if (g_on_toggle)
+		{
+			g_on_toggle();
+		}
+	}
+
 	void bind(sol::table& state)
 	{
 		auto ns                     = state.create_named("gui");
 		ns["add_imgui"]             = add_imgui;
 		ns["add_always_draw_imgui"] = add_always_draw_imgui;
 		ns["add_to_menu_bar"]       = add_to_menu_bar;
+
+		ns["is_open"] = is_open;
+		ns["toggle"]  = toggle;
 	}
 } // namespace lua::gui
