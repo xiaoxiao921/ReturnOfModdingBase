@@ -171,8 +171,9 @@ namespace lua::toml_lua_v2
 		config_entry_ut.set_function("set", sol::overload(set_value_bool, set_value_double, set_value_string));
 
 		// Lua API: Field
-		// Class: config.config_entry
-		// Name: description
+		// Table: config.config_entry
+		// Field: description: string
+		// Simple description of the setting shown to the user.
 		config_entry_ut["description"] = sol::property(
 		    [](toml_v2::config_file::config_entry_base& self)
 		    {
