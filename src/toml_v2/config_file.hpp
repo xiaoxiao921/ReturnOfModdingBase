@@ -213,7 +213,13 @@ namespace toml_v2
 
 		void remove(config_definition& key)
 		{
-			m_entries.erase(key);
+			if (m_entries.erase(key))
+			{
+				if (m_save_on_config_set)
+				{
+					save();
+				}
+			}
 		}
 
 		int count() const

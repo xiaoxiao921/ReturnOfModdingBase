@@ -54,6 +54,12 @@ namespace lua::toml_lua_v2
 		self.set_value_base(new_value);
 	}
 
+	static void remove_entry(toml_v2::config_file& self, const std::string& section, const std::string& key)
+	{
+		toml_v2::config_definition def(section, key);
+		self.remove(def);
+	}
+
 	void bind(sol::table& state)
 	{
 		// Lua API: Table
@@ -129,6 +135,14 @@ namespace lua::toml_lua_v2
 
 		// Lua API: Function
 		// Class: config.config_file
+		// Name: remove
+		// Param: section: string: Section/category/group of the setting. Settings are grouped by this.
+		// Param: key: string: Name of the setting.
+		// Removes a setting from the config file.
+		config_file_ut.set_function("remove", remove_entry);
+
+		// Lua API: Function
+		// Class: config.config_file
 		// Name: save
 		// Writes the config to disk.
 		config_file_ut.set_function("save", &toml_v2::config_file::save);
@@ -155,6 +169,23 @@ namespace lua::toml_lua_v2
 		// Name: set
 		// Param: new_value: bool or double or string: New value of this setting.
 		config_entry_ut.set_function("set", sol::overload(set_value_bool, set_value_double, set_value_string));
+
+		// Lua API: Field
+		// Class: config.config_entry
+		// Name: description
+		config_entry_ut["description"] = sol::property(
+		    [](toml_v2::config_file::config_entry_base& self)
+		    {
+			    return self.m_description.m_description;
+		    },
+		    [](toml_v2::config_file::config_entry_base& self, const std::string& new_value)
+		    {
+			    if (self.m_description.m_description != new_value)
+			    {
+				    self.m_description.m_description = new_value;
+				    self.m_config_file->save();
+			    }
+		    });
 
 		// Lua API: Class
 		// Name: config.config_definition
