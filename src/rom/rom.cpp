@@ -95,8 +95,55 @@ namespace rom
 		return options;
 	}
 
+	struct store_reason_to_file
+	{
+		std::filesystem::path m_file_path;
+		bool m_file_exists = false;
+
+		store_reason_to_file()
+		{
+			const auto current_working_dir = std::filesystem::current_path();
+
+			constexpr auto file_name = "ReturnOfModdingFirstEnabledReason.txt";
+
+			m_file_path   = current_working_dir / file_name;
+			m_file_exists = std::filesystem::exists(m_file_path);
+
+			std::ifstream file_stream(m_file_path);
+			if (!file_stream.is_open())
+			{
+				return;
+			}
+
+			uint8_t first_enabled_reason = 0;
+			file_stream >> first_enabled_reason;
+			g_first_enabled_reason = (enabled_reason)first_enabled_reason;
+
+			file_stream.close();
+		}
+
+		~store_reason_to_file()
+		{
+			if (m_file_exists)
+			{
+				return;
+			}
+
+			std::ofstream file_stream(m_file_path);
+			if (!file_stream.is_open())
+			{
+				return;
+			}
+
+			file_stream << (uint8_t)g_enabled_reason << std::endl;
+			file_stream.close();
+		}
+	};
+
 	bool is_rom_enabled()
 	{
+		const store_reason_to_file _store_reason_to_file{};
+
 		constexpr auto rom_enabled_arg_name = "rom_enabled";
 
 		const char* rom_enabled_value = std::getenv(rom_enabled_arg_name);
@@ -106,12 +153,14 @@ namespace rom
 			{
 				LOG(INFO) << "ReturnOfModding enabled because " << rom_enabled_value;
 
+				g_enabled_reason = enabled_reason::ENABLED_BY_ENV_VAR;
 				return true;
 			}
 			else
 			{
 				LOG(INFO) << "ReturnOfModding disabled because " << rom_enabled_value;
 
+				g_enabled_reason = enabled_reason::DISABLED_BY_ENV_VAR;
 				return false;
 			}
 		}
@@ -138,11 +187,13 @@ namespace rom
 					if (rom_enabled_value_str.contains("true"))
 					{
 						LOG(INFO) << "ReturnOfModding enabled from command line";
+						g_enabled_reason = enabled_reason::ENABLED_BY_CMD_LINE;
 					}
 					else
 					{
 						LOG(INFO) << "ReturnOfModding disabled from command line";
-						rom_enabled = false;
+						g_enabled_reason = enabled_reason::DISABLED_BY_CMD_LINE;
+						rom_enabled      = false;
 					}
 				}
 
@@ -159,7 +210,18 @@ namespace rom
 			}
 		}
 
-		LOG(INFO) << "ReturnOfModding enabled";
+		if (g_first_enabled_reason == enabled_reason::ENABLED_BY_ENV_VAR || g_first_enabled_reason == enabled_reason::ENABLED_BY_CMD_LINE)
+		{
+			LOG(INFO)
+			    << "ReturnOfModding disabled because first enabled launch was explicit through env var or cmd line";
+			g_enabled_reason = enabled_reason::DISABLED_BECAUSE_FIRST_ENABLED_LAUNCH_WAS_EXPLICIT_THROUGH_ENV_VAR_OR_CMD_LINE;
+			return false;
+		}
+		else
+		{
+			LOG(INFO) << "ReturnOfModding enabled";
+			g_enabled_reason = enabled_reason::ENABLED_BY_DEFAULT;
+		}
 
 		return true;
 	}

@@ -10,6 +10,23 @@
 
 namespace rom
 {
+	enum class enabled_reason : uint8_t
+	{
+		NOT_INIT,
+
+		DISABLED_BY_ENV_VAR,
+		ENABLED_BY_ENV_VAR,
+
+		DISABLED_BY_CMD_LINE,
+		ENABLED_BY_CMD_LINE,
+
+		DISABLED_BECAUSE_FIRST_ENABLED_LAUNCH_WAS_EXPLICIT_THROUGH_ENV_VAR_OR_CMD_LINE,
+		ENABLED_BY_DEFAULT
+	};
+
+	inline enabled_reason g_first_enabled_reason = enabled_reason::NOT_INIT;
+	inline enabled_reason g_enabled_reason       = enabled_reason::NOT_INIT;
+
 	extern LPSTR* CommandLineToArgvA(LPCSTR cmd_line, int* argc);
 
 	extern cxxopts::Options get_rom_cxx_options();
