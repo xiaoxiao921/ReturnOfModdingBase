@@ -115,7 +115,7 @@ namespace rom
 				return;
 			}
 
-			uint8_t first_enabled_reason = 0;
+			uint16_t first_enabled_reason = 0;
 			file_stream >> first_enabled_reason;
 			g_first_enabled_reason = (enabled_reason)first_enabled_reason;
 
@@ -135,7 +135,7 @@ namespace rom
 				return;
 			}
 
-			file_stream << (uint8_t)g_enabled_reason << std::endl;
+			file_stream << (uint16_t)g_enabled_reason << std::endl;
 			file_stream.close();
 		}
 	};

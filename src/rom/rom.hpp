@@ -10,7 +10,7 @@
 
 namespace rom
 {
-	enum class enabled_reason : uint8_t
+	enum class enabled_reason : uint16_t
 	{
 		NOT_INIT,
 
