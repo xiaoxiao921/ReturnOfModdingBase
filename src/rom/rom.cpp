@@ -146,6 +146,7 @@ namespace rom
 		const store_reason_to_file _store_reason_to_file{};
 
 		constexpr auto rom_enabled_arg_name = "rom_enabled";
+		constexpr auto root_folder_arg_name = "rom_modding_root_folder";
 
 		const char* rom_enabled_value = std::getenv(rom_enabled_arg_name);
 		if (rom_enabled_value && strlen(rom_enabled_value))
@@ -177,24 +178,38 @@ namespace rom
 
 				const auto result = options.parse(argc, argv);
 
-				bool rom_enabled     = true;
-				bool rom_enabled_set = false;
-				if (result.count(rom_enabled_arg_name))
+				bool rom_enabled              = true;
+				bool rom_enabled_set          = false;
+				bool has_rom_enabled_arg_name = result.count(rom_enabled_arg_name);
+				bool has_root_folder_arg_name = result.count(root_folder_arg_name);
+				if (has_rom_enabled_arg_name || has_root_folder_arg_name)
 				{
 					rom_enabled_set = true;
 
-					auto& rom_enabled_value_str = result[rom_enabled_arg_name].as<std::string>();
-					LOG(INFO) << rom_enabled_value_str;
-					if (rom_enabled_value_str.contains("true"))
+					if (has_rom_enabled_arg_name)
 					{
-						LOG(INFO) << "ReturnOfModding enabled from command line";
-						g_enabled_reason = enabled_reason::ENABLED_BY_CMD_LINE;
+						auto& rom_enabled_value_str = result[rom_enabled_arg_name].as<std::string>();
+						LOG(INFO) << rom_enabled_value_str;
+						if (rom_enabled_value_str.contains("true"))
+						{
+							LOG(INFO) << "ReturnOfModding enabled from command line";
+							g_enabled_reason = enabled_reason::ENABLED_BY_CMD_LINE;
+						}
+						else
+						{
+							LOG(INFO) << "ReturnOfModding disabled from command line";
+							g_enabled_reason = enabled_reason::DISABLED_BY_CMD_LINE;
+							rom_enabled      = false;
+						}
 					}
-					else
+					else if (has_root_folder_arg_name)
 					{
-						LOG(INFO) << "ReturnOfModding disabled from command line";
-						g_enabled_reason = enabled_reason::DISABLED_BY_CMD_LINE;
-						rom_enabled      = false;
+						auto& root_folder = result[root_folder_arg_name].as<std::string>();
+						if (root_folder.size())
+						{
+							LOG(INFO) << "ReturnOfModding enabled from command line through custom root_folder";
+							g_enabled_reason = enabled_reason::ENABLED_BY_CMD_LINE;
+						}
 					}
 				}
 
