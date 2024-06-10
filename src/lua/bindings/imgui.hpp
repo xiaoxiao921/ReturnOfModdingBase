@@ -2,6 +2,7 @@
 #include "imgui_window.hpp"
 
 #include <gui/imgui_include.hpp>
+#include <gui/widgets/imgui_hotkey.hpp>
 #include <lua/lua_module.hpp>
 
 namespace lua::imgui
@@ -4349,6 +4350,7 @@ namespace lua::imgui
 		                       },
 		                       sol::resolve<bool(ImGuiKey, bool)>(ImGui::IsKeyPressed)));
 		ImGui.set_function("IsKeyReleased", sol::resolve<bool(ImGuiKey)>(ImGui::IsKeyReleased));
+		ImGui.set_function("Hotkey", ImGui::Hotkey_simple);
 		ImGui.set_function("GetKeyPressedAmount", sol::resolve<int(ImGuiKey, float, float)>(ImGui::GetKeyPressedAmount));
 		ImGui.set_function("GetKeyName", sol::resolve<const char*(ImGuiKey)>(ImGui::GetKeyName));
 		ImGui.set_function("SetNextFrameWantCaptureKeyboard", sol::resolve<void(bool)>(ImGui::SetNextFrameWantCaptureKeyboard));
