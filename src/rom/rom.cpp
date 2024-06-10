@@ -1,6 +1,7 @@
 #include "rom.hpp"
 
 #include "logger/logger.hpp"
+#include "paths/paths.hpp"
 
 namespace rom
 {
@@ -102,11 +103,11 @@ namespace rom
 
 		store_reason_to_file()
 		{
-			const auto current_working_dir = std::filesystem::current_path();
+			const auto main_module_folder = big::paths::get_main_module_folder();
 
 			constexpr auto file_name = "ReturnOfModdingFirstEnabledReason.txt";
 
-			m_file_path   = current_working_dir / file_name;
+			m_file_path   = main_module_folder / file_name;
 			m_file_exists = std::filesystem::exists(m_file_path);
 
 			std::ifstream file_stream(m_file_path);

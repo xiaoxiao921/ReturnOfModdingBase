@@ -8,6 +8,7 @@
 
 namespace big::paths
 {
+	extern std::filesystem::path get_main_module_folder();
 	extern std::filesystem::path get_project_root_folder();
 
 	extern void init_dump_file_path();

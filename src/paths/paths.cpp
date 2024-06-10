@@ -8,6 +8,14 @@
 
 namespace big::paths
 {
+	std::filesystem::path get_main_module_folder()
+	{
+		char module_file_path[MAX_PATH];
+		const auto path_size              = GetModuleFileNameA(nullptr, module_file_path, MAX_PATH);
+		std::filesystem::path module_path = std::string(module_file_path, path_size);
+		return module_path.parent_path();
+	}
+
 	std::filesystem::path get_project_root_folder()
 	{
 		std::filesystem::path root_folder{};
@@ -61,10 +69,7 @@ namespace big::paths
 
 		if (root_folder.empty() || !std::filesystem::exists(root_folder))
 		{
-			char module_file_path[MAX_PATH];
-			const auto path_size = GetModuleFileNameA(nullptr, module_file_path, MAX_PATH);
-			root_folder          = std::string(module_file_path, path_size);
-			root_folder          = root_folder.parent_path() / folder_name;
+			root_folder = get_main_module_folder() / folder_name;
 			LOG(INFO) << "Root folder set through default (game folder): "
 			          << reinterpret_cast<const char*>(root_folder.u8string().c_str());
 			if (!std::filesystem::exists(root_folder))
