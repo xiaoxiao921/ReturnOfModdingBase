@@ -28,33 +28,49 @@ There's also a small onboarding window that will appear in-game if the mod loade
 
 ## Folder Convention
 
-The subfolder we are referring to in the paragraphs below always follows the GUID format `TeamName-ModName`, for example: `ReturnOfModding-DebugToolkit`.
+The `subfolder` we are referring to in the paragraphs below always follows the GUID format `TeamName-ModName`, for example: `ReturnOfModding-DebugToolkit`.
 
-It also refers to the mod subfolder in its respective root folder, as described below.
+It also refers to the mod `subfolder` in its respective root folder.
 
 - `plugins`
 
-  - Location of .lua, README, manifest.json files.
-
-  - The subfolder dedicated to the plugin is removed upon uninstallation by the mod manager.
+  Location of `.lua`, `README`, and `manifest.json`.
  
-  - The contents of the subfolder are completely emptied before a new version of the mod is installed.
+  - First Installation
+    - Copy content into `plugins_data/subfolder`.
+
+  - Update
+    - Erase `plugins/subfolder` directory if it already exists.
+    - Copy content into `plugins/subfolder` directory.
+
+  - Uninstallation
+    - Delete `plugins/subfolder` directory.
   
 - `plugins_data`
 
-  - Used for data that must persist between sessions, mod assets, and other data that should not be manipulated by the user.
+  Mostly used for data that must persist between sessions and that should not be manipulated by the user.
 
-  - The subfolder dedicated to the plugin is removed upon uninstallation by the mod manager.
- 
-  - You can include a `plugins_data` folder with files in your release package. However, be aware that if files with the same names already exist in the `plugins_data` folder from a previous installation of the mod, they will be overwritten when the new version is installed.
+  - First Installation
+    - Copy content into `plugins_data/subfolder` directory.
+
+  - Update
+    - Copy content into `plugins_data/subfolder` directory and overwrite any existing files of the same names.
+
+  - Uninstallation
+    - Delete `plugins_data/subfolder` directory.
 
 - `config`
 
-  - Used for data that must persist between sessions and that can be manipulated by the user.
-
-  - The subfolder for the plugin is **never** removed upon uninstallation by the mod manager.
+  Mostly used for data that must persist between sessions and that can be manipulated by the user.
  
-  - You can include a `config` folder with .cfg files in your release package. However, be aware that if files with the same names already exist in the `config` folder from a previous installation of the mod, they will be overwritten when the new version is installed. This is why it's better to let the config files get generated upon first launch with the mod installed.
+  - First Installation
+    - Copy content into `config/subfolder` directory.
+
+  - Update
+    - Copy content into `config/subfolder` directory and overwrite any existing files of the same names.
+
+  - Uninstallation
+    - Do nothing.
 
 ## Mod Manager Integration
 
@@ -74,4 +90,4 @@ If you'd like to integrate ReturnOfModding into your mod manager, here are the s
 
 - The root folder is always named `ReturnOfModding`.
 
-- See [Folder Convention](#folder-convention) to find out how to manage mod installation and uninstallation.
+- See [Folder Convention](#folder-convention) to find out how to manage mod installation, update, and uninstallation.
