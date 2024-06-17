@@ -54,7 +54,8 @@ It also refers to the mod `subfolder` in its respective root folder.
     - Copy content into `plugins_data/subfolder` directory.
 
   - Update
-    - Copy content into `plugins_data/subfolder` directory and overwrite any existing files of the same names.
+    - Erase `plugins_data/subfolder` directory if it already exists.
+    - Copy content into `plugins_data/subfolder` directory.
 
   - Uninstallation
     - Delete `plugins_data/subfolder` directory.
