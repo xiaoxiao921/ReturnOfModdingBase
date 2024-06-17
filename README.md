@@ -32,46 +32,56 @@ The `subfolder` we are referring to in the paragraphs below always follows the G
 
 It also refers to the mod `subfolder` in its respective root folder.
 
-- `plugins`
+Copying folders must preserve the folder hierarchy without flattening it.
 
-  Location of `.lua`, `README`, and `manifest.json`.
+### `plugins`
+
+Location of `.lua`, `README`, and `manifest.json`.
  
-  - First Installation
-    - Copy content into `plugins_data/subfolder`.
+#### First Installation
+- Copy content into `plugins/subfolder`.
 
-  - Update
-    - Erase `plugins/subfolder` directory if it already exists.
-    - Copy content into `plugins/subfolder` directory.
+#### Update
+- Erase `plugins/subfolder` directory if it already exists.
+- Copy content into `plugins/subfolder` directory.
 
-  - Uninstallation
-    - Delete `plugins/subfolder` directory.
+#### Uninstallation
+- Delete `plugins/subfolder` directory.
   
-- `plugins_data`
+### `plugins_data`
 
-  Mostly used for data that must persist between sessions and that should not be manipulated by the user.
+This directory is primarily used for data that must persist between sessions and should not be altered by the user.
 
-  - First Installation
-    - Copy content into `plugins_data/subfolder` directory.
+To ensure the mod manager does not modify certain data during updates, use a folder called `cache` located at `plugins_data/subfolder/cache`.
 
-  - Update
-    - Erase `plugins_data/subfolder` directory if it already exists.
-    - Copy content into `plugins_data/subfolder` directory.
+#### First Installation
+- Copy the contents into the `plugins_data/subfolder` directory.
 
-  - Uninstallation
-    - Delete `plugins_data/subfolder` directory.
+#### Update
+- If the `plugins_data/subfolder/cache` folder does not exist, delete the entire `plugins_data/subfolder` directory. Otherwise, delete everything in the directory except the `cache` folder.
+- Copy the new contents into the `plugins_data/subfolder` directory, overwriting any existing files with the same names, including those in the `plugins_data/cache` folder if present in their .zip package.
 
-- `config`
+#### Uninstallation
+- If the `plugins_data/subfolder/cache` folder does not exist, delete the entire `plugins_data/subfolder` directory. Otherwise, delete everything in the directory except the `cache` folder.
 
-  Mostly used for data that must persist between sessions and that can be manipulated by the user.
- 
-  - First Installation
-    - Copy content into `config/subfolder` directory.
+### `config`
 
-  - Update
-    - Copy content into `config/subfolder` directory and overwrite any existing files of the same names.
+This directory is primarily used for data that must persist between sessions and can be manipulated by the user.
 
-  - Uninstallation
-    - Do nothing.
+Mod creators are advised not to include pre-created `.cfg` files in their `config` folder within their `.zip` package, as this will cause the mod manager to overwrite any existing user configuration files with the same name (e.g., during updates).
+
+Instead, let your code generate `.cfg` files using the mod API `config.config_file`.
+
+A valid use case for providing pre-made configuration files is when creating a modpack that aims to deliver a curated, set-in-stone experience.
+
+#### First Installation
+- Copy the contents into the `config/subfolder` directory.
+
+#### Update
+- Copy the contents into the `config/subfolder` directory, overwriting any existing files with the same names.
+
+#### Uninstallation
+- Do nothing.
 
 ## Mod Manager Integration
 
