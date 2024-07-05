@@ -597,70 +597,63 @@ namespace lua::memory
 		}
 	};
 
-	class value_wrapper_t
+	value_wrapper_t::value_wrapper_t(char* val, type_info_t type)
 	{
-		char* m_value      = nullptr;
-		type_info_t m_type = type_info_t::none_;
+		m_value = val;
+		m_type  = type;
+	}
 
-	public:
-		value_wrapper_t(char* val, type_info_t type)
+	sol::object value_wrapper_t::get(sol::this_state state_)
+	{
+		if (m_type == type_info_t::boolean_)
 		{
-			m_value = val;
-			m_type  = type;
+			return sol::make_object(big::g_lua_manager->lua_state(), *(bool*)m_value);
 		}
+		else if (m_type == type_info_t::string_)
+		{
+			return sol::make_object(big::g_lua_manager->lua_state(), *(const char**)m_value);
+		}
+		else if (m_type == type_info_t::integer_)
+		{
+			return sol::make_object(big::g_lua_manager->lua_state(), *(int64_t*)m_value);
+		}
+		else if (m_type == type_info_t::float_)
+		{
+			return sol::make_object(big::g_lua_manager->lua_state(), *(float*)m_value);
+		}
+		else if (m_type == type_info_t::double_)
+		{
+			return sol::make_object(big::g_lua_manager->lua_state(), *(double*)m_value);
+		}
+		else
+		{
+			return sol::nil;
+		}
+	}
 
-		sol::object get(sol::this_state state_)
+	void value_wrapper_t::set(sol::object new_val, sol::this_state state_)
+	{
+		if (m_type == type_info_t::boolean_ && new_val.is<bool>())
 		{
-			if (m_type == type_info_t::boolean_)
-			{
-				return sol::make_object(big::g_lua_manager->lua_state(), *(bool*)m_value);
-			}
-			else if (m_type == type_info_t::string_)
-			{
-				return sol::make_object(big::g_lua_manager->lua_state(), *(const char**)m_value);
-			}
-			else if (m_type == type_info_t::integer_)
-			{
-				return sol::make_object(big::g_lua_manager->lua_state(), *(int64_t*)m_value);
-			}
-			else if (m_type == type_info_t::float_)
-			{
-				return sol::make_object(big::g_lua_manager->lua_state(), *(float*)m_value);
-			}
-			else if (m_type == type_info_t::double_)
-			{
-				return sol::make_object(big::g_lua_manager->lua_state(), *(double*)m_value);
-			}
-			else
-			{
-				return sol::nil;
-			}
+			*(bool*)m_value = new_val.as<bool>();
 		}
-
-		void set(sol::object new_val, sol::this_state state_)
+		else if (m_type == type_info_t::string_ && new_val.is<const char*>())
 		{
-			if (m_type == type_info_t::boolean_ && new_val.is<bool>())
-			{
-				*(bool*)m_value = new_val.as<bool>();
-			}
-			else if (m_type == type_info_t::string_ && new_val.is<const char*>())
-			{
-				*(const char**)m_value = new_val.as<const char*>();
-			}
-			else if (m_type == type_info_t::integer_ && new_val.is<int64_t>())
-			{
-				*(int64_t*)m_value = new_val.as<int64_t>();
-			}
-			else if (m_type == type_info_t::float_ && new_val.is<float>())
-			{
-				*(float*)m_value = new_val.as<float>();
-			}
-			else if (m_type == type_info_t::double_ && new_val.is<double>())
-			{
-				*(double*)m_value = new_val.as<double>();
-			}
+			*(const char**)m_value = new_val.as<const char*>();
 		}
-	};
+		else if (m_type == type_info_t::integer_ && new_val.is<int64_t>())
+		{
+			*(int64_t*)m_value = new_val.as<int64_t>();
+		}
+		else if (m_type == type_info_t::float_ && new_val.is<float>())
+		{
+			*(float*)m_value = new_val.as<float>();
+		}
+		else if (m_type == type_info_t::double_ && new_val.is<double>())
+		{
+			*(double*)m_value = new_val.as<double>();
+		}
+	}
 
 	static sol::object to_lua(const runtime_func_t::parameters_t* params, const uint8_t i, const std::vector<type_info_t>& param_types)
 	{
