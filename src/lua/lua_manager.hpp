@@ -1,7 +1,5 @@
 #pragma once
 #include "load_module_result.hpp"
-
-
 #include "lua_module.hpp"
 #include "module_info.hpp"
 #include "rom/rom.hpp"
@@ -16,6 +14,7 @@
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
+
 // clang-format on
 
 namespace big
@@ -59,6 +58,11 @@ namespace big
 		void init_file_watcher(const std::filesystem::path& directory);
 
 	public:
+		lua_State* lua_state()
+		{
+			return m_state.lua_state();
+		}
+
 		void process_file_watcher_queue();
 
 		template<typename T>
@@ -293,6 +297,9 @@ namespace big
 		void draw_menu_bar_callbacks();
 		void always_draw_independent_gui();
 		void draw_independent_gui();
+
+		bool dynamic_hook_pre_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args);
+		void dynamic_hook_post_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args);
 
 		bool module_exists(const std::string& module_guid);
 

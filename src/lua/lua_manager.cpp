@@ -400,6 +400,42 @@ namespace big
 		}
 	}
 
+	bool lua_manager::dynamic_hook_pre_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args)
+	{
+		std::scoped_lock guard(m_module_lock);
+
+		bool call_orig_if_true = true;
+
+		for (const auto& module : m_modules)
+		{
+			for (const auto& cb : module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr])
+			{
+				const auto new_call_orig_if_true = cb(return_value, sol::as_args(args));
+
+				if (call_orig_if_true && new_call_orig_if_true.valid() && new_call_orig_if_true.get_type() == sol::type::boolean
+				    && new_call_orig_if_true.get<bool>() == false)
+				{
+					call_orig_if_true = false;
+				}
+			}
+		}
+
+		return call_orig_if_true;
+	}
+
+	void lua_manager::dynamic_hook_post_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args)
+	{
+		std::scoped_lock guard(m_module_lock);
+
+		for (const auto& module : m_modules)
+		{
+			for (const auto& cb : module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr])
+			{
+				cb(return_value, sol::as_args(args));
+			}
+		}
+	}
+
 	void lua_manager::unload_module(const std::string& module_guid)
 	{
 		std::scoped_lock guard(m_module_lock);

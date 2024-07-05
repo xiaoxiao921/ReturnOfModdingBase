@@ -30,6 +30,9 @@ namespace big
 			std::vector<std::unique_ptr<lua_patch>> m_registered_patches;
 
 			std::vector<void*> m_allocated_memory;
+
+			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_pre_callbacks;
+			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_post_callbacks;
 		};
 
 		lua_module_data m_data;

@@ -2,6 +2,9 @@
 #include "file_manager/file_manager.hpp"
 #include "hooks/hooking.hpp"
 #include "logger/exception_handler.hpp"
+#undef ERROR
+#include "asmjit/asmjit.h"
+#include "lua/lua_manager.hpp"
 #include "memory/byte_patch_manager.hpp"
 #include "paths/paths.hpp"
 #include "threads/thread_pool.hpp"
@@ -9,15 +12,54 @@
 
 #include <directory_watcher/directory_watcher.hpp>
 #include <logger/logger.hpp>
+#include <lua/bindings/memory.hpp>
 #include <memory/gm_address.hpp>
 #include <rom/rom.hpp>
 #include <windows.h>
+
+//const char* some_var = "hello there";
+float some_var = 41.69;
+
+static decltype(some_var) func_to_hook(const char* the_str)
+{
+	some_var += 1;
+
+	LOG(INFO) << "This is the original function: " << the_str << " - " << some_var;
+
+	return some_var;
+}
+
+static void call_test_lua_script(sol::state_view sol_state_view)
+{
+	auto res = sol_state_view.script(R"(
+log.info("hi")
+local ptr = memory.pointer:new(get_addr_func())
+memory.dynamic_hook("test_hook", "float", {"const char*"}, ptr,
+function(ret_val, str)
+
+	--str:set("yepppppppppppppppppppppppppp")
+	ret_val:set(69.69)
+	log.info("pre callback from lua", ret_val:get(), str:get())
+	return false
+end,
+function(ret_val, str)
+	log.info("post callback from lua 1", ret_val:get(), str:get())
+	ret_val:set(79.69)
+	log.info("post callback from lua", ret_val:get(), str:get())
+end)
+)");
+}
+
+static void sgg__GUIComponentTextBox__GUIComponentTextBox_dctor(void* this_)
+{
+	big::g_hooking->get_original<sgg__GUIComponentTextBox__GUIComponentTextBox_dctor>()(this_);
+}
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	using namespace big;
 
-	rom::init("ReturnOfModdingBaseTest", "ReturnOfModdingBaseTest.exe", "rom");
+	rom::init("ReturnOfModdingBaseTest", "ReturnOfModdingBaseTest.exe", "");
 
 	// Purposely leak it, we are not unloading this module in any case.
 	auto exception_handling = new exception_handler();
@@ -43,58 +85,63 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		}
 	} g_logger_cleanup;
 
-	auto directory = g_file_manager.get_project_folder("./plugins").get_path();
+	{
+		static auto GUIComponentTextBox_dctor_ptr = gmAddress::scan("8D 05 ? ? ? ? 48 8B F1 4C 8D B1", "sgg::GUIComponentTextBox::GUIComponentTextBox_dctor");
+		if (GUIComponentTextBox_dctor_ptr)
+		{
+			static auto GUIComponentTextBox_dctor = GUIComponentTextBox_dctor_ptr.offset(-0x19);
+			static auto hook_ = hooking::detour_hook_helper::add<sgg__GUIComponentTextBox__GUIComponentTextBox_dctor>("sgg__GUIComponentTextBox__GUIComponentTextBox_dctor", GUIComponentTextBox_dctor);
+		}
+	}
+	auto hooking_instance = std::make_unique<hooking>();
+	LOG(INFO) << "Hooking initialized.";
 
-	std::thread(
-	    [directory]
-	    {
-		    std::vector<big::directory_watcher> watchers;
-		    watchers.emplace_back(std::filesystem::absolute(directory));
-		    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
-		    {
-			    if (!entry.is_directory())
-			    {
-				    continue;
-			    }
+	g_hooking->enable();
+	LOG(INFO) << "Hooking enabled.";
 
-			    watchers.emplace_back(std::filesystem::absolute(entry.path()));
-		    }
+	auto L                    = luaL_newstate();
+	auto lua_manager_instance = std::make_unique<lua_manager>(L,
+	                                                          g_file_manager.get_project_folder("config"),
+	                                                          g_file_manager.get_project_folder("plugins_data"),
+	                                                          g_file_manager.get_project_folder("plugins"),
+	                                                          [](sol::state_view& state, sol::table& lua_ext)
+	                                                          {
+		                                                          //lua_manager_extension::init_lua_api(state, lua_ext);
+	                                                          });
+	sol::state_view sol_state_view(L);
+	// clang-format off
+		sol_state_view.open_libraries(
+			sol::lib::base,
+			sol::lib::package,
+			sol::lib::coroutine,
+		    sol::lib::string,
+		    sol::lib::os,
+		    sol::lib::math,
+			sol::lib::table,
+			sol::lib::debug,
+			sol::lib::bit32,
+			sol::lib::io,
+			sol::lib::utf8
+		);
+	// clang-format on
+	lua_manager_instance->init<lua_module>();
+	LOG(INFO) << "Lua manager initialized.";
 
-		    while (true)
-		    {
-			    size_t i = 0;
-			    for (auto& watcher : watchers)
-			    {
-				    auto modified_files = watcher.check();
-				    for (const auto& file_path : modified_files)
-				    {
-					    LOG(INFO) << (char*)file_path.u8string().c_str();
+	// lua::memory dynamic_hook test
+	{
+		sol_state_view["get_addr_func"] = []() -> uintptr_t
+		{
+			return (uintptr_t)&func_to_hook;
+		};
 
-					    auto fullPath = file_path.wstring();
-					    if (fullPath.ends_with(L".lua"))
-					    {
-						    LOG(INFO) << "lua file changed";
-					    }
-				    }
-			    }
+		call_test_lua_script(sol_state_view);
 
+		LOG(INFO) << "res from func_to_hook: " << func_to_hook("orig");
+	}
 
-			    using namespace std::chrono_literals;
-			    std::this_thread::sleep_for(500ms);
-		    }
-	    })
-	    .detach();
-
-	size_t i = 0;
 	while (true)
 	{
-		i++;
-
-		if (i <= 500)
-		{
-			LOG(INFO) << "lua file changed";
-		}
-		Sleep(1);
+		Sleep(1000);
 	}
 
 	return 0;

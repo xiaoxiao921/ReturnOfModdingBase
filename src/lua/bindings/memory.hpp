@@ -4,6 +4,17 @@
 
 namespace lua::memory
 {
+	enum type_info_t
+	{
+		none_,
+		boolean_,
+		string_,
+		integer_,
+		ptr_,
+		float_,
+		double_
+	};
+
 	// Lua API: Class
 	// Name: pointer
 	// Class representing a 64-bit memory address.
@@ -217,6 +228,33 @@ namespace lua::memory
 		// Returns: number: The memory address stored in the pointer object as a number.
 		// Retrieves the memory address stored in the pointer object.
 		uintptr_t get_address() const;
+	};
+
+	// Lua API: Class
+	// Name: value_wrapper
+	// Class for wrapping parameters and return value of functions, used mostly by the dynamic_hook system.
+
+	class value_wrapper_t
+	{
+		char* m_value      = nullptr;
+		type_info_t m_type = type_info_t::none_;
+
+	public:
+		value_wrapper_t(char* val, type_info_t type);
+
+		// Lua API: Function
+		// Class: value_wrapper
+		// Name: get
+		// Returns: any: The current value.
+		// Get the value currently contained by the wrapper.
+		sol::object get(sol::this_state state_);
+
+		// Lua API: Function
+		// Class: value_wrapper
+		// Name: set
+		// Param: new_value: any: The new value.
+		// Set the new value contained by the wrapper.
+		void set(sol::object new_val, sol::this_state state_);
 	};
 
 	void bind(sol::state_view& state);
