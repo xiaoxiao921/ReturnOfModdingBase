@@ -138,6 +138,132 @@ namespace lua::memory
 		return asmjit::TypeId(asmjit::TypeUtils::TypeIdOfT<T>::kTypeId); \
 	}
 
+	// does a given type fit in a general purpose register (i.e. is it integer type)
+	bool is_general_register(const asmjit::TypeId type_id)
+	{
+		switch (type_id)
+		{
+		case asmjit::TypeId::kInt8:
+		case asmjit::TypeId::kUInt8:
+		case asmjit::TypeId::kInt16:
+		case asmjit::TypeId::kUInt16:
+		case asmjit::TypeId::kInt32:
+		case asmjit::TypeId::kUInt32:
+		case asmjit::TypeId::kInt64:
+		case asmjit::TypeId::kUInt64:
+		case asmjit::TypeId::kIntPtr:
+		case asmjit::TypeId::kUIntPtr: return true;
+		default:                       return false;
+		}
+	}
+
+	// float, double, simd128
+	bool is_XMM_register(const asmjit::TypeId type_id)
+	{
+		switch (type_id)
+		{
+		case asmjit::TypeId::kFloat32:
+		case asmjit::TypeId::kFloat64: return true;
+		default:                       return false;
+		}
+	}
+
+	asmjit::CallConvId get_call_convention(const std::string& conv)
+	{
+		if (conv == "cdecl")
+		{
+			return asmjit::CallConvId::kCDecl;
+		}
+		else if (conv == "stdcall")
+		{
+			return asmjit::CallConvId::kStdCall;
+		}
+		else if (conv == "fastcall")
+		{
+			return asmjit::CallConvId::kFastCall;
+		}
+
+		return asmjit::CallConvId::kHost;
+	}
+
+	asmjit::TypeId get_type_id(const std::string& type)
+	{
+		if (type.find('*') != std::string::npos)
+		{
+			return asmjit::TypeId::kUIntPtr;
+		}
+
+		TYPEID_MATCH_STR_IF(type, signed char)
+		TYPEID_MATCH_STR_ELSEIF(type, unsigned char)
+		TYPEID_MATCH_STR_ELSEIF(type, short)
+		TYPEID_MATCH_STR_ELSEIF(type, unsigned short)
+		TYPEID_MATCH_STR_ELSEIF(type, int)
+		TYPEID_MATCH_STR_ELSEIF(type, unsigned int)
+		TYPEID_MATCH_STR_ELSEIF(type, long)
+		TYPEID_MATCH_STR_ELSEIF(type, unsigned long)
+#ifdef POLYHOOK2_OS_WINDOWS
+		TYPEID_MATCH_STR_ELSEIF(type, __int64)
+		TYPEID_MATCH_STR_ELSEIF(type, unsigned __int64)
+#endif
+		TYPEID_MATCH_STR_ELSEIF(type, long long)
+		TYPEID_MATCH_STR_ELSEIF(type, unsigned long long)
+		TYPEID_MATCH_STR_ELSEIF(type, char)
+		TYPEID_MATCH_STR_ELSEIF(type, char16_t)
+		TYPEID_MATCH_STR_ELSEIF(type, char32_t)
+		TYPEID_MATCH_STR_ELSEIF(type, wchar_t)
+		TYPEID_MATCH_STR_ELSEIF(type, uint8_t)
+		TYPEID_MATCH_STR_ELSEIF(type, int8_t)
+		TYPEID_MATCH_STR_ELSEIF(type, uint16_t)
+		TYPEID_MATCH_STR_ELSEIF(type, int16_t)
+		TYPEID_MATCH_STR_ELSEIF(type, int32_t)
+		TYPEID_MATCH_STR_ELSEIF(type, uint32_t)
+		TYPEID_MATCH_STR_ELSEIF(type, uint64_t)
+		TYPEID_MATCH_STR_ELSEIF(type, int64_t)
+		TYPEID_MATCH_STR_ELSEIF(type, float)
+		TYPEID_MATCH_STR_ELSEIF(type, double)
+		TYPEID_MATCH_STR_ELSEIF(type, bool)
+		TYPEID_MATCH_STR_ELSEIF(type, void)
+		else if (type == "intptr_t")
+		{
+			return asmjit::TypeId::kIntPtr;
+		}
+		else if (type == "uintptr_t")
+		{
+			return asmjit::TypeId::kUIntPtr;
+		}
+
+		return asmjit::TypeId::kVoid;
+	}
+
+	static type_info_t get_type_info_from_string(const std::string& s)
+	{
+		if ((s.contains("const") && s.contains("char") && s.contains("*")) || s.contains("string"))
+		{
+			return type_info_t::string_;
+		}
+		else if (s.contains("bool"))
+		{
+			return type_info_t::boolean_;
+		}
+		else if (s.contains("ptr") || s.contains("pointer") || s.contains("*"))
+		{
+			// passing lua::memory::pointer
+			return type_info_t::ptr_;
+		}
+		else if (s.contains("float"))
+		{
+			return type_info_t::float_;
+		}
+		else if (s.contains("double"))
+		{
+			return type_info_t::double_;
+		}
+		else
+		{
+			return type_info_t::integer_;
+		}
+	}
+
 	class runtime_func_t
 	{
 		std::vector<uint8_t> m_jit_function_buffer;
@@ -449,35 +575,6 @@ namespace lua::memory
 		// stdcall, fastcall, or cdecl (cdecl is default on x86). On x64 those map to the same thing.
 		uintptr_t make_jit_func(const std::string& return_type, const std::vector<std::string>& param_types, const asmjit::Arch arch, const user_pre_callback_t pre_callback, const user_post_callback_t post_callback, const uintptr_t target_func_ptr, std::string call_convention = "")
 		{
-			auto get_type_info_from_string = [](const std::string& s)
-			{
-				if ((s.contains("const") && s.contains("char") && s.contains("*")) || s.contains("string"))
-				{
-					return type_info_t::string_;
-				}
-				else if (s.contains("bool"))
-				{
-					return type_info_t::boolean_;
-				}
-				else if (s.contains("ptr") || s.contains("pointer") || s.contains("*"))
-				{
-					// passing lua::memory::pointer
-					return type_info_t::ptr_;
-				}
-				else if (s.contains("float"))
-				{
-					return type_info_t::float_;
-				}
-				else if (s.contains("double"))
-				{
-					return type_info_t::double_;
-				}
-				else
-				{
-					return type_info_t::integer_;
-				}
-			};
-
 			m_return_type = get_type_info_from_string(return_type);
 
 			asmjit::FuncSignature sig(get_call_convention(call_convention), asmjit::FuncSignature::kNoVarArgs, get_type_id(return_type));
@@ -496,104 +593,6 @@ namespace lua::memory
 			m_detour->set_instance(hook_name, (void*)target_func_ptr, (void*)jitted_func_ptr);
 
 			m_detour->enable();
-		}
-
-	private:
-		// does a given type fit in a general purpose register (i.e. is it integer type)
-		bool is_general_register(const asmjit::TypeId type_id) const
-		{
-			switch (type_id)
-			{
-			case asmjit::TypeId::kInt8:
-			case asmjit::TypeId::kUInt8:
-			case asmjit::TypeId::kInt16:
-			case asmjit::TypeId::kUInt16:
-			case asmjit::TypeId::kInt32:
-			case asmjit::TypeId::kUInt32:
-			case asmjit::TypeId::kInt64:
-			case asmjit::TypeId::kUInt64:
-			case asmjit::TypeId::kIntPtr:
-			case asmjit::TypeId::kUIntPtr: return true;
-			default:                       return false;
-			}
-		}
-
-		// float, double, simd128
-		bool is_XMM_register(const asmjit::TypeId type_id) const
-		{
-			switch (type_id)
-			{
-			case asmjit::TypeId::kFloat32:
-			case asmjit::TypeId::kFloat64: return true;
-			default:                       return false;
-			}
-		}
-
-		asmjit::CallConvId get_call_convention(const std::string& conv)
-		{
-			if (conv == "cdecl")
-			{
-				return asmjit::CallConvId::kCDecl;
-			}
-			else if (conv == "stdcall")
-			{
-				return asmjit::CallConvId::kStdCall;
-			}
-			else if (conv == "fastcall")
-			{
-				return asmjit::CallConvId::kFastCall;
-			}
-
-			return asmjit::CallConvId::kHost;
-		}
-
-		asmjit::TypeId get_type_id(const std::string& type)
-		{
-			if (type.find('*') != std::string::npos)
-			{
-				return asmjit::TypeId::kUIntPtr;
-			}
-
-			TYPEID_MATCH_STR_IF(type, signed char)
-			TYPEID_MATCH_STR_ELSEIF(type, unsigned char)
-			TYPEID_MATCH_STR_ELSEIF(type, short)
-			TYPEID_MATCH_STR_ELSEIF(type, unsigned short)
-			TYPEID_MATCH_STR_ELSEIF(type, int)
-			TYPEID_MATCH_STR_ELSEIF(type, unsigned int)
-			TYPEID_MATCH_STR_ELSEIF(type, long)
-			TYPEID_MATCH_STR_ELSEIF(type, unsigned long)
-#ifdef POLYHOOK2_OS_WINDOWS
-			TYPEID_MATCH_STR_ELSEIF(type, __int64)
-			TYPEID_MATCH_STR_ELSEIF(type, unsigned __int64)
-#endif
-			TYPEID_MATCH_STR_ELSEIF(type, long long)
-			TYPEID_MATCH_STR_ELSEIF(type, unsigned long long)
-			TYPEID_MATCH_STR_ELSEIF(type, char)
-			TYPEID_MATCH_STR_ELSEIF(type, char16_t)
-			TYPEID_MATCH_STR_ELSEIF(type, char32_t)
-			TYPEID_MATCH_STR_ELSEIF(type, wchar_t)
-			TYPEID_MATCH_STR_ELSEIF(type, uint8_t)
-			TYPEID_MATCH_STR_ELSEIF(type, int8_t)
-			TYPEID_MATCH_STR_ELSEIF(type, uint16_t)
-			TYPEID_MATCH_STR_ELSEIF(type, int16_t)
-			TYPEID_MATCH_STR_ELSEIF(type, int32_t)
-			TYPEID_MATCH_STR_ELSEIF(type, uint32_t)
-			TYPEID_MATCH_STR_ELSEIF(type, uint64_t)
-			TYPEID_MATCH_STR_ELSEIF(type, int64_t)
-			TYPEID_MATCH_STR_ELSEIF(type, float)
-			TYPEID_MATCH_STR_ELSEIF(type, double)
-			TYPEID_MATCH_STR_ELSEIF(type, bool)
-			TYPEID_MATCH_STR_ELSEIF(type, void)
-			else if (type == "intptr_t")
-			{
-				return asmjit::TypeId::kIntPtr;
-			}
-			else if (type == "uintptr_t")
-			{
-				return asmjit::TypeId::kUIntPtr;
-			}
-
-			return asmjit::TypeId::kVoid;
 		}
 	};
 
@@ -760,6 +759,327 @@ namespace lua::memory
 		}
 	}
 
+	static std::unordered_map<uintptr_t, std::vector<uint8_t>> jitted_binded_funcs;
+
+	static std::string get_jitted_lua_func_global_name(uintptr_t function_to_call_ptr)
+	{
+		return std::format("__dynamic_call_{}", function_to_call_ptr);
+	}
+
+	class MyErrorHandler : public asmjit::ErrorHandler
+	{
+	public:
+		void handleError(asmjit::Error err, const char* message, asmjit::BaseEmitter* origin) override
+		{
+			LOG(ERROR) << "asmjit error: " << message;
+		}
+	};
+
+	static void jit_lua_binded_func(uintptr_t function_to_call_ptr, const asmjit::FuncSignature& function_to_call_sig, const asmjit::Arch& arch, std::vector<type_info_t> param_types, type_info_t return_type, lua_State* lua_state, const std::string& jitted_lua_func_global_name)
+	{
+		const auto it = jitted_binded_funcs.find(function_to_call_ptr);
+		if (it != jitted_binded_funcs.end())
+		{
+			return;
+		}
+
+		asmjit::CodeHolder code;
+		auto env = asmjit::Environment::host();
+		env.setArch(arch);
+		auto asmjit_error = code.init(env);
+
+		// initialize function
+		asmjit::x86::Compiler cc(&code);
+		// clang-format off
+		asmjit::FuncNode* func = cc.addFunc(asmjit::FuncSignature(asmjit::CallConvId::kFastCall, asmjit::FuncSignature::kNoVarArgs,
+			asmjit::TypeId::kInt32,
+			asmjit::TypeId::kUIntPtr));
+		// clang-format on
+
+		asmjit::StringLogger log;
+		// clang-format off
+			const auto format_flags =
+				asmjit::FormatFlags::kMachineCode | asmjit::FormatFlags::kExplainImms | asmjit::FormatFlags::kRegCasts |
+				asmjit::FormatFlags::kHexImms     | asmjit::FormatFlags::kHexOffsets  | asmjit::FormatFlags::kPositions;
+		// clang-format on
+
+		log.addFlags(format_flags);
+		code.setLogger(&log);
+		MyErrorHandler myErrorHandler;
+		code.setErrorHandler(&myErrorHandler);
+
+		// too small to really need it
+		func->frame().resetPreservedFP();
+
+		// map argument slots to registers, following abi.
+		std::vector<asmjit::x86::Reg> arg_registers;
+		for (uint8_t arg_index = 0; arg_index < function_to_call_sig.argCount(); arg_index++)
+		{
+			const auto arg_type = function_to_call_sig.args()[arg_index];
+
+			// for each "function to call" parameter
+			// InvokeNode for the corresponding lua_toXXX func
+			// result of the invokenode setRet goes to the arg Reg.
+			// those Reg will then be setArg of the function_to_call final InvokeNode.
+
+			asmjit::x86::Reg arg;
+
+			const auto arg_type_info = param_types[arg_index];
+			if (arg_type_info == type_info_t::integer_ || arg_type_info == type_info_t::float_ || arg_type_info == type_info_t::double_)
+			{
+				asmjit::InvokeNode* lua_tofunc;
+				// clang-format off
+				cc.invoke(&lua_tofunc, lua_tonumberx, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+					asmjit::TypeId::kFloat64,
+					asmjit::TypeId::kUIntPtr, asmjit::TypeId::kInt32, asmjit::TypeId::kUIntPtr));
+				// clang-format on
+
+				lua_tofunc->setArg(0, lua_state);
+				lua_tofunc->setArg(1, arg_index + 1);
+				lua_tofunc->setArg(2, NULL);
+
+				const auto tmp = cc.newXmm();
+				lua_tofunc->setRet(0, tmp);
+				if (arg_type_info == type_info_t::integer_)
+				{
+					arg = cc.newUIntPtr();
+					cc.cvttsd2si(arg.as<asmjit::x86::Gp>(), tmp);
+				}
+				else if (arg_type_info == type_info_t::float_)
+				{
+					arg = cc.newXmm();
+					cc.cvtsd2ss(arg.as<asmjit::x86::Xmm>(), tmp);
+				}
+				else
+				{
+					arg = tmp;
+				}
+			}
+			else if (arg_type_info == type_info_t::boolean_)
+			{
+				asmjit::InvokeNode* lua_tofunc;
+				// clang-format off
+				cc.invoke(&lua_tofunc, lua_toboolean, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+					asmjit::TypeId::kInt32,
+					asmjit::TypeId::kUIntPtr, asmjit::TypeId::kInt32));
+				// clang-format on
+
+				lua_tofunc->setArg(0, lua_state);
+				lua_tofunc->setArg(1, arg_index + 1);
+
+				arg = cc.newUIntPtr();
+				lua_tofunc->setRet(0, arg);
+			}
+			else if (arg_type_info == type_info_t::string_)
+			{
+				asmjit::InvokeNode* lua_tofunc;
+				// clang-format off
+				cc.invoke(&lua_tofunc, lua_tolstring, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+					asmjit::TypeId::kUIntPtr,
+					asmjit::TypeId::kUIntPtr, asmjit::TypeId::kInt32, asmjit::TypeId::kUIntPtr));
+				// clang-format on
+
+				lua_tofunc->setArg(0, lua_state);
+				lua_tofunc->setArg(1, arg_index + 1);
+				lua_tofunc->setArg(2, NULL);
+
+				arg = cc.newUIntPtr();
+				lua_tofunc->setRet(0, arg);
+			}
+			else if (arg_type_info == type_info_t::ptr_)
+			{
+				asmjit::InvokeNode* lua_tofunc;
+				// clang-format off
+				cc.invoke(&lua_tofunc, lua_tonumberx, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+					asmjit::TypeId::kFloat64,
+					asmjit::TypeId::kUIntPtr, asmjit::TypeId::kInt32, asmjit::TypeId::kUIntPtr));
+				// clang-format on
+
+				lua_tofunc->setArg(0, lua_state);
+				lua_tofunc->setArg(1, arg_index + 1);
+				lua_tofunc->setArg(2, NULL);
+
+				// lua_Number (double) to integer type
+				const auto tmp = cc.newXmm();
+				lua_tofunc->setRet(0, tmp);
+				arg = cc.newUIntPtr();
+				cc.cvttsd2si(arg.as<asmjit::x86::Gp>(), tmp);
+			}
+
+			arg_registers.push_back(arg);
+		}
+
+		asmjit::InvokeNode* function_to_call_invoke_node;
+		cc.invoke(&function_to_call_invoke_node, function_to_call_ptr, function_to_call_sig);
+		for (uint8_t arg_index = 0; arg_index < function_to_call_sig.argCount(); arg_index++)
+		{
+			function_to_call_invoke_node->setArg(arg_index, arg_registers.at(arg_index));
+		}
+		asmjit::x86::Reg function_to_call_return_val_reg;
+		if (is_general_register(function_to_call_sig.ret()))
+		{
+			function_to_call_return_val_reg = cc.newUIntPtr();
+		}
+		else if (is_XMM_register(function_to_call_sig.ret()))
+		{
+			function_to_call_return_val_reg = cc.newXmm();
+		}
+		else
+		{
+			LOG(ERROR) << "Return val wider than 64bits not supported";
+			return;
+		}
+		function_to_call_invoke_node->setRet(0, function_to_call_return_val_reg);
+
+		if (return_type == type_info_t::integer_ || return_type == type_info_t::float_ || return_type == type_info_t::double_)
+		{
+			if (function_to_call_sig.ret() >= asmjit::TypeId::_kIntStart && function_to_call_sig.ret() <= asmjit::TypeId::_kIntEnd)
+			{
+				// the function returned to a Gp register, need to convert it to a lua_Number compatible register.
+				const auto tmp = cc.newXmm();
+				cc.cvtsi2sd(tmp, function_to_call_return_val_reg.as<asmjit::x86::Gp>());
+				function_to_call_return_val_reg = tmp;
+			}
+			else if (function_to_call_sig.ret() == asmjit::TypeId::kFloat32)
+			{
+				// m128_f32 -> m128_f64 (lua_Number)
+				cc.cvtss2sd(function_to_call_return_val_reg.as<asmjit::x86::Xmm>(), function_to_call_return_val_reg.as<asmjit::x86::Xmm>());
+			}
+
+			asmjit::InvokeNode* lua_pushfunc;
+			// clang-format off
+			cc.invoke(&lua_pushfunc, lua_pushnumber, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+				asmjit::TypeId::kVoid,
+				asmjit::TypeId::kUIntPtr, asmjit::TypeId::kFloat64));
+			// clang-format on
+
+			lua_pushfunc->setArg(0, lua_state);
+			lua_pushfunc->setArg(1, function_to_call_return_val_reg);
+		}
+		else if (return_type == type_info_t::boolean_)
+		{
+			asmjit::InvokeNode* lua_pushfunc;
+			// clang-format off
+			cc.invoke(&lua_pushfunc, lua_pushboolean, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+				asmjit::TypeId::kVoid,
+				asmjit::TypeId::kUIntPtr, asmjit::TypeId::kInt8));
+			// clang-format on
+
+			lua_pushfunc->setArg(0, lua_state);
+			lua_pushfunc->setArg(1, function_to_call_return_val_reg);
+		}
+		else if (return_type == type_info_t::string_)
+		{
+			asmjit::InvokeNode* lua_pushfunc;
+			// clang-format off
+			cc.invoke(&lua_pushfunc, lua_pushstring, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+				asmjit::TypeId::kVoid,
+				asmjit::TypeId::kUIntPtr, asmjit::TypeId::kUIntPtr));
+			// clang-format on
+
+			lua_pushfunc->setArg(0, lua_state);
+			lua_pushfunc->setArg(1, function_to_call_return_val_reg);
+		}
+		else if (return_type == type_info_t::ptr_)
+		{
+			// integer type to lua_Number (double)
+			asmjit::x86::Xmm tmp = cc.newXmm();
+			cc.cvtsi2sd(tmp, function_to_call_return_val_reg.as<asmjit::x86::Gp>());
+
+			asmjit::InvokeNode* lua_pushfunc;
+			// clang-format off
+			cc.invoke(&lua_pushfunc, lua_pushnumber, asmjit::FuncSignature(asmjit::CallConvId::kCDecl, asmjit::FuncSignature::kNoVarArgs,
+				asmjit::TypeId::kVoid,
+				asmjit::TypeId::kUIntPtr, asmjit::TypeId::kFloat64));
+			// clang-format on
+
+			lua_pushfunc->setArg(0, lua_state);
+			lua_pushfunc->setArg(1, tmp);
+		}
+
+		// a lua binded c func always return an int which hold the number of returned vars.
+		asmjit::x86::Gp retReg = cc.newUIntPtr();
+		cc.mov(retReg, function_to_call_sig.hasRet() ? 1 : 0);
+		cc.ret(retReg);
+
+		cc.endFunc();
+
+		// write to buffer
+		cc.finalize();
+
+		// worst case, overestimates for case trampolines needed
+		code.flatten();
+		size_t size = code.codeSize();
+
+		// Allocate a virtual memory (executable).
+		static std::vector<uint8_t> jit_function_buffer(size);
+		DWORD old_protect;
+		VirtualProtect(jit_function_buffer.data(), size, PAGE_EXECUTE_READWRITE, &old_protect);
+
+		// if multiple sections, resolve linkage (1 atm)
+		if (code.hasUnresolvedLinks())
+		{
+			code.resolveUnresolvedLinks();
+		}
+
+		// Relocate to the base-address of the allocated memory.
+		code.relocateToBase((uintptr_t)jit_function_buffer.data());
+		code.copyFlattenedData(jit_function_buffer.data(), size);
+
+		LOG(DEBUG) << "JIT Stub: " << log.data();
+
+		lua_pushcfunction(lua_state, (lua_CFunction)jit_function_buffer.data());
+		lua_setglobal(lua_state, jitted_lua_func_global_name.c_str());
+	}
+
+	// Lua API: Function
+	// Table: memory
+	// Name: dynamic_call
+	// Param: return_type: string: Type of the return value of the function to call.
+	// Param: param_types: table<string>: Types of the parameters of the function to call.
+	// Param: target_func_ptr: memory.pointer: The pointer to the function to call.
+	static std::string dynamic_call(const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::this_environment env_)
+	{
+		const auto target_func_ptr = target_func_ptr_obj.get_address();
+
+		const auto jitted_lua_func_global_name = get_jitted_lua_func_global_name(target_func_ptr);
+
+		const auto already_jitted_func = env_.env.value()[jitted_lua_func_global_name];
+		if (already_jitted_func.is<sol::protected_function>())
+		{
+			return already_jitted_func;
+		}
+
+		std::vector<std::string> param_types_strings;
+		for (const auto& [k, v] : param_types_table)
+		{
+			if (v.is<const char*>())
+			{
+				param_types_strings.push_back(v.as<const char*>());
+			}
+		}
+
+		std::string call_convention = "";
+		asmjit::FuncSignature sig(get_call_convention(call_convention), asmjit::FuncSignature::kNoVarArgs, get_type_id(return_type));
+
+		std::vector<type_info_t> param_types;
+		for (const std::string& s : param_types_strings)
+		{
+			sig.addArg(get_type_id(s));
+			param_types.push_back(get_type_info_from_string(s));
+		}
+
+		jit_lua_binded_func(target_func_ptr,
+		                    sig,
+		                    asmjit::Arch::kHost,
+		                    param_types,
+		                    get_type_info_from_string(return_type),
+		                    env_.env.value().lua_state(),
+		                    jitted_lua_func_global_name);
+
+		return jitted_lua_func_global_name;
+	}
+
 	void bind(sol::state_view& state)
 	{
 		auto ns = state["memory"].get_or_create<sol::table>();
@@ -800,5 +1120,7 @@ namespace lua::memory
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
 		ns["dynamic_hook"] = dynamic_hook;
+
+		ns["dynamic_call"] = dynamic_call;
 	}
 } // namespace lua::memory
