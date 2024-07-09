@@ -727,6 +727,25 @@ namespace lua::memory
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
 	// Param: pre_callback: function: The function that will be called before the original function is about to be called. The callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> Returns true or false (boolean) depending on whether you want the original function to be called.
 	// Param: post_callback: function: The function that will be called after the original function is called (or just after the pre callback is called, if the original function was skipped). The callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> void
+	// **Example Usage:**
+	// ```lua
+	// local ptr = memory.scan_pattern("some ida sig")
+	// memory.dynamic_hook("test_hook", "float", {"const char*"}, ptr,
+	// function(ret_val, str)
+	//
+	//     --str:set("replaced str")
+	//     ret_val:set(69.69)
+	//     log.info("pre callback from lua", ret_val:get(), str:get())
+	//
+	//     -- false for skipping the original function call
+	//     return false
+	// end,
+	// function(ret_val, str)
+	//     log.info("post callback from lua 1", ret_val:get(), str:get())
+	//     ret_val:set(79.69)
+	//     log.info("post callback from lua 2", ret_val:get(), str:get())
+	// end)
+	// ```
 	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function pre_lua_callback, sol::protected_function post_lua_callback, sol::this_environment env_)
 	{
 		const auto target_func_ptr = target_func_ptr_obj.get_address();
@@ -746,6 +765,7 @@ namespace lua::memory
 
 			target_func_ptr_to_hook.emplace(target_func_ptr, std::move(runtime_func));
 
+			// TODO: The detour_hook is never cleaned up on unload.
 			target_func_ptr_to_hook[target_func_ptr]->create_and_enable_hook(hook_name, target_func_ptr, jitted_func);
 		}
 
@@ -1038,6 +1058,13 @@ namespace lua::memory
 	// Param: return_type: string: Type of the return value of the function to call.
 	// Param: param_types: table<string>: Types of the parameters of the function to call.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to call.
+	// **Example Usage:**
+	// ```lua
+	// local ptr = memory.scan_pattern("some ida sig")
+	// local func_to_call_test_global_name = memory.dynamic_call("bool", {"const char*", "float", "double", "void*", "int8_t", "int64_t"}, ptr)
+	// local call_res_test = _G[func_to_call_test_global_name]("yepi", 69.025, 420.69, 57005, 126, 1195861093)
+	// log.info("call_res_test: ", call_res_test)
+	// ```
 	static std::string dynamic_call(const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::this_environment env_)
 	{
 		const auto target_func_ptr = target_func_ptr_obj.get_address();
