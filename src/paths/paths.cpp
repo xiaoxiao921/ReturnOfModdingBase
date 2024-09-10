@@ -63,7 +63,7 @@ namespace big::paths
 			}
 			catch (const std::exception& e)
 			{
-				LOG(WARNING) << "Failed parsing cmd line args " << e.what();
+				LOG(WARNING) << "Failed parsing cmd line args. Reason: " << e.what();
 			}
 		}
 
@@ -85,7 +85,9 @@ namespace big::paths
 
 	void init_dump_file_path()
 	{
-		dump_file_path = g_file_manager.get_project_file(std::format("./{}_crash.dmp", rom::g_project_name)).get_path();
+		dump_file_path = g_file_manager
+		                     .get_project_file(std::format("./{}_crash{}.dmp", rom::g_project_name, rom::get_instance_id_string()))
+		                     .get_path();
 	}
 
 	const std::filesystem::path& remove_and_get_dump_file_path()
