@@ -241,4 +241,54 @@ namespace rom
 
 		return true;
 	}
+
+	static int32_t g_instance_id = -1;
+
+	int32_t get_instance_id()
+	{
+		if (g_instance_id != -1)
+		{
+			return g_instance_id;
+		}
+
+		for (int32_t i = 0; i < 3; ++i)
+		{
+			const std::string mutex_instance_name = std::format("Global\\ReturnOfModdingInstanceID{}", i);
+			const auto mutex_handle               = CreateMutexA(NULL, FALSE, mutex_instance_name.c_str());
+			if (mutex_handle && GetLastError() != ERROR_ALREADY_EXISTS)
+			{
+				LOG(DEBUG) << "Returned instance id: " << i;
+				g_instance_id = i;
+				return i;
+			}
+		}
+
+		LOG(WARNING) << "Failed getting proper instance id from mutex.";
+		g_instance_id = 0;
+		return g_instance_id;
+	}
+
+	static bool g_init_once_instance_id_string = true;
+
+	std::string& get_instance_id_string()
+	{
+		static std::string instance_id_str;
+
+		if (g_init_once_instance_id_string)
+		{
+			const auto instance_id = rom::get_instance_id();
+			if (instance_id)
+			{
+				instance_id_str = std::format("{}", instance_id);
+			}
+			else
+			{
+				instance_id_str = "";
+			}
+
+			g_init_once_instance_id_string = false;
+		}
+
+		return instance_id_str;
+	}
 } // namespace rom

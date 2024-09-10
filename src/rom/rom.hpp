@@ -37,6 +37,9 @@ namespace rom
 	inline std::string g_target_module_name;
 	inline std::string g_lua_api_namespace;
 
+	extern int32_t get_instance_id();
+	extern std::string& get_instance_id_string();
+
 	inline void init(std::string_view project_name, std::string_view target_module_name, std::string_view lua_api_namespace)
 	{
 		g_project_name       = project_name;

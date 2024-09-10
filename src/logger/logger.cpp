@@ -4,6 +4,7 @@
 #include "bits/bits.hpp"
 #include "config/config.hpp"
 #include "memory/module.hpp"
+#include "rom/rom.hpp"
 
 #include <sstream>
 #undef ERROR
@@ -26,6 +27,13 @@ namespace big
 	    m_console_handle(nullptr),
 	    m_file(file)
 	{
+		if (rom::get_instance_id())
+		{
+			auto unique_file_name  = m_file.get_path();
+			unique_file_name      += rom::get_instance_id_string();
+			m_file                 = unique_file_name;
+		}
+
 		auto module = memory::module("ntdll.dll");
 		if (const auto env_no_color = std::getenv("NO_COLOR"); module.get_export("wine_get_version") || (env_no_color && strlen(env_no_color)))
 		{
@@ -224,7 +232,8 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_console_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_console_out << "[" << timestamp << "]"
+		              << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_console_out.flush();
 	}
@@ -242,7 +251,8 @@ namespace big
 
 		const auto file = std::filesystem::path(location.file_name()).filename().string();
 
-		m_file_out << "[" << timestamp << "]" << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
+		m_file_out << "[" << timestamp << "]"
+		           << "[" << get_level_string(level) << "/" << file << ":" << location.line() << "] " << msg->Message();
 
 		m_file_out.flush();
 	}
