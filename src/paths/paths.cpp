@@ -86,8 +86,20 @@ namespace big::paths
 	void init_dump_file_path()
 	{
 		dump_file_path = g_file_manager
-		                     .get_project_file(std::format("./{}_crash{}.dmp", rom::g_project_name, rom::get_instance_id_string()))
+		                     .get_project_file(std::format("{}_crash{}.dmp", rom::g_project_name, rom::get_instance_id_string()))
 		                     .get_path();
+
+		try
+		{
+			if (std::filesystem::exists(dump_file_path))
+			{
+				std::filesystem::remove(dump_file_path);
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LOG(ERROR) << e.what();
+		}
 	}
 
 	const std::filesystem::path& remove_and_get_dump_file_path()

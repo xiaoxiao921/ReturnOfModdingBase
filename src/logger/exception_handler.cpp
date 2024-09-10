@@ -65,22 +65,26 @@ namespace big
 
 	typedef BOOL(WINAPI* MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType, const PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam, const PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam, const PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
+	static void print_last_error(const char* main_error_text)
+	{
+		std::stringstream error_msg;
+		error_msg << main_error_text << HEX_TO_UPPER(GetLastError());
+		MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
+	}
+
 	static BOOL write_mini_dump(EXCEPTION_POINTERS* exception_info)
 	{
 		BOOL is_success = FALSE;
 
-		const auto& dump_file_path = paths::remove_and_get_dump_file_path();
-
-		const auto dump_file_handle = CreateFileW(dump_file_path.c_str(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
-
 		MINIDUMPWRITEDUMP MiniDumpWriteDump_function = nullptr;
 		const auto minidump_type = (MINIDUMP_TYPE)(MiniDumpNormal | MiniDumpWithHandleData | MiniDumpWithProcessThreadData | MiniDumpWithThreadInfo | MiniDumpWithIndirectlyReferencedMemory);
 
+		const auto& dump_file_path  = paths::remove_and_get_dump_file_path();
+		const auto dump_file_handle = CreateFileW(dump_file_path.c_str(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
 		if (dump_file_handle == INVALID_HANDLE_VALUE)
 		{
-			std::stringstream error_msg;
-			error_msg << "CreateFileW error code: " << HEX_TO_UPPER(GetLastError());
-			MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
+			print_last_error(
+			    std::format("CreateFileW failed. Path: {}\nError code: ", (char*)dump_file_path.u8string().c_str()).c_str());
 
 			goto cleanup;
 		}
@@ -88,9 +92,7 @@ namespace big
 		MiniDumpWriteDump_function = (MINIDUMPWRITEDUMP)::GetProcAddress(DbgHelp_module, "MiniDumpWriteDump");
 		if (!MiniDumpWriteDump_function)
 		{
-			std::stringstream error_msg;
-			error_msg << "GetProcAddress error code: " << HEX_TO_UPPER(GetLastError());
-			MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
+			print_last_error("GetProcAddress error code: ");
 
 			goto cleanup;
 		}
@@ -104,9 +106,7 @@ namespace big
 		is_success = MiniDumpWriteDump_function(GetCurrentProcess(), GetCurrentProcessId(), dump_file_handle, minidump_type, &mdei, 0, NULL);
 		if (!is_success)
 		{
-			std::stringstream error_msg;
-			error_msg << "MiniDumpWriteDump_function error code: " << HEX_TO_UPPER(GetLastError());
-			MessageBoxA(0, error_msg.str().c_str(), rom::g_project_name.c_str(), MB_ICONERROR);
+			print_last_error("MiniDumpWriteDump_function error code: ");
 
 			goto cleanup;
 		}
