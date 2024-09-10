@@ -251,7 +251,7 @@ namespace rom
 			return g_instance_id;
 		}
 
-		for (int32_t i = 0; i < 3; ++i)
+		for (int32_t i = 0; i < 100; ++i)
 		{
 			const std::string mutex_instance_name = std::format("Global\\ReturnOfModdingInstanceID{}", i);
 			const auto mutex_handle               = CreateMutexA(NULL, FALSE, mutex_instance_name.c_str());
