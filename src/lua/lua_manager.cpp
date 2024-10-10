@@ -305,10 +305,7 @@ namespace big
 		// Table: mods
 		// Name: loading_order
 		// Returns: table<int, string>: Table containing the order in which mods are loaded by the mod loader.
-		mods["loading_order"] = [](sol::this_environment env)
-		{
-			return sol::as_table(g_lua_manager->m_modules_loading_order);
-		};
+		mods["loading_order"] = std::ref(g_lua_manager->m_modules_loading_order);
 
 		// Lua API: Function
 		// Table: mods
