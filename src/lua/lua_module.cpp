@@ -7,6 +7,7 @@
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
+
 // clang-format on
 
 namespace big
@@ -43,6 +44,18 @@ namespace big
 		// Field: _PLUGIN.guid: string
 		// Guid of the mod.
 		ns["guid"] = m_info.m_guid;
+
+		// Lua API: Field
+		// Table: _ENV - Plugin Specific Global Table
+		// Field: _PLUGIN.dependencies: table<string>
+		// Dependencies of the mod.
+		ns["dependencies"] = m_info.m_manifest.dependencies;
+
+		// Lua API: Field
+		// Table: _ENV - Plugin Specific Global Table
+		// Field: _PLUGIN.dependencies_no_version_number: table<string>
+		// Dependencies of the mod without the version numbers.
+		ns["dependencies_no_version_number"] = m_info.m_manifest.dependencies_no_version_number;
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
