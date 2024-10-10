@@ -300,6 +300,16 @@ namespace big
 		sol::table lua_ext = rom::g_lua_api_namespace.size() ? m_state.create_named_table(rom::g_lua_api_namespace) : global_table;
 
 		sol::table mods = lua_ext.create_named("mods");
+
+		// Lua API: Function
+		// Table: mods
+		// Name: loading_order
+		// Returns: table<int, string>: Table containing the order in which mods are loaded by the mod loader.
+		mods["loading_order"] = [](sol::this_environment env)
+		{
+			return sol::as_table(g_lua_manager->m_modules_loading_order);
+		};
+
 		// Lua API: Function
 		// Table: mods
 		// Name: on_all_mods_loaded

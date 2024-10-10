@@ -35,6 +35,8 @@ namespace big
 		std::recursive_mutex m_module_lock;
 		std::vector<std::unique_ptr<lua_module>> m_modules;
 
+		std::vector<std::string> m_modules_loading_order;
+
 		folder m_config_folder;
 		folder m_plugins_data_folder;
 		folder m_plugins_folder;
@@ -274,6 +276,12 @@ namespace big
 			}
 
 			std::scoped_lock guard(m_module_lock);
+
+			for (const auto& module : m_modules)
+			{
+				m_modules_loading_order.push_back(module->guid());
+			}
+
 			for (const auto& module : m_modules)
 			{
 				for (const auto& cb : module->m_data.m_on_all_mods_loaded_callbacks)
