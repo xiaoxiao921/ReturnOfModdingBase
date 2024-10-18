@@ -2,7 +2,6 @@
 
 #include "paths.hpp"
 
-#include <filesystem>
 #include <logger/logger.hpp>
 #include <rom/rom.hpp>
 
@@ -40,22 +39,25 @@ namespace big::paths
 		{
 			try
 			{
-				auto* args  = GetCommandLineW();
-				int argc    = 0;
-				auto** argv = CommandLineToArgvW(args, &argc);
-
+				int argc  = 0;
+				auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 				if (!argv)
 				{
 					throw std::runtime_error("CommandLineToArgvW failed.");
 				}
 
-				auto options = rom::get_rom_cxx_options();
-
-				const auto result = options.parse(argc, argv);
-
-				if (result.count(root_folder_arg_name))
+				bool has_root_folder_arg_name = false;
+				for (int i = 0; i < argc - 1; i++)
 				{
-					root_folder  = result[root_folder_arg_name].as<std::wstring>();
+					if (wcsstr(argv[i], root_folder_arg_name))
+					{
+						has_root_folder_arg_name = true;
+						root_folder              = argv[i + 1];
+					}
+				}
+
+				if (has_root_folder_arg_name)
+				{
 					root_folder /= folder_name;
 					LOG(INFO) << "Root folder set through command line args: "
 					          << reinterpret_cast<const char*>(root_folder.u8string().c_str());

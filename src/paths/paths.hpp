@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cxxopts.hpp>
 // clang-format off
 #include <windows.h>
 // clang-format on
-#include <shellapi.h>
+#include <filesystem>
 
 namespace big::paths
 {
