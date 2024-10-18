@@ -9,8 +9,8 @@ endif()
 
 FetchContent_Declare(
     cxxopts
-    GIT_REPOSITORY https://github.com/matttyson/cxxopts.git
-    GIT_TAG 7f24883e44b032e4c75c5af2391072e45c6078f0
+    GIT_REPOSITORY https://github.com/xiaoxiao921/cxxopts.git
+    GIT_TAG fe250a7ce7ae0f7ff7a076f0577ed23a508b9b5b
     GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable(cxxopts)
