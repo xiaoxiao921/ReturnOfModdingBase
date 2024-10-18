@@ -27,8 +27,6 @@ namespace rom
 	inline enabled_reason g_first_enabled_reason = enabled_reason::NOT_INIT;
 	inline enabled_reason g_enabled_reason       = enabled_reason::NOT_INIT;
 
-	extern LPSTR* CommandLineToArgvA(LPCSTR cmd_line, int* argc);
-
 	extern cxxopts::Options get_rom_cxx_options();
 
 	extern bool is_rom_enabled();

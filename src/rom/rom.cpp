@@ -3,96 +3,18 @@
 #include "logger/logger.hpp"
 #include "paths/paths.hpp"
 
+#include <string/string_conversions.hpp>
+
 namespace rom
 {
-	LPSTR* CommandLineToArgvA(LPCSTR cmd_line, int* argc)
-	{
-		ULONG len = strlen(cmd_line);
-		ULONG i   = ((len + 2) / 2) * sizeof(LPVOID) + sizeof(LPVOID);
-
-		LPSTR* argv = (LPSTR*)GlobalAlloc(GMEM_FIXED, i + (len + 2) * sizeof(CHAR));
-
-		LPSTR _argv = (LPSTR)(((PUCHAR)argv) + i);
-
-		ULONG _argc   = 0;
-		argv[_argc]   = _argv;
-		BOOL in_qm    = FALSE;
-		BOOL in_text  = FALSE;
-		BOOL in_space = TRUE;
-		ULONG j       = 0;
-		i             = 0;
-
-		CHAR a;
-		while ((a = cmd_line[i]))
-		{
-			if (in_qm)
-			{
-				if (a == '\"')
-				{
-					in_qm = FALSE;
-				}
-				else
-				{
-					_argv[j] = a;
-					j++;
-				}
-			}
-			else
-			{
-				switch (a)
-				{
-				case '\"':
-					in_qm   = TRUE;
-					in_text = TRUE;
-					if (in_space)
-					{
-						argv[_argc] = _argv + j;
-						_argc++;
-					}
-					in_space = FALSE;
-					break;
-				case ' ':
-				case '\t':
-				case '\n':
-				case '\r':
-					if (in_text)
-					{
-						_argv[j] = '\0';
-						j++;
-					}
-					in_text  = FALSE;
-					in_space = TRUE;
-					break;
-				default:
-					in_text = TRUE;
-					if (in_space)
-					{
-						argv[_argc] = _argv + j;
-						_argc++;
-					}
-					_argv[j] = a;
-					j++;
-					in_space = FALSE;
-					break;
-				}
-			}
-			i++;
-		}
-		_argv[j]    = '\0';
-		argv[_argc] = NULL;
-
-		(*argc) = _argc;
-		return argv;
-	}
-
 	cxxopts::Options get_rom_cxx_options()
 	{
-		constexpr auto root_folder_arg_name = "rom_modding_root_folder";
-		constexpr auto rom_enabled_arg_name = "rom_enabled";
+		constexpr auto root_folder_arg_name = L"rom_modding_root_folder";
+		constexpr auto rom_enabled_arg_name = L"rom_enabled";
 
-		cxxopts::Options options(rom::g_project_name);
-		options.add_options()(root_folder_arg_name, root_folder_arg_name, cxxopts::value<std::string>()->default_value(""));
-		options.add_options()(rom_enabled_arg_name, rom_enabled_arg_name, cxxopts::value<std::string>()->default_value("true"));
+		cxxopts::Options options(big::string_conversions::utf8_to_utf16(rom::g_project_name));
+		options.add_options()(root_folder_arg_name, root_folder_arg_name, cxxopts::value<std::string>()->default_value(L""));
+		options.add_options()(rom_enabled_arg_name, rom_enabled_arg_name, cxxopts::value<std::string>()->default_value(L"true"));
 		return options;
 	}
 
@@ -145,22 +67,22 @@ namespace rom
 	{
 		const store_reason_to_file _store_reason_to_file{};
 
-		constexpr auto rom_enabled_arg_name = "rom_enabled";
-		constexpr auto root_folder_arg_name = "rom_modding_root_folder";
+		constexpr auto rom_enabled_arg_name = L"rom_enabled";
+		constexpr auto root_folder_arg_name = L"rom_modding_root_folder";
 
-		const char* rom_enabled_value = std::getenv(rom_enabled_arg_name);
-		if (rom_enabled_value && strlen(rom_enabled_value))
+		const auto rom_enabled_value = _wgetenv(rom_enabled_arg_name);
+		if (rom_enabled_value && wcslen(rom_enabled_value))
 		{
-			if (strstr(rom_enabled_value, "true"))
+			if (wcsstr(rom_enabled_value, L"true"))
 			{
-				LOG(INFO) << "ReturnOfModding enabled because " << rom_enabled_value;
+				LOG(INFO) << "ReturnOfModding enabled because " << big::string_conversions::utf16_to_utf8(rom_enabled_value);
 
 				g_enabled_reason = enabled_reason::ENABLED_BY_ENV_VAR;
 				return true;
 			}
 			else
 			{
-				LOG(INFO) << "ReturnOfModding disabled because " << rom_enabled_value;
+				LOG(INFO) << "ReturnOfModding disabled because " << big::string_conversions::utf16_to_utf8(rom_enabled_value);
 
 				g_enabled_reason = enabled_reason::DISABLED_BY_ENV_VAR;
 				return false;
@@ -170,9 +92,9 @@ namespace rom
 		{
 			try
 			{
-				auto* args  = GetCommandLineA();
+				auto* args  = GetCommandLineW();
 				int argc    = 0;
-				auto** argv = rom::CommandLineToArgvA(args, &argc);
+				auto** argv = CommandLineToArgvW(args, &argc);
 
 				auto options = rom::get_rom_cxx_options();
 
@@ -188,9 +110,9 @@ namespace rom
 
 					if (has_rom_enabled_arg_name)
 					{
-						auto& rom_enabled_value_str = result[rom_enabled_arg_name].as<std::string>();
+						auto& rom_enabled_value_str = result[rom_enabled_arg_name].as<std::wstring>();
 						LOG(INFO) << rom_enabled_value_str;
-						if (rom_enabled_value_str.contains("true"))
+						if (rom_enabled_value_str.contains(L"true"))
 						{
 							LOG(INFO) << "ReturnOfModding enabled from command line";
 							g_enabled_reason = enabled_reason::ENABLED_BY_CMD_LINE;
@@ -204,7 +126,7 @@ namespace rom
 					}
 					else if (has_root_folder_arg_name)
 					{
-						auto& root_folder = result[root_folder_arg_name].as<std::string>();
+						auto& root_folder = result[root_folder_arg_name].as<std::wstring>();
 						if (root_folder.size())
 						{
 							LOG(INFO) << "ReturnOfModding enabled from command line through custom root_folder";

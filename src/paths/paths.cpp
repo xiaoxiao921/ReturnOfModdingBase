@@ -10,9 +10,10 @@ namespace big::paths
 {
 	std::filesystem::path get_main_module_folder()
 	{
-		char module_file_path[MAX_PATH];
-		const auto path_size              = GetModuleFileNameA(nullptr, module_file_path, MAX_PATH);
-		std::filesystem::path module_path = std::string(module_file_path, path_size);
+		constexpr size_t max_str_size = MAX_PATH * 4;
+		wchar_t module_file_path[max_str_size];
+		const auto path_size              = GetModuleFileNameW(nullptr, module_file_path, max_str_size);
+		std::filesystem::path module_path = std::wstring(module_file_path, path_size);
 		return module_path.parent_path();
 	}
 
@@ -20,10 +21,10 @@ namespace big::paths
 	{
 		std::filesystem::path root_folder{};
 
-		constexpr auto root_folder_arg_name = "rom_modding_root_folder";
+		constexpr auto root_folder_arg_name = L"rom_modding_root_folder";
 		constexpr auto folder_name          = "ReturnOfModding";
 
-		const char* env_root_folder = std::getenv(root_folder_arg_name);
+		const auto env_root_folder = _wgetenv(root_folder_arg_name);
 		if (env_root_folder)
 		{
 			root_folder  = env_root_folder;
@@ -39,9 +40,14 @@ namespace big::paths
 		{
 			try
 			{
-				auto* args  = GetCommandLineA();
+				auto* args  = GetCommandLineW();
 				int argc    = 0;
-				auto** argv = rom::CommandLineToArgvA(args, &argc);
+				auto** argv = CommandLineToArgvW(args, &argc);
+
+				if (!argv)
+				{
+					throw std::runtime_error("CommandLineToArgvW failed.");
+				}
 
 				auto options = rom::get_rom_cxx_options();
 
@@ -49,7 +55,7 @@ namespace big::paths
 
 				if (result.count(root_folder_arg_name))
 				{
-					root_folder  = result[root_folder_arg_name].as<std::string>();
+					root_folder  = result[root_folder_arg_name].as<std::wstring>();
 					root_folder /= folder_name;
 					LOG(INFO) << "Root folder set through command line args: "
 					          << reinterpret_cast<const char*>(root_folder.u8string().c_str());
