@@ -3,6 +3,9 @@ include(FetchContent)
 message("cxxopts")
 
 add_compile_definitions(CXXOPTS_WCHAR)
+if(MSVC)
+    add_compile_options(/wd4273)
+endif()
 
 FetchContent_Declare(
     cxxopts
