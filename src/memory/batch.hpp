@@ -9,6 +9,7 @@
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
+
 // clang-format on
 
 namespace memory
@@ -98,6 +99,22 @@ namespace memory
 			}
 
 			g_futures.clear();
+
+			return found_all_patterns;
+		}
+
+		template<size_t N>
+		inline static bool run_sync(const memory::batch<N> batch, range region)
+		{
+			bool found_all_patterns = true;
+
+			for (auto& entry : batch.m_entries)
+			{
+				if (!scan_pattern_and_execute_callback(region, entry))
+				{
+					found_all_patterns = false;
+				}
+			}
 
 			return found_all_patterns;
 		}
