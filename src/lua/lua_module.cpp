@@ -142,14 +142,14 @@ namespace big
 
 		if (!result.valid())
 		{
-			LOG(ERROR) << m_info.m_guid << " failed to load: " << result.get<sol::error>().what();
+			LOG(ERROR) << m_info.m_guid_with_version << " failed to load: " << result.get<sol::error>().what();
 			Logger::FlushQueue();
 
 			return load_module_result::FAILED_TO_LOAD;
 		}
 		else
 		{
-			LOG(INFO) << "Loaded " << m_info.m_guid;
+			LOG(INFO) << "Loaded " << m_info.m_guid_with_version;
 
 			// Lua API: Field
 			// Table: mods
