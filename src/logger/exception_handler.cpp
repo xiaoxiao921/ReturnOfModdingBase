@@ -32,7 +32,7 @@ namespace big
 		return nullptr;
 	}
 
-	exception_handler::exception_handler()
+	exception_handler::exception_handler(bool cancel_future_set_unhandled_exception_filter, void* custom_top_level_exception_filter)
 	{
 		if (!DbgHelp_module)
 		{
@@ -46,12 +46,21 @@ namespace big
 		m_previous_handler        = signal(SIGABRT, abort_signal_handler);
 		m_previous_abort_behavior = _set_abort_behavior(0, _WRITE_ABORT_MSG);
 
-		m_old_error_mode    = SetErrorMode(0);
-		m_exception_handler = SetUnhandledExceptionFilter(vectored_exception_handler);
+		m_old_error_mode = SetErrorMode(0);
 
+		// clang-format off
+		m_exception_handler = SetUnhandledExceptionFilter(
+			custom_top_level_exception_filter ?
+			(LPTOP_LEVEL_EXCEPTION_FILTER)custom_top_level_exception_filter :
+			big_exception_handler
+		);
+		// clang-format on
 
-		static detour_hook anti_remover("Anti Exception Handler Remover", SetUnhandledExceptionFilter, hook_SetUnhandledExceptionFilter);
-		anti_remover.enable();
+		if (cancel_future_set_unhandled_exception_filter)
+		{
+			static detour_hook anti_remover("Anti Exception Handler Remover", SetUnhandledExceptionFilter, hook_SetUnhandledExceptionFilter);
+			anti_remover.enable();
+		}
 	}
 
 	exception_handler::~exception_handler()
@@ -123,7 +132,7 @@ namespace big
 		return is_success;
 	}
 
-	LONG vectored_exception_handler(EXCEPTION_POINTERS* exception_info)
+	LONG big_exception_handler(EXCEPTION_POINTERS* exception_info)
 	{
 		const auto exception_code = exception_info->ExceptionRecord->ExceptionCode;
 		if (exception_code == EXCEPTION_BREAKPOINT || exception_code == DBG_PRINTEXCEPTION_C || exception_code == DBG_PRINTEXCEPTION_WIDE_C)
@@ -136,7 +145,10 @@ namespace big
 			return EXCEPTION_CONTINUE_SEARCH;
 		}
 
-		write_mini_dump(exception_info);
+		if (exception_handler::g_write_mini_dump)
+		{
+			write_mini_dump(exception_info);
+		}
 
 		static std::set<std::size_t> logged_exceptions;
 
