@@ -65,6 +65,11 @@ namespace big
 			return m_state.lua_state();
 		}
 
+		bool is_hot_reloading() const
+		{
+			return m_to_reload_queue.size();
+		}
+
 		void process_file_watcher_queue();
 
 		template<typename T>
