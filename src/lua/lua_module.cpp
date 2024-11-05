@@ -138,6 +138,8 @@ namespace big
 
 	load_module_result lua_module::load_and_call_plugin(sol::state_view& state)
 	{
+		LOG(INFO) << "Loading " << m_info.m_guid_with_version;
+
 		auto result = state.safe_script_file(m_info.m_path.string(), m_env, &sol::script_pass_on_error, sol::load_mode::text);
 
 		if (!result.valid())
