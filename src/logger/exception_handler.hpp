@@ -9,7 +9,7 @@ namespace big
 	class exception_handler final
 	{
 	public:
-		exception_handler(bool cancel_future_set_unhandled_exception_filter, void* custom_top_level_exception_filter);
+		exception_handler(bool forbid_any_future_set_unhandled_exception_filter, void* custom_top_level_exception_filter);
 		virtual ~exception_handler();
 
 		static inline bool g_write_mini_dump = true;

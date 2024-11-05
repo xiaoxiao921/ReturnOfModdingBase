@@ -32,7 +32,7 @@ namespace big
 		return nullptr;
 	}
 
-	exception_handler::exception_handler(bool cancel_future_set_unhandled_exception_filter, void* custom_top_level_exception_filter)
+	exception_handler::exception_handler(bool forbid_any_future_set_unhandled_exception_filter, void* custom_top_level_exception_filter)
 	{
 		if (!DbgHelp_module)
 		{
@@ -56,7 +56,9 @@ namespace big
 		);
 		// clang-format on
 
-		if (cancel_future_set_unhandled_exception_filter)
+		// TODO: Add a way of adding a AddVectoredContinueHandler for cases where Windows will fail to call our UnhandledExceptionFilter?
+
+		if (forbid_any_future_set_unhandled_exception_filter)
 		{
 			static detour_hook anti_remover("Anti Exception Handler Remover", SetUnhandledExceptionFilter, hook_SetUnhandledExceptionFilter);
 			anti_remover.enable();
@@ -65,11 +67,8 @@ namespace big
 
 	exception_handler::~exception_handler()
 	{
-		MessageBoxA(0,
-		            "No more exception handler!!!\nIf this continues to happen, try not launching from the executable "
-		            "but from Steam.",
-		            rom::g_project_name.c_str(),
-		            MB_ICONERROR);
+		LOG(ERROR) << "Exception handler killed.";
+		Logger::FlushQueue();
 	}
 
 	typedef BOOL(WINAPI* MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType, const PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam, const PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam, const PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
@@ -145,11 +144,6 @@ namespace big
 			return EXCEPTION_CONTINUE_SEARCH;
 		}
 
-		if (exception_handler::g_write_mini_dump)
-		{
-			write_mini_dump(exception_info);
-		}
-
 		static std::set<std::size_t> logged_exceptions;
 
 		stack_trace trace;
@@ -161,6 +155,11 @@ namespace big
 			Logger::FlushQueue();
 
 			logged_exceptions.insert(trace_hash);
+
+			if (exception_handler::g_write_mini_dump)
+			{
+				write_mini_dump(exception_info);
+			}
 		}
 
 		return EXCEPTION_CONTINUE_SEARCH;
