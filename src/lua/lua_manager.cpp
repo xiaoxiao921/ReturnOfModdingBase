@@ -214,10 +214,6 @@ namespace big
 
 			auto& mod = m_to_reload_queue.front();
 
-			for (const auto& pair : mod->m_data.m_pre_cleanup)
-			{
-				pair.second(m_state);
-			}
 			mod->cleanup();
 			mod->load_and_call_plugin(m_state);
 

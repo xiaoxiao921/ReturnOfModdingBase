@@ -594,6 +594,10 @@ namespace lua::memory
 
 			m_detour->enable();
 		}
+		void disable_hook()
+		{
+			m_detour->disable();
+		}
 	};
 
 	value_wrapper_t::value_wrapper_t(char* val, type_info_t type)
@@ -767,6 +771,15 @@ namespace lua::memory
 
 			// TODO: The detour_hook is never cleaned up on unload.
 			target_func_ptr_to_hook[target_func_ptr]->create_and_enable_hook(hook_name, target_func_ptr, jitted_func);
+			auto mdl = (big::lua_module*)big::lua_module::this_from(env_);
+			if (mdl)
+			{
+				mdl->m_data.m_pre_cleanup.push_back([target_func_ptr]()
+				{
+					target_func_ptr_to_hook[target_func_ptr]->disable_hook();
+					target_func_ptr_to_hook.erase(target_func_ptr);
+				});
+			}
 		}
 
 		if (pre_lua_callback.valid())

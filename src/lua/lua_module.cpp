@@ -103,6 +103,10 @@ namespace big
 
 	void lua_module::cleanup()
 	{
+		for (const auto& callback : m_data.m_pre_cleanup)
+		{
+			callback();
+		}
 		for (auto memory : m_data.m_allocated_memory)
 		{
 			delete[] memory;

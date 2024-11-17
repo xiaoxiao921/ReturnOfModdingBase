@@ -114,7 +114,7 @@ namespace big
 				threads::suspend_all_but_one();
 			}
 
-			if (m_detour_object->unHook())
+			if (!m_detour_object->unHook())
 			{
 				LOG(ERROR) << "Failed to disable hook '" << m_name << "' at 0x" << HEX_TO_UPPER(uintptr_t(m_target)) << "(error: " << m_name << ")";
 			}

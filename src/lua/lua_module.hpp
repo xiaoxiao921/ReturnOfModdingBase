@@ -34,7 +34,7 @@ namespace big
 			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_pre_callbacks;
 			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_post_callbacks;
 
-			std::unordered_map<std::string, std::function<void(sol::state_view&)>> m_pre_cleanup;
+			std::vector<std::function<void()>> m_pre_cleanup;
 		};
 
 		lua_module_data m_data;
