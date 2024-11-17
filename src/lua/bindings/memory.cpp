@@ -769,7 +769,6 @@ namespace lua::memory
 
 			target_func_ptr_to_hook.emplace(target_func_ptr, std::move(runtime_func));
 
-			// TODO: The detour_hook is never cleaned up on unload.
 			target_func_ptr_to_hook[target_func_ptr]->create_and_enable_hook(hook_name, target_func_ptr, jitted_func);
 			auto mdl = (big::lua_module*)big::lua_module::this_from(env_);
 			if (mdl)
