@@ -40,6 +40,8 @@ namespace big
 		lua_module(const module_info& module_info, sol::state_view& state);
 		lua_module(const module_info& module_info, sol::environment& env);
 
+		std::unordered_map<std::string, std::function<void(sol::state_view&)>> m_pre_cleanup;
+
 	private:
 		void init();
 
