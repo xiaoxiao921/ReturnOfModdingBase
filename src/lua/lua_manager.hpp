@@ -1,4 +1,5 @@
 #pragma once
+#include "bindings/runtime_func_t.hpp"
 #include "load_module_result.hpp"
 #include "lua_module.hpp"
 #include "module_info.hpp"
@@ -40,6 +41,9 @@ namespace big
 		folder m_config_folder;
 		folder m_plugins_data_folder;
 		folder m_plugins_folder;
+
+		// non owning map
+		std::unordered_map<uintptr_t, lua::memory::runtime_func_t*> m_target_func_ptr_to_dynamic_hook;
 
 	public:
 		using on_lua_state_init_t  = std::function<void(sol::state_view&, sol::table&)>;
@@ -311,8 +315,11 @@ namespace big
 		void always_draw_independent_gui();
 		void draw_independent_gui();
 
-		bool dynamic_hook_pre_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args);
-		void dynamic_hook_post_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args);
+		std::shared_ptr<lua::memory::runtime_func_t> get_existing_dynamic_hook(const uintptr_t target_func_ptr);
+		bool dynamic_hook_pre_callbacks(const uintptr_t target_func_ptr, lua::memory::type_info_t return_type, lua::memory::runtime_func_t::return_value_t* return_value, std::vector<lua::memory::type_info_t> param_types, const lua::memory::runtime_func_t::parameters_t* params, const uint8_t param_count);
+		void dynamic_hook_post_callbacks(const uintptr_t target_func_ptr, lua::memory::type_info_t return_type, lua::memory::runtime_func_t::return_value_t* return_value, std::vector<lua::memory::type_info_t> param_types, const lua::memory::runtime_func_t::parameters_t* params, const uint8_t param_count);
+		sol::object to_lua(const lua::memory::runtime_func_t::parameters_t* params, const uint8_t i, const std::vector<lua::memory::type_info_t>& param_types);
+		sol::object to_lua(lua::memory::runtime_func_t::return_value_t* return_value, const lua::memory::type_info_t return_value_type);
 
 		bool module_exists(const std::string& module_guid);
 

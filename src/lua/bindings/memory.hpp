@@ -4,17 +4,6 @@
 
 namespace lua::memory
 {
-	enum type_info_t
-	{
-		none_,
-		boolean_,
-		string_,
-		integer_,
-		ptr_,
-		float_,
-		double_
-	};
-
 	// Lua API: Class
 	// Name: pointer
 	// Class representing a 64-bit memory address.

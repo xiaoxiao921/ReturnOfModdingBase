@@ -1,6 +1,8 @@
 #pragma once
 #include "load_module_result.hpp"
 #include "lua/bindings/gui_element.hpp"
+#include "lua/bindings/runtime_func_t.hpp"
+#include "lua/bindings/type_info_t.hpp"
 #include "lua/sol_include.hpp"
 #include "lua_patch.hpp"
 #include "module_info.hpp"
@@ -31,8 +33,13 @@ namespace big
 
 			std::vector<void*> m_allocated_memory;
 
+			// lua modules own and share the runtime_func_t object, such as when no module reference it anymore the hook detour get cleaned up.
+			std::vector<std::shared_ptr<lua::memory::runtime_func_t>> m_dynamic_hooks;
+
 			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_pre_callbacks;
 			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_post_callbacks;
+
+			std::unordered_map<uintptr_t, std::unique_ptr<uint8_t[]>> m_dynamic_call_jit_functions;
 		};
 
 		lua_module_data m_data;

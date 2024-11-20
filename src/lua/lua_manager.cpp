@@ -407,7 +407,7 @@ namespace big
 		}
 	}
 
-	bool lua_manager::dynamic_hook_pre_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args)
+	bool lua_manager::dynamic_hook_pre_callbacks(const uintptr_t target_func_ptr, lua::memory::type_info_t return_type, lua::memory::runtime_func_t::return_value_t* return_value, std::vector<lua::memory::type_info_t> param_types, const lua::memory::runtime_func_t::parameters_t* params, const uint8_t param_count)
 	{
 		std::scoped_lock guard(m_module_lock);
 
@@ -415,14 +415,25 @@ namespace big
 
 		for (const auto& module : m_modules)
 		{
-			for (const auto& cb : module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr])
+			const auto it = module->m_data.m_dynamic_hook_pre_callbacks.find(target_func_ptr);
+			if (it != module->m_data.m_dynamic_hook_pre_callbacks.end())
 			{
-				const auto new_call_orig_if_true = cb(return_value, sol::as_args(args));
-
-				if (call_orig_if_true && new_call_orig_if_true.valid() && new_call_orig_if_true.get_type() == sol::type::boolean
-				    && new_call_orig_if_true.get<bool>() == false)
+				sol::object return_value_obj = to_lua(return_value, return_type);
+				std::vector<sol::object> args;
+				for (uint8_t i = 0; i < param_count; i++)
 				{
-					call_orig_if_true = false;
+					args.push_back(to_lua(params, i, param_types));
+				}
+
+				for (const auto& cb : it->second)
+				{
+					const auto new_call_orig_if_true = cb(return_value_obj, sol::as_args(args));
+
+					if (call_orig_if_true && new_call_orig_if_true.valid() && new_call_orig_if_true.get_type() == sol::type::boolean
+					    && new_call_orig_if_true.get<bool>() == false)
+					{
+						call_orig_if_true = false;
+					}
 				}
 			}
 		}
@@ -430,17 +441,80 @@ namespace big
 		return call_orig_if_true;
 	}
 
-	void lua_manager::dynamic_hook_post_callbacks(const uintptr_t target_func_ptr, sol::object return_value, std::vector<sol::object> args)
+	void lua_manager::dynamic_hook_post_callbacks(const uintptr_t target_func_ptr, lua::memory::type_info_t return_type, lua::memory::runtime_func_t::return_value_t* return_value, std::vector<lua::memory::type_info_t> param_types, const lua::memory::runtime_func_t::parameters_t* params, const uint8_t param_count)
 	{
 		std::scoped_lock guard(m_module_lock);
 
 		for (const auto& module : m_modules)
 		{
-			for (const auto& cb : module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr])
+			const auto it = module->m_data.m_dynamic_hook_post_callbacks.find(target_func_ptr);
+			if (it != module->m_data.m_dynamic_hook_post_callbacks.end())
 			{
-				cb(return_value, sol::as_args(args));
+				sol::object return_value_obj = to_lua(return_value, return_type);
+				std::vector<sol::object> args;
+				for (uint8_t i = 0; i < param_count; i++)
+				{
+					args.push_back(to_lua(params, i, param_types));
+				}
+
+				for (const auto& cb : it->second)
+				{
+					cb(return_value_obj, sol::as_args(args));
+				}
 			}
 		}
+	}
+
+	sol::object lua_manager::to_lua(const lua::memory::runtime_func_t::parameters_t* params, const uint8_t i, const std::vector<lua::memory::type_info_t>& param_types)
+	{
+		if (param_types[i] == lua::memory::type_info_t::none_)
+		{
+			return sol::nil;
+		}
+		else if (param_types[i] == lua::memory::type_info_t::ptr_)
+		{
+			return sol::make_object(m_state, lua::memory::pointer(params->get<uintptr_t>(i)));
+		}
+		else
+		{
+			return sol::make_object(m_state, lua::memory::value_wrapper_t(params->get_arg_ptr(i), param_types[i]));
+		}
+
+		return sol::nil;
+	}
+
+	sol::object lua_manager::to_lua(lua::memory::runtime_func_t::return_value_t* return_value, const lua::memory::type_info_t return_value_type)
+	{
+		if (return_value_type == lua::memory::type_info_t::none_)
+		{
+			return sol::nil;
+		}
+		else if (return_value_type == lua::memory::type_info_t::ptr_)
+		{
+			return sol::make_object(m_state, lua::memory::pointer((uintptr_t)return_value->get()));
+		}
+		else
+		{
+			return sol::make_object(m_state, lua::memory::value_wrapper_t((char*)return_value->get(), return_value_type));
+		}
+
+		return sol::nil;
+	}
+
+	std::shared_ptr<lua::memory::runtime_func_t> lua_manager::get_existing_dynamic_hook(const uintptr_t target_func_ptr)
+	{
+		for (const auto& mod : m_modules)
+		{
+			for (const auto& dyn_hook : mod->m_data.m_dynamic_hooks)
+			{
+				if (dyn_hook->get_target_func_ptr() == target_func_ptr)
+				{
+					return dyn_hook;
+				}
+			}
+		}
+
+		return nullptr;
 	}
 
 	void lua_manager::unload_module(const std::string& module_guid)
