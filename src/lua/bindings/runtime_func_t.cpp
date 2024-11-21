@@ -305,6 +305,272 @@ namespace lua::memory
 		return make_jit_func(sig, arch, pre_callback, post_callback, target_func_ptr);
 	}
 
+	uintptr_t runtime_func_t::make_jit_midfunc(const std::vector<std::string>& param_types, const std::vector<std::string>& param_captures, const std::string& rsp_restore, const int stack_restore_offset, const std::vector<std::string>& restore_targets, const std::vector<std::string>& restore_sources, const asmjit::Arch arch, mid_callback_t mid_callback, const uintptr_t target_func_ptr)
+	{
+		for (const std::string& s : param_types)
+		{
+			m_param_types.push_back(get_type_info_from_string(s));
+		}
+
+		asmjit::CodeHolder code;
+		auto env = asmjit::Environment::host();
+		env.setArch(arch);
+		code.init(env);
+		// initialize function
+		asmjit::x86::Compiler cc(&code);
+
+		asmjit::StringLogger log;
+		// clang-format off
+			const auto format_flags =
+				asmjit::FormatFlags::kMachineCode | asmjit::FormatFlags::kExplainImms | asmjit::FormatFlags::kRegCasts |
+				asmjit::FormatFlags::kHexImms     | asmjit::FormatFlags::kHexOffsets  | asmjit::FormatFlags::kPositions;
+		// clang-format on
+
+		log.addFlags(format_flags);
+		code.setLogger(&log);
+
+		asmjit::Label skip_original_invoke_label = cc.newLabel();
+
+		// save caller-saved registers
+		cc.push(asmjit::x86::rax);
+		cc.push(asmjit::x86::rcx);
+		cc.push(asmjit::x86::rdx);
+		cc.push(asmjit::x86::r8);
+		cc.push(asmjit::x86::r9);
+		cc.push(asmjit::x86::r10);
+		cc.push(asmjit::x86::r11);
+
+		// setup the stack structure to hold arguments for user callback
+		uint8_t stack_size = sizeof(uintptr_t) * param_types.size();
+		if (stack_size % 16 != 0)
+		{
+			stack_size += 16 - (stack_size % 16);
+		}
+
+		// stack alignment
+		auto rsp_restore_gp = lua::memory::get_gp_from_name(rsp_restore);
+		if (rsp_restore_gp.has_value())
+		{
+			cc.push(*rsp_restore_gp);
+			cc.mov(*rsp_restore_gp, asmjit::x86::rsp);
+			cc.sub(asmjit::x86::rsp, 8);
+			cc.and_(asmjit::x86::rsp, 0xFF'FF'FF'F0);
+		}
+		else
+		{
+			int offset  = std::stoi(rsp_restore, nullptr, 10);
+			stack_size += offset;
+		}
+		// allocate space
+		cc.sub(asmjit::x86::rsp, stack_size);
+
+		// save capture registers to save change
+		std::unordered_map<uint8_t, asmjit::x86::Gp> cap_Gps;
+		std::unordered_map<uint8_t, asmjit::x86::Xmm> cap_Xmms;
+
+		// capture registers to the stack
+		for (uint8_t argIdx = 0; argIdx < param_types.size(); argIdx++)
+		{
+			auto argType    = lua::memory::get_type_id(param_types.at(argIdx));
+			auto argCapture = param_captures.at(argIdx);
+			if (argCapture.at(0) == '[')
+			{
+				auto target_address = lua::memory::get_addr_from_name(argCapture, stack_size);
+				if (!target_address.has_value())
+				{
+					LOG(ERROR) << "Can't get address from the name";
+					return 0;
+				}
+				if (lua::memory::is_general_register(argType))
+				{
+					asmjit::x86::Gp temp = cc.newUIntPtr();
+					cc.mov(temp, *target_address);
+					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), temp);
+				}
+				else if (lua::memory::is_XMM_register(argType))
+				{
+					asmjit::x86::Xmm temp = cc.newXmm();
+					cc.movq(temp, *target_address);
+					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), temp);
+				}
+				else
+				{
+					LOG(ERROR) << "Parameters wider than 64bits not supported";
+					return 0;
+				}
+			}
+			else
+			{
+				if (lua::memory::is_general_register(argType))
+				{
+					auto target_reg = lua::memory::get_gp_from_name(argCapture);
+					if (!target_reg.has_value())
+					{
+						LOG(ERROR) << "Can't get register from the name";
+						return 0;
+					}
+					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), *target_reg);
+					cap_Gps[argIdx] = *target_reg;
+				}
+				else if (lua::memory::is_XMM_register(argType))
+				{
+					auto target_reg = lua::memory::get_XMM_from_name(argCapture);
+					if (!target_reg.has_value())
+					{
+						LOG(ERROR) << "Can't get register from the name";
+						return 0;
+					}
+					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), *target_reg);
+					cap_Xmms[argIdx] = *target_reg;
+				}
+				else
+				{
+					LOG(ERROR) << "Parameters wider than 64bits not supported";
+					return 0;
+				}
+			}
+		}
+		// pass arguments to the function
+		cc.mov(asmjit::x86::rcx, asmjit::x86::rsp);
+		cc.mov(asmjit::x86::rdx, param_types.size());
+		cc.mov(asmjit::x86::r8, (uintptr_t)target_func_ptr);
+
+		// allocate prelogue space, may require a bigger space
+		cc.sub(asmjit::x86::rsp, 32);
+
+		// invoke the mid callback
+		cc.call((uintptr_t)mid_callback);
+		cc.add(asmjit::x86::rsp, 32);
+
+		// if the callback return value is zero, skip orig.
+		cc.test(asmjit::x86::rax, asmjit::x86::rax);
+		cc.jz(skip_original_invoke_label);
+
+		// apply change
+		for (const auto& pair : cap_Gps)
+		{
+			cc.mov(pair.second, asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * pair.first));
+		}
+		for (const auto& pair : cap_Xmms)
+		{
+			cc.movq(pair.second, asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * pair.first));
+		}
+		// stack cleanup
+		cc.add(asmjit::x86::rsp, stack_size);
+
+		// restore rsp
+		if (rsp_restore_gp.has_value())
+		{
+			cc.mov(asmjit::x86::rsp, *rsp_restore_gp);
+			cc.pop(*rsp_restore_gp);
+		}
+
+		// skip capture registers
+		auto change_pop = [&](asmjit::x86::Gp reg)
+		{
+			for (const auto& pair : cap_Gps)
+			{
+				if (pair.second == reg)
+				{
+					cc.add(asmjit::x86::rsp, 8);
+					return;
+				}
+			}
+			cc.pop(reg);
+		};
+		// restore caller-saved registers
+		change_pop(asmjit::x86::r11);
+		change_pop(asmjit::x86::r10);
+		change_pop(asmjit::x86::r9);
+		change_pop(asmjit::x86::r8);
+		change_pop(asmjit::x86::rdx);
+		change_pop(asmjit::x86::rcx);
+		change_pop(asmjit::x86::rax);
+
+		// jump to the original function
+		asmjit::x86::Gp original_ptr = cc.zbx();
+		cc.mov(original_ptr, m_detour->get_original_ptr());
+		cc.mov(original_ptr, asmjit::x86::ptr(original_ptr));
+		cc.jmp(original_ptr);
+
+		cc.bind(skip_original_invoke_label);
+		cc.add(asmjit::x86::rsp, stack_size + 7 * 8);
+		// restore callee-saved registers
+		for (int i = 0; i < restore_targets.size(); i++)
+		{
+			std::string target_name = restore_targets[i];
+			std::string source_name = restore_sources[i];
+			auto target             = lua::memory::get_gp_from_name(target_name);
+			if (target.has_value())
+			{
+				if (source_name.at(0) == '[')
+				{
+					auto source_addr = lua::memory::get_addr_from_name(source_name);
+					if (source_addr.has_value())
+					{
+						cc.mov(*target, *source_addr);
+					}
+					else
+					{
+						LOG(ERROR) << "Failed to get source address";
+						return 0;
+					}
+				}
+				else
+				{
+					auto source = lua::memory::get_gp_from_name(source_name);
+					if (source.has_value())
+					{
+						cc.mov(*target, *source);
+					}
+					else
+					{
+						LOG(ERROR) << "Failed to get source register";
+						return 0;
+					}
+				}
+			}
+			else
+			{
+				LOG(ERROR) << "Failed to get restore target";
+				return 0;
+			}
+		}
+
+		// stack cleanup
+		if (stack_restore_offset != 0)
+		{
+			cc.sub(asmjit::x86::rsp, stack_restore_offset);
+		}
+
+		// write to buffer
+		cc.finalize();
+
+		// worst case, overestimates for case trampolines needed
+		code.flatten();
+		size_t size = code.codeSize();
+
+		// Allocate a virtual memory (executable).
+		m_jit_function_buffer.reserve(size);
+
+		DWORD old_protect;
+		VirtualProtect(m_jit_function_buffer.data(), size, PAGE_EXECUTE_READWRITE, &old_protect);
+
+		// if multiple sections, resolve linkage (1 atm)
+		if (code.hasUnresolvedLinks())
+		{
+			code.resolveUnresolvedLinks();
+		}
+
+		// Relocate to the base-address of the allocated memory.
+		code.relocateToBase((uintptr_t)m_jit_function_buffer.data());
+		code.copyFlattenedData(m_jit_function_buffer.data(), size);
+
+		LOG(DEBUG) << "JIT Stub: " << log.data();
+
+		return (uintptr_t)m_jit_function_buffer.data();
+	}
+
 	void runtime_func_t::create_and_enable_hook(const std::string& hook_name, uintptr_t target_func_ptr, uintptr_t jitted_func_ptr)
 	{
 		m_target_func_ptr = target_func_ptr;

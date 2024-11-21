@@ -465,6 +465,30 @@ namespace big
 		}
 	}
 
+	bool lua_manager::dynamic_hook_mid_callbacks(const uintptr_t target_func_ptr, sol::table& args)
+	{
+		std::scoped_lock guard(m_module_lock);
+
+		bool call_orig_if_true = true;
+
+		for (const auto& module : m_modules)
+		{
+			const auto it = module->m_data.m_dynamic_hook_mid_callbacks.find(target_func_ptr);
+			if (it != module->m_data.m_dynamic_hook_mid_callbacks.end())
+			{
+				const auto new_call_orig_if_true = it->second(args);
+
+				if (call_orig_if_true && new_call_orig_if_true.valid() && new_call_orig_if_true.get_type() == sol::type::boolean
+				    && new_call_orig_if_true.get<bool>() == false)
+				{
+					call_orig_if_true = false;
+				}
+			}
+		}
+
+		return call_orig_if_true;
+	}
+
 	sol::object lua_manager::to_lua(const lua::memory::runtime_func_t::parameters_t* params, const uint8_t i, const std::vector<lua::memory::type_info_t>& param_types)
 	{
 		if (param_types[i].m_val == lua::memory::type_info_t::none_)

@@ -37,9 +37,12 @@ namespace big
 			std::vector<std::shared_ptr<lua::memory::runtime_func_t>> m_dynamic_hooks;
 
 			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_pre_callbacks;
+
 			std::unordered_map<uintptr_t, std::vector<sol::protected_function>> m_dynamic_hook_post_callbacks;
 
 			std::unordered_map<uintptr_t, std::unique_ptr<uint8_t[]>> m_dynamic_call_jit_functions;
+
+			std::unordered_map<uintptr_t, sol::protected_function> m_dynamic_hook_mid_callbacks;
 		};
 
 		lua_module_data m_data;

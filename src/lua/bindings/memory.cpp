@@ -287,6 +287,134 @@ namespace lua::memory
 		}
 	}
 
+	static bool mid_callback(const runtime_func_t::parameters_t* params, const uint8_t param_count, const uintptr_t target_func_ptr)
+	{
+		const auto& dyn_hook = big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr];
+
+		sol::table args(big::g_lua_manager->lua_state(), sol::new_table(param_count));
+
+		for (uint8_t i = 0; i < param_count; i++)
+		{
+			const auto& param_type_info = dyn_hook->m_param_types[i];
+
+			if (param_type_info.m_custom)
+			{
+				args[i + 1] = param_type_info.m_custom(big::g_lua_manager->lua_state(), (char*)params->get_arg_ptr(i));
+			}
+			else
+			{
+				if (param_type_info.m_val == lua::memory::type_info_t::ptr_)
+				{
+					args[i + 1] = sol::make_object(big::g_lua_manager->lua_state(), lua::memory::pointer(params->get<uintptr_t>(i)));
+				}
+				else
+				{
+					args[i + 1] = sol::make_object(big::g_lua_manager->lua_state(), lua::memory::value_wrapper_t(params->get_arg_ptr(i), param_type_info));
+				}
+			}
+		}
+
+		return big::g_lua_manager->dynamic_hook_mid_callbacks(target_func_ptr, args);
+	}
+
+	// Lua API: Function
+	// Table: gm
+	// Name: dynamic_hook_mid
+	// Param: hook_name: string: The name of the hook.
+	// Param: param_captures_targets: table<string>: Addresses of the parameters which you want to capture.
+	// Param: param_captures_types: table<string>: Types of the parameters which you want to capture.
+	// Param: rsp_restore: string: The name of reg which used to restore rsp pointer, or the stack alignment offset.
+	// Param: stack_restore_offset: int: An offset used to restore stack, only need when you want to interrupt the function.
+	// Param: param_restores: table<string, string>: Restore targets and restore sources used to restore function, only need when you want to interrupt the function.
+	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
+	// Param: mid_callback: function: The function that will be called when the program reaches the position. The callback must match the following signature: ( args (If it's a GM struct, it will be a pointer, else will be a value_wrapper) ) -> Returns false (boolean) if you want to interrupt the function.
+	// **Example Usage:**
+	// ```lua
+	// local ptr = memory.scan_pattern("some ida sig")
+	// gm.dynamic_hook_mid("test_hook", {"rax", "rcx", "[rcx+rdx*4+11]"}, {"int", "RValue*", "int"}, "8", 0, {}, ptr, function(args)
+	//     log.info("trigger", args[1]:get(), args[2].value, args[3]:set(1))
+	// end)
+	// ```
+	// But scan_pattern may be affected by the other hooks.
+	static void dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, const std::string& rsp_restore, int stack_restore_offset, sol::table restores_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
+	{
+		if (!target_func_ptr_obj.is_valid())
+		{
+			LOG(ERROR) << "Invalid target func ptr obj.";
+			return;
+		}
+
+		big::lua_module* mdl = big::lua_module::this_from(env);
+		if (!mdl)
+		{
+			return;
+		}
+
+		if (!lua_mid_callback.valid())
+		{
+			return;
+		}
+
+		const auto target_func_ptr = target_func_ptr_obj.get_address();
+
+		mdl->m_data.m_dynamic_hook_mid_callbacks[target_func_ptr] = lua_mid_callback;
+
+		auto parse_table_to_string = [](const sol::table& table, std::vector<std::string>& target_vector)
+		{
+			for (const auto& [k, v] : table)
+			{
+				if (v.is<const char*>())
+				{
+					target_vector.push_back(v.as<const char*>());
+				}
+			}
+		};
+		std::vector<std::string> param_captures;
+		parse_table_to_string(param_captures_targets, param_captures);
+		std::vector<std::string> param_types;
+		parse_table_to_string(param_captures_types, param_types);
+
+		std::vector<std::string> restore_targets;
+		std::vector<std::string> restore_sources;
+		for (const auto& [k, v] : restores_table)
+		{
+			if (k.is<const char*>())
+			{
+				restore_targets.push_back(k.as<const char*>());
+			}
+			if (v.is<const char*>())
+			{
+				restore_sources.push_back(v.as<const char*>());
+			}
+		}
+
+		std::stringstream hook_name;
+		hook_name << mdl->guid() << " | " << hook_name_str << " | " << target_func_ptr;
+		LOG(INFO) << "hook_name: " << hook_name.str();
+
+		std::shared_ptr<runtime_func_t> runtime_func;
+
+		if (!big::g_lua_manager->m_target_func_ptr_to_dynamic_hook.contains(target_func_ptr))
+		{
+			runtime_func = std::make_shared<runtime_func_t>();
+			const auto jitted_func = runtime_func->make_jit_midfunc(param_types, param_captures, rsp_restore, stack_restore_offset, restore_targets, restore_sources, asmjit::Arch::kHost, mid_callback, target_func_ptr);
+
+			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr] = runtime_func.get();
+
+			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr]->create_and_enable_hook(hook_name.str(), target_func_ptr, jitted_func);
+		}
+		else
+		{
+			// lua modules own and share the runtime_func_t object, such as when no module reference it anymore the hook detour get cleaned up.
+			runtime_func = big::g_lua_manager->get_existing_dynamic_hook(target_func_ptr);
+		}
+
+		if (runtime_func)
+		{
+			mdl->m_data.m_dynamic_hooks.push_back(runtime_func);
+		}
+	}
+
 	static std::string get_jitted_lua_func_global_name(uintptr_t function_to_call_ptr)
 	{
 		return std::format("__dynamic_call_{}", function_to_call_ptr);
@@ -685,6 +813,10 @@ namespace lua::memory
 		ns["free"]         = free;
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
+		ns["dynamic_hook"]     = dynamic_hook;
+		ns["dynamic_hook_mid"] = dynamic_hook_mid;
+		ns["dynamic_call"]     = dynamic_call;
+
 		// Lua API: Function
 		// Table: memory
 		// Name: get_usertype_pointer
