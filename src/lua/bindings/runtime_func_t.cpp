@@ -30,6 +30,8 @@ namespace lua::memory
 	runtime_func_t::~runtime_func_t()
 	{
 		big::g_lua_manager->m_target_func_ptr_to_dynamic_hook.erase(m_target_func_ptr);
+
+		m_detour->disable();
 	}
 
 	void runtime_func_t::debug_print_args(const asmjit::FuncSignature& sig)
