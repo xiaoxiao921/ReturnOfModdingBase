@@ -604,10 +604,9 @@ namespace lua::memory
 
 		const auto state = env_.env.value().lua_state();
 
-		const auto already_jitted_func = sol::state_view(state)[jitted_lua_func_global_name];
-		if (already_jitted_func.is<sol::protected_function>())
+		if (module->m_data.m_dynamic_call_jit_functions.contains(target_func_ptr))
 		{
-			return already_jitted_func;
+			return jitted_lua_func_global_name;
 		}
 
 		std::vector<std::string> param_types_strings;
