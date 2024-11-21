@@ -684,8 +684,47 @@ namespace lua::memory
 		ns["free"]         = free;
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
-		ns["dynamic_hook"] = dynamic_hook;
+		// Lua API: Function
+		// Table: memory
+		// Name: get_usertype_pointer
+		// Param: usertype_object: any_usertype: A lua usertype instance.
+		// Returns: number: The object address as a lua number.
+		{
+			lua_State* L = state.lua_state();
 
-		ns["dynamic_call"] = dynamic_call;
+			// Retrieve the existing "memory" table
+			lua_getglobal(L, "memory");
+			if (lua_istable(L, -1))
+			{
+				// Add the "get_usertype_pointer" function to the "memory" table
+				lua_pushstring(L, "get_usertype_pointer"); // Push the key
+				lua_pushcfunction(L,
+				                  [](lua_State* L) -> int
+				                  {
+					                  // Check if the first argument is a userdata
+					                  if (!lua_isuserdata(L, 1))
+					                  {
+						                  return luaL_error(L, "Expected a userdata.");
+					                  }
+
+					                  // Get the raw pointer to the userdata
+					                  void* userdata = *(void**)lua_touserdata(L, 1);
+
+					                  // Push the pointer as a Lua number
+					                  lua_pushnumber(L, (lua_Number)(uintptr_t)userdata);
+
+					                  // Return 1 value to Lua (the pointer)
+					                  return 1;
+				                  });
+				lua_settable(L, -3); // Set the function in the "memory" table
+
+				// Pop the "memory" table off the stack
+				lua_pop(L, 1);
+			}
+			else
+			{
+				LOG(ERROR) << "Failed retrieving memory table";
+			}
+		}
 	}
 } // namespace lua::memory
