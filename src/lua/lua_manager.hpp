@@ -96,20 +96,29 @@ namespace big
 		{
 			try
 			{
-				auto tmp_path  = std::filesystem::temp_directory_path();
-				tmp_path      /= rom::g_project_name + "_fallback_module.lua";
-				std::ofstream ofs(tmp_path);
+				auto main_lua_file_path  = m_plugins_folder.get_path();
+				main_lua_file_path      /= rom::g_project_name + "-GLOBAL";
+				std::filesystem::create_directories(main_lua_file_path);
+				main_lua_file_path /= "main.lua";
+				std::ofstream ofs(main_lua_file_path);
 				ofs << "#\n";
 				ofs.close();
 
-				const module_info mod_info = {
-				    .m_path              = tmp_path,
-				    .m_folder_path       = m_plugins_folder.get_path(),
-				    .m_guid              = rom::g_project_name + "-GLOBAL",
-				    .m_guid_with_version = rom::g_project_name + "-GLOBAL-1.0.0",
-				    .m_manifest = {.name = "GLOBAL", .version_number = "1.0.0", .version = semver::version(1, 0, 0), .website_url = "", .description = "Fallback module"},
-				};
-				const auto load_result = load_module<T>(mod_info, true);
+				auto manifest_path  = m_plugins_folder.get_path();
+				manifest_path      /= rom::g_project_name + "-GLOBAL";
+				std::filesystem::create_directories(manifest_path);
+				manifest_path /= "manifest.json";
+				std::ofstream ofss(manifest_path);
+				ofss << R"({
+    "name": "GLOBAL",
+    "version_number": "1.0.0",
+    "website_url": "",
+    "description": "Fallback module",
+    "dependencies": [
+
+    ]
+})";
+				ofss.close();
 			}
 			catch (const std::exception& e)
 			{
