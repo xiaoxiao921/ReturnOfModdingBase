@@ -305,7 +305,20 @@ namespace lua::memory
 		return make_jit_func(sig, arch, pre_callback, post_callback, target_func_ptr);
 	}
 
-	uintptr_t runtime_func_t::make_jit_midfunc(const std::vector<std::string>& param_types, const std::vector<std::string>& param_captures, const std::string& rsp_restore, const int stack_restore_offset, const std::vector<std::string>& restore_targets, const std::vector<std::string>& restore_sources, const asmjit::Arch arch, mid_callback_t mid_callback, const uintptr_t target_func_ptr)
+	class jit_error_handler : public asmjit::ErrorHandler
+	{
+	public:
+		jit_error_handler()
+		{
+		}
+
+		void handleError(asmjit::Error err, const char* message, asmjit::BaseEmitter* origin) override
+		{
+			LOG(ERROR) << message;
+		}
+	};
+
+	uintptr_t runtime_func_t::make_jit_midfunc(const std::vector<std::string>& param_types, const std::vector<std::string>& param_captures, const int stack_restore_offset, const std::vector<std::string>& restore_targets, const std::vector<std::string>& restore_sources, const asmjit::Arch arch, mid_callback_t mid_callback, const uintptr_t target_func_ptr)
 	{
 		for (const std::string& s : param_types)
 		{
@@ -316,6 +329,9 @@ namespace lua::memory
 		auto env = asmjit::Environment::host();
 		env.setArch(arch);
 		code.init(env);
+		jit_error_handler eh;
+		code.setErrorHandler(&eh);
+
 		// initialize function
 		asmjit::x86::Compiler cc(&code);
 
@@ -332,6 +348,7 @@ namespace lua::memory
 		asmjit::Label skip_original_invoke_label = cc.newLabel();
 
 		// save caller-saved registers
+		cc.push(asmjit::x86::rbp);
 		cc.push(asmjit::x86::rax);
 		cc.push(asmjit::x86::rcx);
 		cc.push(asmjit::x86::rdx);
@@ -341,26 +358,8 @@ namespace lua::memory
 		cc.push(asmjit::x86::r11);
 
 		// setup the stack structure to hold arguments for user callback
-		uint8_t stack_size = sizeof(uintptr_t) * param_types.size();
-		if (stack_size % 16 != 0)
-		{
-			stack_size += 16 - (stack_size % 16);
-		}
+		int32_t stack_size = sizeof(uintptr_t) * param_types.size();
 
-		// stack alignment
-		auto rsp_restore_gp = lua::memory::get_gp_from_name(rsp_restore);
-		if (rsp_restore_gp.has_value())
-		{
-			cc.push(*rsp_restore_gp);
-			cc.mov(*rsp_restore_gp, asmjit::x86::rsp);
-			cc.sub(asmjit::x86::rsp, 8);
-			cc.and_(asmjit::x86::rsp, 0xFF'FF'FF'F0);
-		}
-		else
-		{
-			int offset  = std::stoi(rsp_restore, nullptr, 10);
-			stack_size += offset;
-		}
 		// allocate space
 		cc.sub(asmjit::x86::rsp, stack_size);
 
@@ -371,23 +370,22 @@ namespace lua::memory
 		// capture registers to the stack
 		for (uint8_t argIdx = 0; argIdx < param_types.size(); argIdx++)
 		{
-			auto argType    = lua::memory::get_type_id(param_types.at(argIdx));
+			auto argType    = get_type_id(param_types.at(argIdx));
 			auto argCapture = param_captures.at(argIdx);
 			if (argCapture.at(0) == '[')
 			{
-				auto target_address = lua::memory::get_addr_from_name(argCapture, stack_size);
+				auto target_address = get_addr_from_name(argCapture, stack_size);
 				if (!target_address.has_value())
 				{
 					LOG(ERROR) << "Can't get address from the name";
 					return 0;
 				}
-				if (lua::memory::is_general_register(argType))
+				if (is_general_register(argType))
 				{
-					asmjit::x86::Gp temp = cc.newUIntPtr();
-					cc.mov(temp, *target_address);
-					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), temp);
+					cc.mov(asmjit::x86::rbp, *target_address);
+					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), asmjit::x86::rbp);
 				}
-				else if (lua::memory::is_XMM_register(argType))
+				else if (is_XMM_register(argType))
 				{
 					asmjit::x86::Xmm temp = cc.newXmm();
 					cc.movq(temp, *target_address);
@@ -401,9 +399,9 @@ namespace lua::memory
 			}
 			else
 			{
-				if (lua::memory::is_general_register(argType))
+				if (is_general_register(argType))
 				{
-					auto target_reg = lua::memory::get_gp_from_name(argCapture);
+					auto target_reg = get_gp_from_name(argCapture);
 					if (!target_reg.has_value())
 					{
 						LOG(ERROR) << "Can't get register from the name";
@@ -412,9 +410,9 @@ namespace lua::memory
 					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), *target_reg);
 					cap_Gps[argIdx] = *target_reg;
 				}
-				else if (lua::memory::is_XMM_register(argType))
+				else if (is_XMM_register(argType))
 				{
-					auto target_reg = lua::memory::get_XMM_from_name(argCapture);
+					auto target_reg = get_XMM_from_name(argCapture);
 					if (!target_reg.has_value())
 					{
 						LOG(ERROR) << "Can't get register from the name";
@@ -430,17 +428,27 @@ namespace lua::memory
 				}
 			}
 		}
+
 		// pass arguments to the function
 		cc.mov(asmjit::x86::rcx, asmjit::x86::rsp);
 		cc.mov(asmjit::x86::rdx, param_types.size());
 		cc.mov(asmjit::x86::r8, (uintptr_t)target_func_ptr);
 
+		// save the rsp
+		cc.mov(asmjit::x86::rbp, asmjit::x86::rsp);
+
 		// allocate prelogue space, may require a bigger space
-		cc.sub(asmjit::x86::rsp, 32);
+		cc.sub(asmjit::x86::rsp, 128);
+
+		// stack alignment
+		cc.and_(asmjit::x86::rsp, -16);
 
 		// invoke the mid callback
-		cc.call((uintptr_t)mid_callback);
-		cc.add(asmjit::x86::rsp, 32);
+		cc.mov(asmjit::x86::r9, (uintptr_t)mid_callback);
+		cc.call(asmjit::x86::r9);
+
+		// restore rsp
+		cc.mov(asmjit::x86::rsp, asmjit::x86::rbp);
 
 		// if the callback return value is zero, skip orig.
 		cc.test(asmjit::x86::rax, asmjit::x86::rax);
@@ -457,13 +465,6 @@ namespace lua::memory
 		}
 		// stack cleanup
 		cc.add(asmjit::x86::rsp, stack_size);
-
-		// restore rsp
-		if (rsp_restore_gp.has_value())
-		{
-			cc.mov(asmjit::x86::rsp, *rsp_restore_gp);
-			cc.pop(*rsp_restore_gp);
-		}
 
 		// skip capture registers
 		auto change_pop = [&](asmjit::x86::Gp reg)
@@ -486,26 +487,24 @@ namespace lua::memory
 		change_pop(asmjit::x86::rdx);
 		change_pop(asmjit::x86::rcx);
 		change_pop(asmjit::x86::rax);
+		cc.pop(asmjit::x86::rbp);
 
 		// jump to the original function
-		asmjit::x86::Gp original_ptr = cc.zbx();
-		cc.mov(original_ptr, m_detour->get_original_ptr());
-		cc.mov(original_ptr, asmjit::x86::ptr(original_ptr));
-		cc.jmp(original_ptr);
+		cc.jmp(asmjit::x86::ptr((uint64_t)m_detour->get_original_ptr()));
 
 		cc.bind(skip_original_invoke_label);
-		cc.add(asmjit::x86::rsp, stack_size + 7 * 8);
+		cc.add(asmjit::x86::rsp, stack_size + 8 * 8);
 		// restore callee-saved registers
 		for (int i = 0; i < restore_targets.size(); i++)
 		{
 			std::string target_name = restore_targets[i];
 			std::string source_name = restore_sources[i];
-			auto target             = lua::memory::get_gp_from_name(target_name);
+			auto target             = get_gp_from_name(target_name);
 			if (target.has_value())
 			{
 				if (source_name.at(0) == '[')
 				{
-					auto source_addr = lua::memory::get_addr_from_name(source_name);
+					auto source_addr = get_addr_from_name(source_name);
 					if (source_addr.has_value())
 					{
 						cc.mov(*target, *source_addr);
@@ -518,7 +517,7 @@ namespace lua::memory
 				}
 				else
 				{
-					auto source = lua::memory::get_gp_from_name(source_name);
+					auto source = get_gp_from_name(source_name);
 					if (source.has_value())
 					{
 						cc.mov(*target, *source);

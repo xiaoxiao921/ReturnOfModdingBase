@@ -287,13 +287,13 @@ namespace lua::memory
 		}
 	}
 
-	static bool mid_callback(const runtime_func_t::parameters_t* params, const uint8_t param_count, const uintptr_t target_func_ptr)
+	static bool mid_callback(const runtime_func_t::parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr)
 	{
 		const auto& dyn_hook = big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr];
 
 		sol::table args(big::g_lua_manager->lua_state(), sol::new_table(param_count));
 
-		for (uint8_t i = 0; i < param_count; i++)
+		for (size_t i = 0; i < param_count; i++)
 		{
 			const auto& param_type_info = dyn_hook->m_param_types[i];
 
@@ -323,20 +323,19 @@ namespace lua::memory
 	// Param: hook_name: string: The name of the hook.
 	// Param: param_captures_targets: table<string>: Addresses of the parameters which you want to capture.
 	// Param: param_captures_types: table<string>: Types of the parameters which you want to capture.
-	// Param: rsp_restore: string: The name of reg which used to restore rsp pointer, or the stack alignment offset.
 	// Param: stack_restore_offset: int: An offset used to restore stack, only need when you want to interrupt the function.
 	// Param: param_restores: table<string, string>: Restore targets and restore sources used to restore function, only need when you want to interrupt the function.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
-	// Param: mid_callback: function: The function that will be called when the program reaches the position. The callback must match the following signature: ( args (If it's a GM struct, it will be a pointer, else will be a value_wrapper) ) -> Returns false (boolean) if you want to interrupt the function.
+	// Param: mid_callback: function: The function that will be called when the program reaches the position. The callback must match the following signature: ( args (can be a value_wrapper, or a lua usertype directly, depending if you used `add_type_info_from_string` through some c++ code and exposed it to the lua vm) ) -> Returns false (boolean) if you want to interrupt the function.
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
-	// gm.dynamic_hook_mid("test_hook", {"rax", "rcx", "[rcx+rdx*4+11]"}, {"int", "RValue*", "int"}, "8", 0, {}, ptr, function(args)
+	// gm.dynamic_hook_mid("test_hook", {"rax", "rcx", "[rcx+rdx*4+11]"}, {"int", "RValue*", "int"}, 0, {}, ptr, function(args)
 	//     log.info("trigger", args[1]:get(), args[2].value, args[3]:set(1))
 	// end)
 	// ```
 	// But scan_pattern may be affected by the other hooks.
-	static void dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, const std::string& rsp_restore, int stack_restore_offset, sol::table restores_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
+	static void dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, int stack_restore_offset, sol::table restores_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
 	{
 		if (!target_func_ptr_obj.is_valid())
 		{
@@ -397,7 +396,7 @@ namespace lua::memory
 		if (!big::g_lua_manager->m_target_func_ptr_to_dynamic_hook.contains(target_func_ptr))
 		{
 			runtime_func = std::make_shared<runtime_func_t>();
-			const auto jitted_func = runtime_func->make_jit_midfunc(param_types, param_captures, rsp_restore, stack_restore_offset, restore_targets, restore_sources, asmjit::Arch::kHost, mid_callback, target_func_ptr);
+			const auto jitted_func = runtime_func->make_jit_midfunc(param_types, param_captures, stack_restore_offset, restore_targets, restore_sources, asmjit::Arch::kHost, mid_callback, target_func_ptr);
 
 			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr] = runtime_func.get();
 

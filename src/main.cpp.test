@@ -101,7 +101,7 @@ print("call_res_test2: ", call_res_test2)
 
 local special_class_test_inst1 = get_new_instance()
 special_class_test_inst1.m_val1 = 69
-special_class_test_inst1.m_val2 = 69.420
+special_class_test_inst1.m_val2 = 69.4299999
 
 local special_class_test_inst2 = get_new_instance()
 special_class_test_inst2.m_val1 = 70
@@ -109,6 +109,15 @@ special_class_test_inst2.m_val2 = 70.420
 local func_to_call_test_global_name3 = memory.dynamic_call("int", {"int16_t", "int", "int16_t", "const char*", "special_class_test*", "special_class_test*"}, ptr3)
 local call_res_test3 = _G[func_to_call_test_global_name3](70, 421, 21001, "xddd", memory.get_usertype_pointer(special_class_test_inst1), memory.get_usertype_pointer(special_class_test_inst2))
 print("call_res_test3: ", call_res_test3)
+
+
+--memory.dynamic_hook_mid("test_hook", {"rax"}, {"special_class_test*"}, 0, {}, ptr3:add(356), function(args)
+--	log.info(args[1].m_val1)
+--	log.info(args[1].m_val2)
+--end)
+
+local call_res_test4 = _G[func_to_call_test_global_name3](70, 421, 21001, "call_res_test4", memory.get_usertype_pointer(special_class_test_inst1), memory.get_usertype_pointer(special_class_test_inst2))
+print("call_res_test4: ", call_res_test4)
 )");
 }
 
