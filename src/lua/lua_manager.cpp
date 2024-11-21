@@ -467,13 +467,17 @@ namespace big
 
 	sol::object lua_manager::to_lua(const lua::memory::runtime_func_t::parameters_t* params, const uint8_t i, const std::vector<lua::memory::type_info_t>& param_types)
 	{
-		if (param_types[i] == lua::memory::type_info_t::none_)
+		if (param_types[i].m_val == lua::memory::type_info_t::none_)
 		{
 			return sol::nil;
 		}
-		else if (param_types[i] == lua::memory::type_info_t::ptr_)
+		else if (param_types[i].m_val == lua::memory::type_info_t::ptr_)
 		{
 			return sol::make_object(m_state, lua::memory::pointer(params->get<uintptr_t>(i)));
+		}
+		else if (param_types[i].m_custom)
+		{
+			return param_types[i].m_custom(m_state, params->get_arg_ptr(i));
 		}
 		else
 		{
@@ -485,13 +489,17 @@ namespace big
 
 	sol::object lua_manager::to_lua(lua::memory::runtime_func_t::return_value_t* return_value, const lua::memory::type_info_t return_value_type)
 	{
-		if (return_value_type == lua::memory::type_info_t::none_)
+		if (return_value_type.m_val == lua::memory::type_info_t::none_)
 		{
 			return sol::nil;
 		}
-		else if (return_value_type == lua::memory::type_info_t::ptr_)
+		else if (return_value_type.m_val == lua::memory::type_info_t::ptr_)
 		{
 			return sol::make_object(m_state, lua::memory::pointer((uintptr_t)return_value->get()));
+		}
+		else if (return_value_type.m_custom)
+		{
+			return return_value_type.m_custom(m_state, (char*)return_value->get());
 		}
 		else
 		{

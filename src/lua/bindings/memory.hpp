@@ -226,7 +226,7 @@ namespace lua::memory
 	class value_wrapper_t
 	{
 		char* m_value      = nullptr;
-		type_info_t m_type = type_info_t::none_;
+		type_info_t m_type = {type_info_t::none_};
 
 	public:
 		value_wrapper_t(char* val, type_info_t type);

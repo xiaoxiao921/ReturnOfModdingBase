@@ -24,7 +24,7 @@ namespace lua::memory
 	runtime_func_t::runtime_func_t()
 	{
 		m_detour      = std::make_unique<big::detour_hook>();
-		m_return_type = type_info_t::none_;
+		m_return_type = {type_info_t::none_};
 	}
 
 	runtime_func_t::~runtime_func_t()

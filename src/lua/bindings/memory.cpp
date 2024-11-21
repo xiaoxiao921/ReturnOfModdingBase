@@ -132,23 +132,23 @@ namespace lua::memory
 
 	sol::object value_wrapper_t::get(sol::this_state state_)
 	{
-		if (m_type == type_info_t::boolean_)
+		if (m_type.m_val == type_info_t::boolean_)
 		{
 			return sol::make_object(big::g_lua_manager->lua_state(), *(bool*)m_value);
 		}
-		else if (m_type == type_info_t::string_)
+		else if (m_type.m_val == type_info_t::string_)
 		{
 			return sol::make_object(big::g_lua_manager->lua_state(), *(const char**)m_value);
 		}
-		else if (m_type == type_info_t::integer_)
+		else if (m_type.m_val == type_info_t::integer_)
 		{
 			return sol::make_object(big::g_lua_manager->lua_state(), *(int64_t*)m_value);
 		}
-		else if (m_type == type_info_t::float_)
+		else if (m_type.m_val == type_info_t::float_)
 		{
 			return sol::make_object(big::g_lua_manager->lua_state(), *(float*)m_value);
 		}
-		else if (m_type == type_info_t::double_)
+		else if (m_type.m_val == type_info_t::double_)
 		{
 			return sol::make_object(big::g_lua_manager->lua_state(), *(double*)m_value);
 		}
@@ -160,23 +160,23 @@ namespace lua::memory
 
 	void value_wrapper_t::set(sol::object new_val, sol::this_state state_)
 	{
-		if (m_type == type_info_t::boolean_ && new_val.is<bool>())
+		if (m_type.m_val == type_info_t::boolean_ && new_val.is<bool>())
 		{
 			*(bool*)m_value = new_val.as<bool>();
 		}
-		else if (m_type == type_info_t::string_ && new_val.is<const char*>())
+		else if (m_type.m_val == type_info_t::string_ && new_val.is<const char*>())
 		{
 			*(const char**)m_value = new_val.as<const char*>();
 		}
-		else if (m_type == type_info_t::integer_ && new_val.is<int64_t>())
+		else if (m_type.m_val == type_info_t::integer_ && new_val.is<int64_t>())
 		{
 			*(int64_t*)m_value = new_val.as<int64_t>();
 		}
-		else if (m_type == type_info_t::float_ && new_val.is<float>())
+		else if (m_type.m_val == type_info_t::float_ && new_val.is<float>())
 		{
 			*(float*)m_value = new_val.as<float>();
 		}
-		else if (m_type == type_info_t::double_ && new_val.is<double>())
+		else if (m_type.m_val == type_info_t::double_ && new_val.is<double>())
 		{
 			*(double*)m_value = new_val.as<double>();
 		}
@@ -342,7 +342,8 @@ namespace lua::memory
 			asmjit::x86::Reg arg;
 
 			const auto arg_type_info = param_types[arg_index];
-			if (arg_type_info == type_info_t::integer_ || arg_type_info == type_info_t::float_ || arg_type_info == type_info_t::double_)
+			if (arg_type_info.m_val == type_info_t::integer_ || arg_type_info.m_val == type_info_t::float_
+			    || arg_type_info.m_val == type_info_t::double_)
 			{
 				asmjit::InvokeNode* lua_tofunc;
 				// clang-format off
@@ -357,12 +358,12 @@ namespace lua::memory
 
 				const auto tmp = cc.newXmm();
 				lua_tofunc->setRet(0, tmp);
-				if (arg_type_info == type_info_t::integer_)
+				if (arg_type_info.m_val == type_info_t::integer_)
 				{
 					arg = cc.newUIntPtr();
 					cc.cvttsd2si(arg.as<asmjit::x86::Gp>(), tmp);
 				}
-				else if (arg_type_info == type_info_t::float_)
+				else if (arg_type_info.m_val == type_info_t::float_)
 				{
 					arg = cc.newXmm();
 					cc.cvtsd2ss(arg.as<asmjit::x86::Xmm>(), tmp);
@@ -372,7 +373,7 @@ namespace lua::memory
 					arg = tmp;
 				}
 			}
-			else if (arg_type_info == type_info_t::boolean_)
+			else if (arg_type_info.m_val == type_info_t::boolean_)
 			{
 				asmjit::InvokeNode* lua_tofunc;
 				// clang-format off
@@ -387,7 +388,7 @@ namespace lua::memory
 				arg = cc.newUIntPtr();
 				lua_tofunc->setRet(0, arg);
 			}
-			else if (arg_type_info == type_info_t::string_)
+			else if (arg_type_info.m_val == type_info_t::string_)
 			{
 				asmjit::InvokeNode* lua_tofunc;
 				// clang-format off
@@ -403,7 +404,7 @@ namespace lua::memory
 				arg = cc.newUIntPtr();
 				lua_tofunc->setRet(0, arg);
 			}
-			else if (arg_type_info == type_info_t::ptr_)
+			else if (arg_type_info.m_val == type_info_t::ptr_ || arg_type_info.m_custom)
 			{
 				asmjit::InvokeNode* lua_tofunc;
 				// clang-format off
@@ -451,7 +452,7 @@ namespace lua::memory
 			}
 			function_to_call_invoke_node->setRet(0, function_to_call_return_val_reg);
 
-			if (return_type == type_info_t::integer_ || return_type == type_info_t::float_ || return_type == type_info_t::double_)
+			if (return_type.m_val == type_info_t::integer_ || return_type.m_val == type_info_t::float_ || return_type.m_val == type_info_t::double_)
 			{
 				if (function_to_call_sig.ret() >= asmjit::TypeId::_kIntStart && function_to_call_sig.ret() <= asmjit::TypeId::_kIntEnd)
 				{
@@ -476,7 +477,7 @@ namespace lua::memory
 				lua_pushfunc->setArg(0, lua_state);
 				lua_pushfunc->setArg(1, function_to_call_return_val_reg);
 			}
-			else if (return_type == type_info_t::boolean_)
+			else if (return_type.m_val == type_info_t::boolean_)
 			{
 				asmjit::InvokeNode* lua_pushfunc;
 				// clang-format off
@@ -488,7 +489,7 @@ namespace lua::memory
 				lua_pushfunc->setArg(0, lua_state);
 				lua_pushfunc->setArg(1, function_to_call_return_val_reg);
 			}
-			else if (return_type == type_info_t::string_)
+			else if (return_type.m_val == type_info_t::string_)
 			{
 				asmjit::InvokeNode* lua_pushfunc;
 				// clang-format off
@@ -500,7 +501,7 @@ namespace lua::memory
 				lua_pushfunc->setArg(0, lua_state);
 				lua_pushfunc->setArg(1, function_to_call_return_val_reg);
 			}
-			else if (return_type == type_info_t::ptr_)
+			else if (return_type.m_val == type_info_t::ptr_)
 			{
 				// integer type to lua_Number (double)
 				asmjit::x86::Xmm tmp = cc.newXmm();
