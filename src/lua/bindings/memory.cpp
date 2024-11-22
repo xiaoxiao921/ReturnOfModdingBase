@@ -318,7 +318,7 @@ namespace lua::memory
 	}
 
 	// Lua API: Function
-	// Table: gm
+	// Table: memory
 	// Name: dynamic_hook_mid
 	// Param: hook_name: string: The name of the hook.
 	// Param: param_captures_targets: table<string>: Addresses of the parameters which you want to capture.
