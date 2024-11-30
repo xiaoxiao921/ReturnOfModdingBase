@@ -397,10 +397,10 @@ namespace lua::memory
 						return 0;
 					}
 					cc.sub(asmjit::x86::rsp, 16);
-					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, 16), asmjit::x86::xmm0);
+					cc.movq(asmjit::x86::rsp, asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, *target_address);
 					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx + 16), asmjit::x86::xmm0);
-					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16));
+					cc.movq(asmjit::x86::xmm0, asmjit::x86::rsp);
 					cc.add(asmjit::x86::rsp, 16);
 				}
 				else
