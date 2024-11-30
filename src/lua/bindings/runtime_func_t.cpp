@@ -374,22 +374,34 @@ namespace lua::memory
 			auto argCapture = param_captures.at(argIdx);
 			if (argCapture.at(0) == '[')
 			{
-				auto target_address = get_addr_from_name(argCapture, stack_size);
-				if (!target_address.has_value())
-				{
-					LOG(ERROR) << "Can't get address from the name";
-					return 0;
-				}
 				if (is_general_register(argType))
 				{
+					// caller-saved registers' offset + temp register's offset 
+					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 8 + 8);
+					if (!target_address.has_value())
+					{
+						LOG(ERROR) << "Can't get address from the name";
+						return 0;
+					}
+					cc.push(asmjit::x86::rbp);
 					cc.mov(asmjit::x86::rbp, *target_address);
-					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), asmjit::x86::rbp);
+					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx + 8), asmjit::x86::rbp);
+					cc.pop(asmjit::x86::rbp);
 				}
 				else if (is_XMM_register(argType))
 				{
-					asmjit::x86::Xmm temp = cc.newXmm();
-					cc.movq(temp, *target_address);
-					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), temp);
+					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 8 + 16);
+					if (!target_address.has_value())
+					{
+						LOG(ERROR) << "Can't get address from the name";
+						return 0;
+					}
+					cc.sub(asmjit::x86::rsp, 16);
+					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, 16), asmjit::x86::xmm0);
+					cc.movq(asmjit::x86::xmm0, *target_address);
+					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx + 16), asmjit::x86::xmm0);
+					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16));
+					cc.add(asmjit::x86::rsp, 16);
 				}
 				else
 				{
@@ -404,11 +416,22 @@ namespace lua::memory
 					auto target_reg = get_gp_from_name(argCapture);
 					if (!target_reg.has_value())
 					{
-						LOG(ERROR) << "Can't get register from the name";
-						return 0;
+						auto target_address = get_addr_from_name('['+argCapture+']', stack_size + 8 * 8 + 8);
+						if (!target_address.has_value())
+						{
+							LOG(ERROR) << "Can't get register from the name";
+							return 0;
+						}
+						cc.push(asmjit::x86::rbp);
+						cc.lea(asmjit::x86::rbp, *target_address);
+						cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx + 8), asmjit::x86::rbp);
+						cc.pop(asmjit::x86::rbp);
 					}
-					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), *target_reg);
-					cap_Gps[argIdx] = *target_reg;
+					else
+					{
+						cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, sizeof(uintptr_t) * argIdx), *target_reg);
+						cap_Gps[argIdx] = *target_reg;
+					}
 				}
 				else if (is_XMM_register(argType))
 				{
