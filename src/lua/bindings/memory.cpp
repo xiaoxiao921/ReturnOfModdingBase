@@ -773,6 +773,32 @@ namespace lua::memory
 		return jitted_lua_func_global_name;
 	}
 
+	// Lua API: Function
+	// Table: memory
+	// Name: resolve_pointer_to_type
+	// Param: target_address: number: The object target as a lua number.
+	// Param: target_type: string: Target type (must be a pointer type).
+	// Returns: lua usertype.
+	// **Example Usage:**
+	// ```lua
+	// memory.dynamic_hook("test", "RValue*", {"CInstance*","CInstance*","RValue*","int","RValue**"},
+    // ptr, function (ret_val, skill, player, result, arg_num, args_ptr)
+	//     log.info(memory.resolve_pointer_to_type(memory.get_usertype_pointer(skill), "YYObjectBase*").skill_id)
+    //     log.info(memory.resolve_pointer_to_type(args_ptr:deref():get_address(), "RValue*").value)
+    //     log.info(memory.resolve_pointer_to_type(args_ptr:add(8):deref():get_address(), "RValue*").value)
+    // end)
+	// ```
+	sol::object resolve_pointer_to_type(uintptr_t target_address, const std::string& target_type_str)
+	{
+		type_info_t target_type = get_type_info_from_string(target_type_str);
+		if (!target_type.m_custom)
+		{
+			LOG(ERROR) << "target type must be a pointer type";
+			return sol::nil;
+		}
+		return target_type.m_custom(big::g_lua_manager->lua_state(), reinterpret_cast<char*>(&target_address));
+	}
+
 	void bind(sol::state_view& state)
 	{
 		auto ns = state["memory"].get_or_create<sol::table>();
@@ -812,9 +838,10 @@ namespace lua::memory
 		ns["free"]         = free;
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
-		ns["dynamic_hook"]     = dynamic_hook;
-		ns["dynamic_hook_mid"] = dynamic_hook_mid;
-		ns["dynamic_call"]     = dynamic_call;
+		ns["dynamic_hook"]            = dynamic_hook;
+		ns["dynamic_hook_mid"]        = dynamic_hook_mid;
+		ns["dynamic_call"]            = dynamic_call;
+		ns["resolve_pointer_to_type"] = resolve_pointer_to_type;
 
 		// Lua API: Function
 		// Table: memory
