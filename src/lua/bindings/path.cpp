@@ -83,7 +83,7 @@ namespace lua::path
 
 		try
 		{
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path, std::filesystem::directory_options::skip_permission_denied))
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 			{
 				if (!entry.is_directory())
 				{
@@ -112,7 +112,7 @@ namespace lua::path
 
 		try
 		{
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path, std::filesystem::directory_options::skip_permission_denied))
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 			{
 				if (entry.is_directory())
 				{
