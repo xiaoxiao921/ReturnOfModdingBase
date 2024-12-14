@@ -47,6 +47,12 @@ namespace big
 
 		// Lua API: Field
 		// Table: _ENV - Plugin Specific Global Table
+		// Field: _PLUGIN.version: string
+		// Version of the mod.
+		ns["version"] = m_info.m_manifest.version_number;
+
+		// Lua API: Field
+		// Table: _ENV - Plugin Specific Global Table
 		// Field: _PLUGIN.dependencies: table<string>
 		// Dependencies of the mod.
 		ns["dependencies"] = m_info.m_manifest.dependencies;
