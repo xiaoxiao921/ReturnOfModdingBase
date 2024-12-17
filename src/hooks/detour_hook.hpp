@@ -37,7 +37,9 @@ namespace big
 		}
 
 		void fix_hook_address();
-
+		
+		void setIsFollowCallOnFnAddress(bool value);
+		
 	private:
 		void create_hook();
 

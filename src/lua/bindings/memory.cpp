@@ -386,7 +386,8 @@ namespace lua::memory
 
 			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr] = runtime_func.get();
 
-			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr]->create_and_enable_hook(hook_name.str(), target_func_ptr, jitted_func);
+			// I think in mid-function hook, we don't need follow call
+			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr]->create_and_enable_hook(hook_name.str(), target_func_ptr, jitted_func, false);
 		}
 		else
 		{

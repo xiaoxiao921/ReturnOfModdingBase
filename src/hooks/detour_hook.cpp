@@ -140,4 +140,9 @@ namespace big
 		}
 		m_target = ptr.as<void*>();
 	}
+
+	void detour_hook::setIsFollowCallOnFnAddress(bool value)
+	{
+		m_detour_object->setIsFollowCallOnFnAddress(value);
+	}
 } // namespace big
