@@ -323,15 +323,15 @@ namespace lua::memory
 	// Param: hook_name: string: The name of the hook.
 	// Param: param_captures_targets: table<string>: Addresses of the parameters which you want to capture.
 	// Param: param_captures_types: table<string>: Types of the parameters which you want to capture.
-	// Param: stack_restore_offset: int: An offset used to restore stack, only need when you want to interrupt the function.
-	// Param: param_restores: table<string, string>: Restore targets and restore sources used to restore function, only need when you want to interrupt the function.
+	// Param: stack_restore_offset: int: An offset used to restore stack, only need when you want to customize the jump location.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
-	// Param: mid_callback: function: The function that will be called when the program reaches the position. The callback must match the following signature: ( args (can be a value_wrapper, or a lua usertype directly, depending if you used `add_type_info_from_string` through some c++ code and exposed it to the lua vm) ) -> Returns false (boolean) if you want to interrupt the function.
+	// Param: mid_callback: function: The function that will be called when the program reaches the position. The callback must match the following signature: ( args (can be a value_wrapper, or a lua usertype directly, depending if you used `add_type_info_from_string` through some c++ code and exposed it to the lua vm) ) -> Returns memory.pointer if you want to customize the jump location.
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
 	// gm.dynamic_hook_mid("test_hook", {"rax", "rcx", "[rcx+rdx*4+11]"}, {"int", "RValue*", "int"}, 0, {}, ptr, function(args)
 	//     log.info("trigger", args[1]:get(), args[2].value, args[3]:set(1))
+	//     return ptr:add(246)
 	// end)
 	// ```
 	// But scan_pattern may be affected by the other hooks.
