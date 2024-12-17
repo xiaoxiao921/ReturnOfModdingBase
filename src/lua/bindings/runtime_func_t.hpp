@@ -52,7 +52,7 @@ namespace lua::memory
 
 		typedef bool (*user_pre_callback_t)(const parameters_t* params, const uint8_t parameters_count, return_value_t* return_value, const uintptr_t target_func_ptr);
 		typedef void (*user_post_callback_t)(const parameters_t* params, const uint8_t parameters_count, return_value_t* return_value, const uintptr_t target_func_ptr);
-		typedef bool (*mid_callback_t)(const parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr);
+		typedef uintptr_t (*mid_callback_t)(const parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr);
 
 		runtime_func_t();
 
@@ -75,7 +75,7 @@ namespace lua::memory
 		// stdcall, fastcall, or cdecl (cdecl is default on x86). On x64 those map to the same thing.
 		uintptr_t make_jit_func(const std::string& return_type, const std::vector<std::string>& param_types, const asmjit::Arch arch, const user_pre_callback_t pre_callback, const user_post_callback_t post_callback, const uintptr_t target_func_ptr, std::string call_convention = "");
 
-		uintptr_t make_jit_midfunc(const std::vector<std::string>& param_types, const std::vector<std::string>& param_captures, const int stack_restore_offset, const std::vector<std::string>& restore_targets, const std::vector<std::string>& restore_sources, const asmjit::Arch arch, mid_callback_t mid_callback, const uintptr_t target_func_ptr);
+		uintptr_t make_jit_midfunc(const std::vector<std::string>& param_types, const std::vector<std::string>& param_captures, const int stack_restore_offset, const asmjit::Arch arch, mid_callback_t mid_callback, const uintptr_t target_func_ptr);
 
 		void create_and_enable_hook(const std::string& hook_name, uintptr_t target_func_ptr, uintptr_t jitted_func_ptr);
 	};

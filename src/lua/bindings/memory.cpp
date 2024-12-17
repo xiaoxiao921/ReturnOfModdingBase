@@ -287,7 +287,7 @@ namespace lua::memory
 		}
 	}
 
-	static bool mid_callback(const runtime_func_t::parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr)
+	static uintptr_t mid_callback(const runtime_func_t::parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr)
 	{
 		const auto& dyn_hook = big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr];
 
@@ -299,17 +299,17 @@ namespace lua::memory
 
 			if (param_type_info.m_custom)
 			{
-				args[i + 1] = param_type_info.m_custom(big::g_lua_manager->lua_state(), (char*)params->get_arg_ptr(i));
+				args[i + 1] = param_type_info.m_custom(big::g_lua_manager->lua_state(), (char*)params->get_arg_ptr(i * 2));
 			}
 			else
 			{
 				if (param_type_info.m_val == lua::memory::type_info_t::ptr_)
 				{
-					args[i + 1] = sol::make_object(big::g_lua_manager->lua_state(), lua::memory::pointer(params->get<uintptr_t>(i)));
+					args[i + 1] = sol::make_object(big::g_lua_manager->lua_state(), lua::memory::pointer(params->get<uintptr_t>(i * 2)));
 				}
 				else
 				{
-					args[i + 1] = sol::make_object(big::g_lua_manager->lua_state(), lua::memory::value_wrapper_t(params->get_arg_ptr(i), param_type_info));
+					args[i + 1] = sol::make_object(big::g_lua_manager->lua_state(), lua::memory::value_wrapper_t(params->get_arg_ptr(i * 2), param_type_info));
 				}
 			}
 		}
@@ -335,7 +335,7 @@ namespace lua::memory
 	// end)
 	// ```
 	// But scan_pattern may be affected by the other hooks.
-	static void dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, int stack_restore_offset, sol::table restores_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
+	static void dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, int stack_restore_offset, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
 	{
 		if (!target_func_ptr_obj.is_valid())
 		{
@@ -373,20 +373,6 @@ namespace lua::memory
 		std::vector<std::string> param_types;
 		parse_table_to_string(param_captures_types, param_types);
 
-		std::vector<std::string> restore_targets;
-		std::vector<std::string> restore_sources;
-		for (const auto& [k, v] : restores_table)
-		{
-			if (k.is<const char*>())
-			{
-				restore_targets.push_back(k.as<const char*>());
-			}
-			if (v.is<const char*>())
-			{
-				restore_sources.push_back(v.as<const char*>());
-			}
-		}
-
 		std::stringstream hook_name;
 		hook_name << mdl->guid() << " | " << hook_name_str << " | " << target_func_ptr;
 		LOG(INFO) << "hook_name: " << hook_name.str();
@@ -396,7 +382,7 @@ namespace lua::memory
 		if (!big::g_lua_manager->m_target_func_ptr_to_dynamic_hook.contains(target_func_ptr))
 		{
 			runtime_func = std::make_shared<runtime_func_t>();
-			const auto jitted_func = runtime_func->make_jit_midfunc(param_types, param_captures, stack_restore_offset, restore_targets, restore_sources, asmjit::Arch::kHost, mid_callback, target_func_ptr);
+			const auto jitted_func = runtime_func->make_jit_midfunc(param_types, param_captures, stack_restore_offset, asmjit::Arch::kHost, mid_callback, target_func_ptr);
 
 			big::g_lua_manager->m_target_func_ptr_to_dynamic_hook[target_func_ptr] = runtime_func.get();
 
@@ -782,11 +768,11 @@ namespace lua::memory
 	// **Example Usage:**
 	// ```lua
 	// memory.dynamic_hook("test", "RValue*", {"CInstance*","CInstance*","RValue*","int","RValue**"},
-    // ptr, function (ret_val, skill, player, result, arg_num, args_ptr)
+	// ptr, function (ret_val, skill, player, result, arg_num, args_ptr)
 	//     log.info(memory.resolve_pointer_to_type(memory.get_usertype_pointer(skill), "YYObjectBase*").skill_id)
-    //     log.info(memory.resolve_pointer_to_type(args_ptr:deref():get_address(), "RValue*").value)
-    //     log.info(memory.resolve_pointer_to_type(args_ptr:add(8):deref():get_address(), "RValue*").value)
-    // end)
+	//     log.info(memory.resolve_pointer_to_type(args_ptr:deref():get_address(), "RValue*").value)
+	//     log.info(memory.resolve_pointer_to_type(args_ptr:add(8):deref():get_address(), "RValue*").value)
+	// end)
 	// ```
 	sol::object resolve_pointer_to_type(uintptr_t target_address, const std::string& target_type_str)
 	{
@@ -842,7 +828,6 @@ namespace lua::memory
 		ns["dynamic_hook_mid"]        = dynamic_hook_mid;
 		ns["dynamic_call"]            = dynamic_call;
 		ns["resolve_pointer_to_type"] = resolve_pointer_to_type;
-
 		// Lua API: Function
 		// Table: memory
 		// Name: get_usertype_pointer
