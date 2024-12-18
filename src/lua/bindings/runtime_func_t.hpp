@@ -77,6 +77,6 @@ namespace lua::memory
 
 		uintptr_t make_jit_midfunc(const std::vector<std::string>& param_types, const std::vector<std::string>& param_captures, const int stack_restore_offset, const asmjit::Arch arch, mid_callback_t mid_callback, const uintptr_t target_func_ptr);
 
-		void create_and_enable_hook(const std::string& hook_name, uintptr_t target_func_ptr, uintptr_t jitted_func_ptr, bool IsFollowCallOnFnAddress = true);
+		void create_and_enable_hook(const std::string& hook_name, uintptr_t target_func_ptr, uintptr_t jitted_func_ptr, bool is_follow_call_on_fn_address = true);
 	};
 } // namespace lua::memory

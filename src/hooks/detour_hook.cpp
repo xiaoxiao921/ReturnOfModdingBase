@@ -141,7 +141,7 @@ namespace big
 		m_target = ptr.as<void*>();
 	}
 
-	void detour_hook::setIsFollowCallOnFnAddress(bool value)
+	void detour_hook::set_is_follow_call_on_fn_address(bool value)
 	{
 		m_detour_object->setIsFollowCallOnFnAddress(value);
 	}

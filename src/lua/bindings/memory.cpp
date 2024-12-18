@@ -329,7 +329,7 @@ namespace lua::memory
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
-	// gm.dynamic_hook_mid("test_hook", {"rax", "rcx", "[rcx+rdx*4+11]"}, {"int", "RValue*", "int"}, 0, {}, ptr, function(args)
+	// gm.dynamic_hook_mid("test_hook", {"rax", "rcx", "[rcx+rdx*4+11]"}, {"int", "RValue*", "int"}, 0, ptr, function(args)
 	//     log.info("trigger", args[1]:get(), args[2].value, args[3]:set(1))
 	//     return ptr:add(246)
 	// end)

@@ -622,13 +622,13 @@ namespace lua::memory
 		return (uintptr_t)m_jit_function_buffer.data();
 	}
 
-	void runtime_func_t::create_and_enable_hook(const std::string& hook_name, uintptr_t target_func_ptr, uintptr_t jitted_func_ptr, bool IsFollowCallOnFnAddress)
+	void runtime_func_t::create_and_enable_hook(const std::string& hook_name, uintptr_t target_func_ptr, uintptr_t jitted_func_ptr, bool is_follow_call_on_fn_address)
 	{
 		m_target_func_ptr = target_func_ptr;
 
 		m_detour->set_instance(hook_name, (void*)target_func_ptr, (void*)jitted_func_ptr);
 
-		m_detour->setIsFollowCallOnFnAddress(IsFollowCallOnFnAddress);
+		m_detour->set_is_follow_call_on_fn_address(is_follow_call_on_fn_address);
 
 		m_detour->enable();
 	}

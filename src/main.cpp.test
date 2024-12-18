@@ -111,7 +111,7 @@ local call_res_test3 = _G[func_to_call_test_global_name3](70, 421, 21001, "xddd"
 print("call_res_test3: ", call_res_test3)
 
 
---memory.dynamic_hook_mid("test_hook", {"rax"}, {"special_class_test*"}, 0, {}, ptr3:add(356), function(args)
+--memory.dynamic_hook_mid("test_hook", {"rax"}, {"special_class_test*"}, 0, ptr3:add(356), function(args)
 --	log.info(args[1].m_val1)
 --	log.info(args[1].m_val2)
 --end)
