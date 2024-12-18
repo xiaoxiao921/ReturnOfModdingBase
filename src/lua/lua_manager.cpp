@@ -465,28 +465,30 @@ namespace big
 		}
 	}
 
-	bool lua_manager::dynamic_hook_mid_callbacks(const uintptr_t target_func_ptr, sol::table& args)
+	uintptr_t lua_manager::dynamic_hook_mid_callbacks(const uintptr_t target_func_ptr, sol::table& args)
 	{
 		std::scoped_lock guard(m_module_lock);
 
-		bool call_orig_if_true = true;
+		uintptr_t restore_address = 0;
 
 		for (const auto& module : m_modules)
 		{
 			const auto it = module->m_data.m_dynamic_hook_mid_callbacks.find(target_func_ptr);
 			if (it != module->m_data.m_dynamic_hook_mid_callbacks.end())
 			{
-				const auto new_call_orig_if_true = it->second(args);
+				const auto new_restore_address = it->second(args);
 
-				if (call_orig_if_true && new_call_orig_if_true.valid() && new_call_orig_if_true.get_type() == sol::type::boolean
-				    && new_call_orig_if_true.get<bool>() == false)
+				if (!restore_address && new_restore_address.valid() && new_restore_address.get_type() == sol::type::userdata)
 				{
-					call_orig_if_true = false;
+					lua::memory::pointer address_ptr = new_restore_address.get<lua::memory::pointer>();
+					if (address_ptr.is_valid())
+					{
+						restore_address = address_ptr.get_address();
+					}
 				}
 			}
 		}
-
-		return call_orig_if_true;
+		return restore_address;
 	}
 
 	sol::object lua_manager::to_lua(const lua::memory::runtime_func_t::parameters_t* params, const uint8_t i, const std::vector<lua::memory::type_info_t>& param_types)
