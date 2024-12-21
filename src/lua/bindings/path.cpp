@@ -193,6 +193,29 @@ namespace lua::path
 		return false;
 	}
 
+	// Lua API: Function
+	// Table: path
+	// Name: exists
+	// Param: path: string: The path to check.
+	// Returns: boolean: true if the path exists, false otherwise.
+	static bool exists(const std::string& path)
+	{
+		try
+		{
+			return std::filesystem::exists(path);
+		}
+		catch (const std::exception& e)
+		{
+			LOG(WARNING) << e.what();
+		}
+		catch (...)
+		{
+			LOG(WARNING) << "Unknown exception while checking existence of path " << path;
+		}
+	
+		return false;
+	}
+
 	void bind(sol::table& state)
 	{
 		auto ns = state.create_named("path");
@@ -204,5 +227,6 @@ namespace lua::path
 		ns["filename"]         = filename;
 		ns["stem"]             = stem;
 		ns["create_directory"] = create_directory;
+		ns["exists"]           = exists;
 	}
 } // namespace lua::path
