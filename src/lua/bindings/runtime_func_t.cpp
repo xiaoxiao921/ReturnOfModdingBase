@@ -494,8 +494,8 @@ namespace lua::memory
 						return 0;
 					}
 					cc.push(asmjit::x86::rbp);
+					cc.mov(asmjit::x86::rbp, *target_address);
 					cc.mov(asmjit::x86::rbp, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
-					cc.mov(*target_address, asmjit::x86::rbp);
 					cc.pop(asmjit::x86::rbp);
 				}
 				else if (is_XMM_register(argType))
@@ -508,8 +508,8 @@ namespace lua::memory
 					}
 					cc.sub(asmjit::x86::rsp, 16);
 					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, 16), asmjit::x86::xmm0);
+					cc.movq(asmjit::x86::xmm0, *target_address);
 					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 16));
-					cc.movq(*target_address, asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16));
 					cc.add(asmjit::x86::rsp, 16);
 				}
@@ -533,8 +533,8 @@ namespace lua::memory
 							return 0;
 						}
 						cc.push(asmjit::x86::rbp);
-						cc.lea(asmjit::x86::rbp, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
-						cc.mov(*target_address, asmjit::x86::rbp);
+						cc.lea(asmjit::x86::rbp, *target_address);
+						cc.mov(asmjit::x86::rbp, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
 						cc.pop(asmjit::x86::rbp);
 					}
 					else
