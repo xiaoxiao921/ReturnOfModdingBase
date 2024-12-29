@@ -490,24 +490,22 @@ namespace lua::memory
 			{
 				if (is_general_register(argType))
 				{
-					asmjit::x86::Mem target_address = target_address_cache[argIdx];
 					std::vector<uint32_t> useable_reg_list = get_useable_gp_id_from_name(argCapture);
 					if (useable_reg_list.size() > 0)
 					{
 						asmjit::x86::Gp temp_reg = asmjit::x86::gpq(useable_reg_list[0]);
 						cc.push(temp_reg);
 						cc.mov(temp_reg, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
-						cc.mov(target_address, temp_reg);
+						cc.mov(target_address_cache[argIdx], temp_reg);
 						cc.pop(temp_reg);
 					}
 				}
 				else if (is_XMM_register(argType))
 				{
-					asmjit::x86::Mem target_address = target_address_cache[argIdx];
 					cc.sub(asmjit::x86::rsp, 16);
 					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, 16), asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 16));
-					cc.movq(target_address, asmjit::x86::xmm0);
+					cc.movq(target_address_cache[argIdx], asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16));
 					cc.add(asmjit::x86::rsp, 16);
 				}
