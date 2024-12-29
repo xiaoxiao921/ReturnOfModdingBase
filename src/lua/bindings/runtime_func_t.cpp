@@ -481,6 +481,28 @@ namespace lua::memory
 		cc.jz(original_invoke_label);
 		cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, stack_size + 8 * 8), asmjit::x86::rax);
 		cc.bind(original_invoke_label);
+
+		// restore caller-saved registers before useing again.
+		auto restore_register = [&](asmjit::x86::Gp reg, size_t index)
+		{
+			for (const auto& pair : cap_Gps)
+			{
+				if (pair.second == reg)
+				{
+					return;
+				}
+			}
+			cc.mov(reg, asmjit::x86::ptr(asmjit::x86::rsp, stack_size + 8 * index));
+		};
+		restore_register(asmjit::x86::r11, 0);
+		restore_register(asmjit::x86::r10, 1);
+		restore_register(asmjit::x86::r9, 2);
+		restore_register(asmjit::x86::r8, 3);
+		restore_register(asmjit::x86::rdx, 4);
+		restore_register(asmjit::x86::rcx, 5);
+		restore_register(asmjit::x86::rax, 6);
+		restore_register(asmjit::x86::rbp, 7);
+
 		// apply change
 		for (uint8_t argIdx = 0; argIdx < param_types.size(); argIdx++)
 		{
@@ -530,30 +552,7 @@ namespace lua::memory
 		}
 
 		// stack cleanup
-		cc.add(asmjit::x86::rsp, stack_size);
-
-		// skip capture registers
-		auto change_pop = [&](asmjit::x86::Gp reg)
-		{
-			for (const auto& pair : cap_Gps)
-			{
-				if (pair.second == reg)
-				{
-					cc.add(asmjit::x86::rsp, 8);
-					return;
-				}
-			}
-			cc.pop(reg);
-		};
-		// restore caller-saved registers
-		change_pop(asmjit::x86::r11);
-		change_pop(asmjit::x86::r10);
-		change_pop(asmjit::x86::r9);
-		change_pop(asmjit::x86::r8);
-		change_pop(asmjit::x86::rdx);
-		change_pop(asmjit::x86::rcx);
-		change_pop(asmjit::x86::rax);
-		cc.pop(asmjit::x86::rbp);
+		cc.add(asmjit::x86::rsp, stack_size + 8 * 8);
 
 		if (stack_restore_offset != 0)
 		{
