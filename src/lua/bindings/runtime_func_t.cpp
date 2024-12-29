@@ -366,6 +366,7 @@ namespace lua::memory
 
 		// save capture registers to save change
 		std::unordered_map<uint8_t, asmjit::x86::Gp> cap_Gps;
+		std::vector<asmjit::x86::Mem> target_address_cache(param_types.size(), asmjit::x86::Mem());
 
 		// capture registers to the stack
 		for (uint8_t argIdx = 0; argIdx < param_types.size(); argIdx++)
@@ -383,6 +384,7 @@ namespace lua::memory
 						LOG(ERROR) << "Can't get address from the name";
 						return 0;
 					}
+					target_address_cache[argIdx] = *target_address;
 					cc.push(asmjit::x86::rbp);
 					cc.mov(asmjit::x86::rbp, *target_address);
 					cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8), asmjit::x86::rbp);
@@ -396,6 +398,7 @@ namespace lua::memory
 						LOG(ERROR) << "Can't get address from the name";
 						return 0;
 					}
+					target_address_cache[argIdx] = *target_address;
 					cc.sub(asmjit::x86::rsp, 16);
 					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, 16), asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, *target_address);
@@ -422,6 +425,7 @@ namespace lua::memory
 							LOG(ERROR) << "Can't get register from the name";
 							return 0;
 						}
+						target_address_cache[argIdx] = *target_address;
 						cc.push(asmjit::x86::rbp);
 						cc.lea(asmjit::x86::rbp, *target_address);
 						cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8), asmjit::x86::rbp);
@@ -435,7 +439,7 @@ namespace lua::memory
 				}
 				else if (is_XMM_register(argType))
 				{
-					auto target_reg = get_XMM_from_name(argCapture);
+					auto target_reg = get_xmm_from_name(argCapture);
 					if (!target_reg.has_value())
 					{
 						LOG(ERROR) << "Can't get register from the name";
@@ -486,37 +490,26 @@ namespace lua::memory
 			{
 				if (is_general_register(argType))
 				{
-					// caller-saved registers' offset + temp register's offset
-					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 9 + 8);
-					if (!target_address.has_value())
+					asmjit::x86::Mem target_address = target_address_cache[argIdx];
+					std::vector<uint32_t> useable_reg_list = get_useable_gp_id_from_name(argCapture);
+					if (useable_reg_list.size() > 0)
 					{
-						LOG(ERROR) << "Can't get address from the name";
-						return 0;
+						asmjit::x86::Gp temp_reg = asmjit::x86::gpq(useable_reg_list[0]);
+						cc.push(temp_reg);
+						cc.mov(temp_reg, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
+						cc.mov(target_address, temp_reg);
+						cc.pop(temp_reg);
 					}
-					cc.push(asmjit::x86::rbp);
-					cc.mov(asmjit::x86::rbp, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
-					cc.mov(*target_address, asmjit::x86::rbp);
-					cc.pop(asmjit::x86::rbp);
 				}
 				else if (is_XMM_register(argType))
 				{
-					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 9 + 16);
-					if (!target_address.has_value())
-					{
-						LOG(ERROR) << "Can't get address from the name";
-						return 0;
-					}
+					asmjit::x86::Mem target_address = target_address_cache[argIdx];
 					cc.sub(asmjit::x86::rsp, 16);
 					cc.movq(asmjit::x86::ptr(asmjit::x86::rsp, 16), asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 16));
-					cc.movq(*target_address, asmjit::x86::xmm0);
+					cc.movq(target_address, asmjit::x86::xmm0);
 					cc.movq(asmjit::x86::xmm0, asmjit::x86::ptr(asmjit::x86::rsp, 16));
 					cc.add(asmjit::x86::rsp, 16);
-				}
-				else
-				{
-					LOG(ERROR) << "Parameters wider than 64bits not supported";
-					return 0;
 				}
 			}
 			else
@@ -524,38 +517,16 @@ namespace lua::memory
 				if (is_general_register(argType))
 				{
 					auto target_reg = get_gp_from_name(argCapture);
-					if (!target_reg.has_value())
-					{
-						auto target_address = get_addr_from_name('[' + argCapture + ']', stack_size + 8 * 9 + 8);
-						if (!target_address.has_value())
-						{
-							LOG(ERROR) << "Can't get register from the name";
-							return 0;
-						}
-						cc.push(asmjit::x86::rbp);
-						cc.lea(asmjit::x86::rbp, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx + 8));
-						cc.mov(*target_address, asmjit::x86::rbp);
-						cc.pop(asmjit::x86::rbp);
-					}
-					else
+					// If it is a computed address, we can't restore it.
+					if (target_reg.has_value())
 					{
 						cc.mov(*target_reg, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx));
 					}
 				}
 				else if (is_XMM_register(argType))
 				{
-					auto target_reg = get_XMM_from_name(argCapture);
-					if (!target_reg.has_value())
-					{
-						LOG(ERROR) << "Can't get register from the name";
-						return 0;
-					}
+					auto target_reg = get_xmm_from_name(argCapture);
 					cc.movq(*target_reg, asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx));
-				}
-				else
-				{
-					LOG(ERROR) << "Parameters wider than 64bits not supported";
-					return 0;
 				}
 			}
 		}

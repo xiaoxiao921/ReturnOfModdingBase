@@ -212,7 +212,7 @@ namespace lua::memory
 		}
 	}
 
-	std::optional<asmjit::x86::Xmm> get_XMM_from_name(const std::string& name)
+	std::optional<asmjit::x86::Xmm> get_xmm_from_name(const std::string& name)
 	{
 		// clang-format off
 		static const std::unordered_map<std::string, asmjit::x86::Xmm> reg_map =
@@ -237,61 +237,74 @@ namespace lua::memory
 		}
 	}
 
-	std::optional<asmjit::x86::Mem> get_addr_from_name(const std::string& name, const int64_t rsp_offset)
+	std::string parse_address_component(std::string_view name, size_t& index)
 	{
-		auto catch_substr = [&](auto& ch)
+		std::string sub_str;
+		++index;
+		while (index < name.size() && name[index] != '+' && name[index] != '-' && name[index] != '*' && name[index] != ']')
 		{
-			std::string sub_str;
-			++ch;
-			while (*ch != '+' && *ch != '-' && *ch != '*' && *ch != ']' && ch != name.end())
+			if (name[index] != ' ')
 			{
-				if (*ch != ' ')
-				{
-					sub_str += *ch;
-				}
-				++ch;
+				sub_str += name[index];
 			}
-			--ch;
-			return sub_str;
-		};
+			++index;
+		}
+		--index;
+		return sub_str;
+	}
 
-		auto to_number = [](std::string_view str) -> uint64_t
+	uint64_t parse_number_from_string(std::string_view str)
+	{
+		uint64_t num;
+		int base;
+		if (str.size() > 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
 		{
-			auto get_base = [](std::string_view& base) -> int
+			str.remove_prefix(2);
+			base = 16;
+		}
+		else
+		{
+			switch (str.back())
 			{
-				if (base.size() > 2 && base[0] == '0' && (base[1] == 'x' || base[1] == 'X'))
-				{
-					base.remove_prefix(2);
-					return 16;
-				}
-				switch (base.back())
-				{
-				case 'b': base.remove_suffix(1); return 2;
-				case 'o': base.remove_suffix(1); return 8;
-				case 'd': base.remove_suffix(1); return 10;
-				case 'h': base.remove_suffix(1); return 16;
-				default:  return 10;
-				}
-			};
-			uint64_t num;
-			auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), num, get_base(str));
-			if (ptr != (str.data() + str.size()))
-			{
-				return 0;
+			case 'b':
+				str.remove_suffix(1);
+				base = 2;
+				break;
+			case 'o':
+				str.remove_suffix(1);
+				base = 8;
+				break;
+			case 'd':
+				str.remove_suffix(1);
+				base = 10;
+				break;
+			case 'h':
+				str.remove_suffix(1);
+				base = 16;
+				break;
+			default: base = 10;
 			}
-			return num;
-		};
+		}
+		auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), num, base);
+		if (ptr != (str.data() + str.size()))
+		{
+			return 0;
+		}
+		return num;
+	}
 
+	std::optional<asmjit::x86::Mem> get_addr_from_name(std::string_view name, const int64_t rsp_offset)
+	{
 		std::string base_str;
 		std::string index_str;
 		int32_t offset = 0;
 		uint32_t shift = 0;
-		for (auto ch = name.begin(); ch != name.end(); ++ch)
+		for (size_t i = 0; i < name.size(); i++)
 		{
-			if (*ch == '[')
+			if (name[i] == '[')
 			{
-				std::string sub_str = catch_substr(ch);
-				auto num            = to_number(sub_str);
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
 				if (num != 0)
 				{
 					return asmjit::x86::ptr(num);
@@ -301,10 +314,10 @@ namespace lua::memory
 					base_str = sub_str;
 				}
 			}
-			else if (*ch == '+')
+			else if (name[i] == '+')
 			{
-				std::string sub_str = catch_substr(ch);
-				auto num            = to_number(sub_str);
+				std::string sub_str = parse_address_component(name, i);;
+				auto num            = parse_number_from_string(sub_str);
 				if (num != 0)
 				{
 					offset += num;
@@ -314,10 +327,10 @@ namespace lua::memory
 					index_str = sub_str;
 				}
 			}
-			else if (*ch == '-')
+			else if (name[i] == '-')
 			{
-				std::string sub_str = catch_substr(ch);
-				auto num            = to_number(sub_str);
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
 				if (num != 0)
 				{
 					offset -= num;
@@ -330,10 +343,10 @@ namespace lua::memory
 					return std::nullopt;
 				}
 			}
-			else if (*ch == '*')
+			else if (name[i] == '*')
 			{
-				std::string sub_str = catch_substr(ch);
-				auto num            = to_number(sub_str);
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
 				if (num != 0)
 				{
 					while (num)
@@ -375,5 +388,79 @@ namespace lua::memory
 
 		LOG(ERROR) << "Failed to parse address from: " << name;
 		return std::nullopt;
+	}
+
+	std::vector<uint32_t> get_useable_gp_id_from_name(std::string_view name)
+	{
+		std::vector<uint32_t> useable_gp_id_list = {asmjit::x86::Gp::kIdAx, asmjit::x86::Gp::kIdBx, asmjit::x86::Gp::kIdCx, asmjit::x86::Gp::kIdDx, asmjit::x86::Gp::kIdBp, asmjit::x86::Gp::kIdSi, asmjit::x86::Gp::kIdDi, asmjit::x86::Gp::kIdR8, asmjit::x86::Gp::kIdR9, asmjit::x86::Gp::kIdR10, asmjit::x86::Gp::kIdR11, asmjit::x86::Gp::kIdR12, asmjit::x86::Gp::kIdR13, asmjit::x86::Gp::kIdR14, asmjit::x86::Gp::kIdR15};
+		std::string base_str;
+		std::string index_str;
+		for (size_t i = 0; i < name.size(); i++)
+		{
+			if (name[i] == '[')
+			{
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
+				if (num != 0)
+				{
+					return useable_gp_id_list;
+				}
+				else
+				{
+					base_str = sub_str;
+				}
+			}
+			else if (name[i] == '+')
+			{
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
+				if (num == 0)
+				{
+					index_str = sub_str;
+				}
+			}
+			else if (name[i] == '-')
+			{
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
+				if (num == 0)
+				{
+					// I'm not sure this should happen.
+					// I think this is not necessary in a normal situation, and may need a register to solve it.
+					LOG(ERROR) << "Can't sub a register";
+					return std::vector<uint32_t>();
+				}
+			}
+			else if (name[i] == '*')
+			{
+				std::string sub_str = parse_address_component(name, i);
+				auto num            = parse_number_from_string(sub_str);
+				if (num == 0)
+				{
+					LOG(ERROR) << "Can't parse the shift";
+					return std::vector<uint32_t>();
+				}
+			}
+		}
+
+		auto base = get_gp_from_name(base_str);
+		if (base.has_value())
+		{
+			auto it = std::find(useable_gp_id_list.begin(), useable_gp_id_list.end(), base->id());
+			if (it != useable_gp_id_list.end())
+			{
+				useable_gp_id_list.erase(it);
+			}
+		}
+		auto index = get_gp_from_name(index_str);
+		if (index.has_value())
+		{
+			auto it = std::find(useable_gp_id_list.begin(), useable_gp_id_list.end(), index->id());
+			if (it != useable_gp_id_list.end())
+			{
+				useable_gp_id_list.erase(it);
+			}
+		}
+		return useable_gp_id_list;
 	}
 } // namespace lua::memory
