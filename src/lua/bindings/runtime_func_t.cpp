@@ -433,7 +433,18 @@ namespace lua::memory
 					}
 					else
 					{
-						cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx), *target_reg);
+						if (*target_reg == asmjit::x86::rsp)
+						{
+							cc.push(asmjit::x86::rbp);
+							cc.mov(asmjit::x86::rbp, asmjit::x86::rsp);
+							cc.add(asmjit::x86::rbp, stack_size + 8 * 9 + 8);
+							cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx), *target_reg);
+							cc.pop(asmjit::x86::rbp);
+						}
+						else
+						{
+							cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx), *target_reg);
+						}
 						cap_Gps[argIdx] = *target_reg;
 					}
 				}
