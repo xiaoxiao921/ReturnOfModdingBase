@@ -349,6 +349,7 @@ namespace lua::memory
 
 		// save caller-saved registers
 		cc.push(asmjit::x86::qword_ptr((uint64_t)m_detour->get_original_ptr()));
+		cc.pushfq();
 		cc.push(asmjit::x86::rbp);
 		cc.push(asmjit::x86::rax);
 		cc.push(asmjit::x86::rcx);
@@ -378,7 +379,7 @@ namespace lua::memory
 				if (is_general_register(argType))
 				{
 					// caller-saved registers' offset + temp register's offset
-					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 9 + 8);
+					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 10 + 8);
 					if (!target_address.has_value())
 					{
 						LOG(ERROR) << "Can't get address from the name";
@@ -392,7 +393,7 @@ namespace lua::memory
 				}
 				else if (is_XMM_register(argType))
 				{
-					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 9 + 16);
+					auto target_address = get_addr_from_name(argCapture, stack_size + 8 * 10 + 16);
 					if (!target_address.has_value())
 					{
 						LOG(ERROR) << "Can't get address from the name";
@@ -419,7 +420,7 @@ namespace lua::memory
 					auto target_reg = get_gp_from_name(argCapture);
 					if (!target_reg.has_value())
 					{
-						auto target_address = get_addr_from_name('[' + argCapture + ']', stack_size + 8 * 9 + 8);
+						auto target_address = get_addr_from_name('[' + argCapture + ']', stack_size + 8 * 10 + 8);
 						if (!target_address.has_value())
 						{
 							LOG(ERROR) << "Can't get register from the name";
@@ -437,7 +438,7 @@ namespace lua::memory
 						{
 							cc.push(asmjit::x86::rbp);
 							cc.mov(asmjit::x86::rbp, asmjit::x86::rsp);
-							cc.add(asmjit::x86::rbp, stack_size + 8 * 9 + 8);
+							cc.add(asmjit::x86::rbp, stack_size + 8 * 10 + 8);
 							cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, 16 * argIdx), *target_reg);
 							cc.pop(asmjit::x86::rbp);
 						}
@@ -490,7 +491,7 @@ namespace lua::memory
 		// if the callback return value is zero, skip orig.
 		cc.test(asmjit::x86::rax, asmjit::x86::rax);
 		cc.jz(original_invoke_label);
-		cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, stack_size + 8 * 8), asmjit::x86::rax);
+		cc.mov(asmjit::x86::ptr(asmjit::x86::rsp, stack_size + 8 * 9), asmjit::x86::rax);
 		cc.bind(original_invoke_label);
 
 		// restore caller-saved registers before useing again.
@@ -564,6 +565,7 @@ namespace lua::memory
 
 		// stack cleanup
 		cc.add(asmjit::x86::rsp, stack_size + 8 * 8);
+		cc.popfq();
 
 		if (stack_restore_offset != 0)
 		{
