@@ -2,6 +2,8 @@
 #include <asmjit/asmjit.h>
 #include <optional>
 #include <string>
+#include <vector>
+
 
 namespace lua::memory
 {
@@ -17,7 +19,13 @@ namespace lua::memory
 
 	std::optional<asmjit::x86::Gp> get_gp_from_name(const std::string& name);
 
-	std::optional<asmjit::x86::Xmm> get_XMM_from_name(const std::string& name);
+	std::optional<asmjit::x86::Xmm> get_xmm_from_name(const std::string& name);
 
-	std::optional<asmjit::x86::Mem> get_addr_from_name(const std::string& name, const int64_t rsp_offset = 0);
+	std::string parse_address_component(std::string_view name, size_t& index);
+
+	uint64_t parse_number_from_string(std::string_view str);
+
+	std::optional<asmjit::x86::Mem> get_addr_from_name(std::string_view name, const int64_t rsp_offset = 0);
+
+	std::vector<uint32_t> get_useable_gp_id_from_name(std::string_view name);
 } // namespace lua::memory
