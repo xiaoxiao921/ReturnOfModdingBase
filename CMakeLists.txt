@@ -32,8 +32,8 @@ add_compile_options(/bigobj)
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
-#add_executable(ReturnOfModdingBase WIN32 "${SRC_MAIN}")
-add_library(ReturnOfModdingBase STATIC "${SRC_MAIN}")
+add_executable(ReturnOfModdingBase WIN32 "${SRC_MAIN}")
+#add_library(ReturnOfModdingBase STATIC "${SRC_MAIN}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET ReturnOfModdingBase PROPERTY CXX_STANDARD 23)
@@ -48,11 +48,20 @@ target_include_directories(ReturnOfModdingBase PUBLIC
     "${cpp-semver_SOURCE_DIR}/include"
     "${toml++_SOURCE_DIR}"
     "${sol2_SOURCE_DIR}/include"
-    ${LUA_INCLUDE_DIR}
     "${magic_enum_SOURCE_DIR}/include"
 )
 
-target_link_libraries(ReturnOfModdingBase PUBLIC pugixml AsyncLogger dbghelp imgui lua_static sol2 tomlplusplus::tomlplusplus magic_enum PolyHook_2)
+if (LUA_USE_LUAJIT)
+    target_link_libraries(ReturnOfModdingBase PUBLIC libluajit)
+else()
+
+    target_include_directories(ReturnOfModdingBase PUBLIC
+        ${LUA_INCLUDE_DIR}
+    )
+
+    target_link_libraries(ReturnOfModdingBase PUBLIC lua_static)
+endif()
+target_link_libraries(ReturnOfModdingBase PUBLIC pugixml AsyncLogger dbghelp imgui sol2 tomlplusplus::tomlplusplus magic_enum PolyHook_2)
 
 # Warnings as errors
 set_property(TARGET ReturnOfModdingBase PROPERTY COMPILE_WARNING_AS_ERROR ON)
