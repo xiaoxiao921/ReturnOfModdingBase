@@ -9,7 +9,7 @@ if (LUA_USE_LUAJIT)
 
 	# Set the LuaJIT repository and tag to compiled by luajit-cmake
 	set(LUAJIT_GIT_REPOSITORY "https://github.com/openresty/luajit2")
-	set(LUAJIT_GIT_TAG "v2.1-20240815")
+	set(LUAJIT_GIT_TAG "v2.1-20250117")
 
 	# Include the luajit-cmake project with the custom repository and tag
 	# luajit-cmake will download and compile the above fork of LuaJIT
