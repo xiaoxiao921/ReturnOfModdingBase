@@ -18,6 +18,22 @@
 #include <rom/rom.hpp>
 #include <windows.h>
 
+extern "C"
+{
+	__declspec(dllexport) int rom_luajit_function_test(int res)
+	{
+		for (size_t i = 0; i < 10'000; i++)
+		{
+			res += i;
+		}
+
+		sol::state_view(big::g_lua_manager->lua_state()).script("local xd = 42\n");
+
+		return res;
+	}
+}
+
+
 //const char* some_var = "hello there";
 //float some_var = 41.69;
 //int some_var = 41;
@@ -111,13 +127,59 @@ local call_res_test3 = _G[func_to_call_test_global_name3](70, 421, 21001, "xddd"
 print("call_res_test3: ", call_res_test3)
 
 
---memory.dynamic_hook_mid("test_hook", {"rax"}, {"special_class_test*"}, 0, ptr3:add(356), function(args)
---	log.info(args[1].m_val1)
---	log.info(args[1].m_val2)
---end)
+memory.dynamic_hook_mid("test_hook", {"rax"}, {"special_class_test*"}, 0, ptr3:add(356), function(args)
+	log.info(args[1].m_val1)
+	log.info(args[1].m_val2)
+end)
 
 local call_res_test4 = _G[func_to_call_test_global_name3](70, 421, 21001, "call_res_test4", memory.get_usertype_pointer(special_class_test_inst1), memory.get_usertype_pointer(special_class_test_inst2))
 print("call_res_test4: ", call_res_test4)
+
+print("luajit version: ", jit.version)
+
+jit.opt.start(3)
+jit.opt.start("maxtrace=2000", "maxrecord=8000")
+jit.opt.start("maxmcode=16384")
+jit.opt.start("sizemcode=128")
+
+ffi.cdef[[
+	int rom_luajit_function_test(int res);
+]]
+
+local C = ffi.C
+
+local func_ptr = ffi.cast("int (*)(int res) ", get_rom_luajit_function_test())
+
+local start_time = os.clock()
+
+for k = 1, 300000 do
+	C.rom_luajit_function_test(42)
+end
+
+local end_time = os.clock()
+
+print("ffi.C time elapsed: ", end_time - start_time)
+
+local start_time3 = os.clock()
+
+for k = 1, 300000 do
+	call_rom_luajit_function_test(42)
+end
+
+local end_time3 = os.clock()
+
+print("regular elapsed: ", end_time3 - start_time3)
+
+local start_time2 = os.clock()
+
+for k = 1, 300000 do
+	func_ptr(42)
+end
+
+local end_time2 = os.clock()
+
+print("ffi.cast time elapsed: ", end_time2 - start_time2)
+
 )");
 }
 
@@ -192,7 +254,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 			sol::lib::debug,
 			sol::lib::bit32,
 			sol::lib::io,
-			sol::lib::utf8
+			sol::lib::utf8,
+			sol::lib::jit,
+			sol::lib::ffi
 		);
 	// clang-format on
 	lua_manager_instance->init<lua_module>();
@@ -200,6 +264,20 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 	// lua::memory dynamic_hook test
 	{
+		sol_state_view["get_rom_luajit_function_test"] = []() -> uintptr_t
+		{
+			return (uintptr_t)&rom_luajit_function_test;
+		};
+
+		auto bla = (int (*)(void)) & rom_luajit_function_test;
+
+		sol_state_view["call_rom_luajit_function_test"] = bla;
+
+		sol_state_view["get_addr_func"] = []() -> uintptr_t
+		{
+			return (uintptr_t)&func_to_hook;
+		};
+
 		sol_state_view["get_addr_func"] = []() -> uintptr_t
 		{
 			return (uintptr_t)&func_to_hook;
@@ -233,12 +311,14 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 		call_test_lua_script(sol_state_view);
 
+		Logger::FlushQueue();
+
 		func_to_hook(0xff'ff'ff'ff'f5, 0xff'ff'ff, (__int16)0xff, (char)1);
 		func_to_hook2(0xff'ff'ff'ff'f5, 0xff'ff'ff, (__int16)0xff, "orig func 2");
 
 		special_class_test test1 = {};
 		special_class_test test2 = {.m_val1 = 99'999, .m_val2 = 420.00002f};
-		func_to_call(1, 2, 3, "xdTEST", test1, test2);
+		//func_to_call(1, 2, 3, "xdTEST", test1, test2);
 
 		//LOG(INFO) << "res from func_to_hook: " << func_to_hook("orig", 69.025f, 420.69, (void*)0xde'ad, 126, 0x47'47'64'65);
 		//LOG(INFO) << "res from func_to_hook: " << func_to_hook("orig", 69.025f, 420.69);
