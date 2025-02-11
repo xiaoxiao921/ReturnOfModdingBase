@@ -2,7 +2,9 @@ include(FetchContent)
 
 message("lua")
 
-set(LUA_USE_LUAJIT true)
+if (NOT DEFINED LUA_USE_LUAJIT)
+	set(LUA_USE_LUAJIT true)
+endif()
 
 if (LUA_USE_LUAJIT)
     add_compile_definitions(LUA_USE_LUAJIT)
