@@ -47,9 +47,15 @@ else()
 
 	message("lua used git hash: ${LUA_GIT_HASH}")
 
+	if (DEFINED LUA_APPLY_PATCH)
+		set(LUA_PATCH git apply ${CMAKE_CURRENT_SOURCE_DIR}/patches/lua.patch)
+	endif()
+
 	FetchContent_Declare(lua_static
 		GIT_REPOSITORY https://github.com/lua/lua.git
 		GIT_TAG        ${LUA_GIT_HASH}
+		PATCH_COMMAND ${LUA_PATCH}
+        UPDATE_DISCONNECTED 1
 	)
 	FetchContent_GetProperties(lua_static)
 	FetchContent_Populate(lua_static)
