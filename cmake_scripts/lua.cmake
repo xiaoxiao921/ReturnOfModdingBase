@@ -47,10 +47,9 @@ else()
 
 	message("lua used git hash: ${LUA_GIT_HASH}")
 
-	message("lua patch: ${LUA_PATCH}")
-	if (DEFINED LUA_APPLY_PATCH)
-		set(LUA_PATCH git apply ${CMAKE_CURRENT_SOURCE_DIR}/patches/lua.patch)
-		message("lua patch working directory: ${CMAKE_CURRENT_SOURCE_DIR}")
+	message("lua patch: ${LUA_PATCH_PATH}")
+	if (DEFINED LUA_PATCH_PATH)
+		set(LUA_PATCH git apply ${LUA_PATCH_PATH})
 	endif()
 
 	FetchContent_Declare(lua_static
