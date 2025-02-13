@@ -1,5 +1,6 @@
 #pragma once
 
+#include <locale>
 #include <sstream>
 #include <string>
 #include <type_traits>
