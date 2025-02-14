@@ -49,7 +49,7 @@ else()
 
 	message("lua patch: ${LUA_PATCH_PATH}")
 	if (DEFINED LUA_PATCH_PATH)
-		set(LUA_PATCH git apply --ignore-space-change --ignore-whitespace ${LUA_PATCH_PATH})
+		set(LUA_PATCH git apply --3way ${LUA_PATCH_PATH})
 	endif()
 
 	FetchContent_Declare(lua_static
