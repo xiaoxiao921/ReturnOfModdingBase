@@ -41,6 +41,10 @@ else()
 		set(LUA_GIT_HASH c8e96d6e91dc2e3d5b175cc4cd811398ab35c82d) # Default to 5.2.2
 	endif()
 
+	if (NOT DEFINED LUA_CUSTOM_REPO)
+		set(LUA_CUSTOM_REPO https://github.com/lua/lua.git)
+	endif()
+
 	if (LUA_BUILD_DLL)
 		add_compile_definitions(LUA_BUILD_AS_DLL)
 	endif()
@@ -53,7 +57,7 @@ else()
 	endif()
 
 	FetchContent_Declare(lua_static
-		GIT_REPOSITORY https://github.com/lua/lua.git
+		GIT_REPOSITORY ${LUA_CUSTOM_REPO
 		GIT_TAG        ${LUA_GIT_HASH}
 		PATCH_COMMAND ${LUA_PATCH}
         UPDATE_DISCONNECTED 1
