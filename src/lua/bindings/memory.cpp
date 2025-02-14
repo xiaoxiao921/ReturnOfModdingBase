@@ -837,17 +837,17 @@ namespace lua::memory
 		{
 			lua_State* L = state.lua_state();
 
-			if (!rom::g_target_module_name.empty())
+			if (!rom::g_lua_api_namespace.empty())
 			{
 				// Retrieve "<g_target_module_name>.memory"
-				lua_getglobal(L, rom::g_target_module_name.c_str());
+				lua_getglobal(L, rom::g_lua_api_namespace.c_str());
 				if (lua_istable(L, -1))
 				{
 					lua_getfield(L, -1, "memory"); // Get "memory" inside the module
 				}
 				else
 				{
-					LOG(ERROR) << "Failed retrieving " << rom::g_target_module_name << " table";
+					LOG(ERROR) << "Failed retrieving " << rom::g_lua_api_namespace << " table";
 					lua_pop(L, 1); // Pop non-table value
 					return;
 				}
