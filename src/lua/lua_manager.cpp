@@ -327,7 +327,7 @@ namespace big
 		lua::gui::bind(lua_ext);
 		lua::imgui::bind(lua_ext);
 		lua::log::bind(m_state, lua_ext);
-		lua::memory::bind(m_state);
+		lua::memory::bind(lua_ext);
 		lua::path::bind(lua_ext);
 		lua::paths::bind(lua_ext);
 

@@ -786,9 +786,9 @@ namespace lua::memory
 		return target_type.m_custom(big::g_lua_manager->lua_state(), reinterpret_cast<char*>(&target_address));
 	}
 
-	void bind(sol::state_view& state)
+	void bind(sol::table& state)
 	{
-		auto ns = state["memory"].get_or_create<sol::table>();
+		auto ns = state.create_named("memory");
 
 		auto pointer_ut           = ns.new_usertype<pointer>("pointer", sol::constructors<pointer(uintptr_t)>());
 		pointer_ut["add"]         = &pointer::add;
@@ -837,8 +837,27 @@ namespace lua::memory
 		{
 			lua_State* L = state.lua_state();
 
-			// Retrieve the existing "memory" table
-			lua_getglobal(L, "memory");
+			if (!rom::g_target_module_name.empty())
+			{
+				// Retrieve "<g_target_module_name>.memory"
+				lua_getglobal(L, rom::g_target_module_name.c_str());
+				if (lua_istable(L, -1))
+				{
+					lua_getfield(L, -1, "memory"); // Get "memory" inside the module
+				}
+				else
+				{
+					LOG(ERROR) << "Failed retrieving " << rom::g_target_module_name << " table";
+					lua_pop(L, 1); // Pop non-table value
+					return;
+				}
+			}
+			else
+			{
+				// Retrieve the global "memory" table
+				lua_getglobal(L, "memory");
+			}
+
 			if (lua_istable(L, -1))
 			{
 				// Add the "get_usertype_pointer" function to the "memory" table
@@ -869,6 +888,13 @@ namespace lua::memory
 			else
 			{
 				LOG(ERROR) << "Failed retrieving memory table";
+				lua_pop(L, 1); // Pop non-table value
+			}
+
+			// If we accessed a nested table, pop the module table as well
+			if (!rom::g_target_module_name.empty())
+			{
+				lua_pop(L, 1);
 			}
 		}
 	}

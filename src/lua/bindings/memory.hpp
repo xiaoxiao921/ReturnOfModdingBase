@@ -246,5 +246,5 @@ namespace lua::memory
 		void set(sol::object new_val, sol::this_state state_);
 	};
 
-	void bind(sol::state_view& state);
+	void bind(sol::table& state);
 } // namespace lua::memory
