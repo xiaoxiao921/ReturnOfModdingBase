@@ -57,7 +57,7 @@ else()
 	endif()
 
 	FetchContent_Declare(lua_static
-		GIT_REPOSITORY ${LUA_CUSTOM_REPO
+		GIT_REPOSITORY ${LUA_CUSTOM_REPO}
 		GIT_TAG        ${LUA_GIT_HASH}
 		PATCH_COMMAND ${LUA_PATCH}
         UPDATE_DISCONNECTED 1
