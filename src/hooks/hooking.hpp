@@ -120,6 +120,31 @@ namespace big
 				return nullptr;
 			}
 
+			template<auto detour_function>
+			static void* add_queue(const std::string& name, void* target)
+			{
+				hook_to_detour_hook_helper<detour_function>::m_detour_hook.set_instance(name, target, detour_function);
+
+				detour_hook_helper d{};
+				d.m_detour_hook = &hook_to_detour_hook_helper<detour_function>::m_detour_hook;
+
+				const auto i = m_detour_hook_helpers.size();
+				m_detour_hook_helpers.push_back(d);
+				m_detour_hook_helpers_queue.push_back(i);
+
+				return nullptr;
+			}
+
+			static void* execute_queue()
+			{
+				for (const auto i : m_detour_hook_helpers_queue)
+				{
+					m_detour_hook_helpers[i].enable_hook_if_hooking_is_already_running();
+				}
+
+				return nullptr;
+			}
+
 			~detour_hook_helper();
 		};
 
@@ -133,6 +158,8 @@ namespace big
 		bool m_enabled{};
 
 		static inline std::vector<detour_hook_helper> m_detour_hook_helpers;
+		// queue below is indices into the vector above
+		static inline std::vector<size_t> m_detour_hook_helpers_queue;
 	};
 
 	inline hooking* g_hooking{};
