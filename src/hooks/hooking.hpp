@@ -1,6 +1,7 @@
 #pragma once
 #include "call_hook.hpp"
 #include "detour_hook.hpp"
+#include "threads/util.hpp"
 #include "vmt_hook.hpp"
 #include "vtable_hook.hpp"
 
