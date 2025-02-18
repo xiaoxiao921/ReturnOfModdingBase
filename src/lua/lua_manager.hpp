@@ -77,7 +77,7 @@ namespace big
 		void process_file_watcher_queue();
 
 		template<typename T>
-		inline void init()
+		inline void init(bool is_file_watcher_enabled)
 		{
 			init_lua_state();
 
@@ -85,7 +85,10 @@ namespace big
 
 			lua::window::deserialize();
 
-			init_file_watcher(m_plugins_folder.get_path());
+			if (is_file_watcher_enabled)
+			{
+				init_file_watcher(m_plugins_folder.get_path());
+			}
 		}
 
 		void init_lua_state();
