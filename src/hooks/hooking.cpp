@@ -31,14 +31,23 @@ namespace big
 
 	void hooking::enable()
 	{
-		threads::suspend_all_but_one();
+		auto suspended_thread_here = false;
+		if (!threads::are_suspended)
+		{
+			suspended_thread_here = true;
+
+			threads::suspend_all_but_one();
+		}
 
 		for (auto& detour_hook_helper : m_detour_hook_helpers)
 		{
 			detour_hook_helper.m_detour_hook->enable();
 		}
 
-		threads::resume_all();
+		if (suspended_thread_here)
+		{
+			threads::resume_all();
+		}
 
 		m_enabled = true;
 	}
@@ -47,14 +56,23 @@ namespace big
 	{
 		m_enabled = false;
 
-		threads::suspend_all_but_one();
+		auto suspended_thread_here = false;
+		if (!threads::are_suspended)
+		{
+			suspended_thread_here = true;
+
+			threads::suspend_all_but_one();
+		}
 
 		for (auto& detour_hook_helper : m_detour_hook_helpers)
 		{
 			detour_hook_helper.m_detour_hook->disable();
 		}
 
-		threads::resume_all();
+		if (suspended_thread_here)
+		{
+			threads::resume_all();
+		}
 
 		m_detour_hook_helpers.clear();
 	}

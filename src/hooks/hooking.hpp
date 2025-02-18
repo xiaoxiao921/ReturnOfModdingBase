@@ -137,12 +137,25 @@ namespace big
 
 			static void* execute_queue()
 			{
+				auto suspended_thread_here = false;
+				if (!threads::are_suspended)
+				{
+					suspended_thread_here = true;
+
+					threads::suspend_all_but_one();
+				}
+
 				for (const auto i : m_detour_hook_helpers_queue)
 				{
 					m_detour_hook_helpers[i].enable_hook_if_hooking_is_already_running();
 				}
 
 				m_detour_hook_helpers_queue.clear();
+
+				if (suspended_thread_here)
+				{
+					threads::resume_all();
+				}
 
 				return nullptr;
 			}

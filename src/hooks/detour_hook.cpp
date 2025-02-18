@@ -109,8 +109,11 @@ namespace big
 
 		if (m_detour_object->isHooked())
 		{
+			auto suspended_thread_here = false;
 			if (!threads::are_suspended)
 			{
+				suspended_thread_here = true;
+
 				threads::suspend_all_but_one();
 			}
 
@@ -119,7 +122,7 @@ namespace big
 				LOG(ERROR) << "Failed to disable hook '" << m_name << "' at 0x" << HEX_TO_UPPER(uintptr_t(m_target)) << "(error: " << m_name << ")";
 			}
 
-			if (threads::are_suspended)
+			if (suspended_thread_here)
 			{
 				threads::resume_all();
 			}
