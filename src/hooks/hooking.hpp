@@ -142,6 +142,8 @@ namespace big
 					m_detour_hook_helpers[i].enable_hook_if_hooking_is_already_running();
 				}
 
+				m_detour_hook_helpers_queue.clear();
+
 				return nullptr;
 			}
 
