@@ -80,7 +80,7 @@ namespace lua::toml_lua_v2
 		// Lua API: Constructor
 		// Class: config.config_file
 		// Param: config_path: string: Full path to a file that contains settings. The file will be created as needed. It's recommended to use `.cfg` as the file extension. The mod manager will pick it up and make it show nicely inside the mod manager UI.
-		// Param: save_on_init: bool: If the config file/directory doesn't exist, create it immediately.
+		// Param: save_on_init: boolean: If the config file/directory doesn't exist, create it immediately.
 		// Create a new config file at the specified config path.
 		auto config_file_ut = ns.new_usertype<toml_v2::config_file>("config_file",
 		                                                            sol::meta_function::construct,
@@ -116,7 +116,7 @@ namespace lua::toml_lua_v2
 
 		// Lua API: Field
 		// Class: config.config_file
-		// Field: entries: table<config_definition, config_entry>
+		// Field: entries: table<config.config_definition, config.config_entry>
 		// All config entries of the config file.
 		config_file_ut["entries"] = &toml_v2::config_file::m_entries;
 
@@ -125,9 +125,9 @@ namespace lua::toml_lua_v2
 		// Name: bind
 		// Param: section: string: Section/category/group of the setting. Settings are grouped by this.
 		// Param: key: string: Name of the setting.
-		// Param: default_value: bool or number or string: Value of the setting if the setting was not created yet.
+		// Param: default_value: boolean|number|string: Value of the setting if the setting was not created yet.
 		// Param: description: string: Simple description of the setting shown to the user.
-		// Returns: config_entry: new config_entry object.
+		// Returns: config.config_entry: new config_entry object.
 		// Create a new setting. The setting is saved to drive and loaded automatically.
 		// Each section and key pair can be used to add only one setting,
 		// trying to add a second setting will throw an exception.
@@ -161,13 +161,13 @@ namespace lua::toml_lua_v2
 		// Lua API: Function
 		// Class: config.config_entry
 		// Name: get
-		// Returns: val: bool or double or string. Value of this setting
+		// Returns: boolean|number|string: Value of this setting
 		config_entry_ut.set_function("get", get_value);
 
 		// Lua API: Function
 		// Class: config.config_entry
 		// Name: set
-		// Param: new_value: bool or double or string: New value of this setting.
+		// Param: boolean|number|string: New value of this setting.
 		config_entry_ut.set_function("set", sol::overload(set_value_bool, set_value_double, set_value_string));
 
 		// Lua API: Field

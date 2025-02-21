@@ -111,7 +111,7 @@ namespace lua::gui
 	// Lua API: Function
 	// Table: gui
 	// Name: is_open
-	// Returns: bool: Returns true if the GUI is open.
+	// Returns: boolean: Returns true if the GUI is open.
 	static bool is_open()
 	{
 		if (g_on_is_open)

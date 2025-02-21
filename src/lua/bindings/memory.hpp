@@ -112,7 +112,7 @@ namespace lua::memory
 		// Lua API: Function
 		// Class: pointer
 		// Name: set_float
-		// Param: value: float: new value.
+		// Param: value: number: new value.
 		// Sets the value at the memory address to the specified value of the given type.
 
 		// Lua API: Function
