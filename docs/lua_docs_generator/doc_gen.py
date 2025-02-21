@@ -4,7 +4,9 @@ import shutil
 from enum import Enum
 
 if len(sys.argv) != 4:
-    raise ValueError("Provide in that order: ReturnOfModdingBase src folder path, your lib src folder path, and the folder path where the doc will end up.")
+    raise ValueError(
+        "Provide in that order: ReturnOfModdingBase src folder path, your lib src folder path, and the folder path where the doc will end up."
+    )
 
 rom_base_src_folder = sys.argv[1]
 
@@ -36,6 +38,43 @@ class Table:
         self.fields = fields
         self.functions = functions
         self.description = description
+
+    def print_definition(self):
+        global lua_api_namespace
+
+        s = f"---@meta {self.name}\n\n"
+
+        if len(self.description) > 0:
+            description_lua = self.description.replace("\n", "\n--")
+            s += f"-- {description_lua}\n"
+
+        if len(lua_api_namespace) > 0 and "Global Table" not in self.name:
+            s += f"---@class (exact) {lua_api_namespace}.{self.name}"
+        else:
+            s += f"---@class (exact) {self.name}"
+
+        s += "\n"
+
+        if len(self.fields) > 0:
+            self.check_for_duplicate_fields_names()
+
+            for field in self.fields:
+                s += field.print_definition()
+
+        s += "\n"
+
+        if len(self.functions) > 0:
+            for func in self.functions:
+                s += func.print_definition(f"{self.name}.")
+
+            s += "\n"
+
+        if len(lua_api_namespace) > 0:
+            s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+        else:
+            s = s.replace("{LUA_API_NAMESPACE}.", lua_api_namespace)
+
+        return s
 
     def __str__(self):
         global lua_api_namespace
@@ -93,6 +132,58 @@ class Class:
         self.constructors = constructors
         self.functions = functions
         self.description = description
+
+    def print_definition(self):
+        global lua_api_namespace
+
+        s = f"---@meta {self.name}\n\n"
+
+        if len(self.description) > 0:
+            description_lua = self.description.replace("\n", "\n--")
+            s += f"-- {description_lua}\n"
+
+        if len(lua_api_namespace) > 0:
+            s += f"---@class (exact) {lua_api_namespace}.{self.name}"
+        else:
+            s += f"---@class (exact) {self.name}"
+
+        if len(self.inheritance) > 0:
+            s += ": "
+            inherited_class_names = ", ".join(self.inheritance)
+            s += f"{inherited_class_names}"
+
+        s += "\n"
+
+        if len(self.fields) > 0:
+            self.check_for_duplicate_fields_names()
+
+            for field in self.fields:
+                s += field.print_definition()
+        else:
+            s += "\n"
+
+        s += "\n"
+
+        if len(self.constructors) > 0:
+            for ctor in self.constructors:
+                s += ctor.print_definition()
+        else:
+            s += "\n"
+
+        s += "\n"
+
+        if len(self.functions) > 0:
+            for func in self.functions:
+                s += func.print_definition(f"{self.name}:")
+
+            s += "\n"
+
+        if len(lua_api_namespace) > 0:
+            s = s.replace("{LUA_API_NAMESPACE}", lua_api_namespace)
+        else:
+            s = s.replace("{LUA_API_NAMESPACE}.", lua_api_namespace)
+
+        return s
 
     def __str__(self):
         global lua_api_namespace
@@ -166,6 +257,20 @@ class Field:
         s += f"Description: {self.description.strip()}\n"
         return s
 
+    def print_definition(self):
+        s = f"---@field {self.name}"
+
+        if self.type_ is not None and len(self.type_) > 0:
+            s += f" {self.type_}"
+
+        if len(self.description) > 0:
+            description_lua = self.description.replace(".\n", ".").replace("\n", "")
+            s += f" # {description_lua}"
+
+        s += "\n"
+
+        return s
+
     def print_markdown(self):
         s = ""
 
@@ -189,6 +294,28 @@ class Constructor:
         self.parent = parent
         self.parameters = parameters
         self.description = description
+
+    def print_definition(self):
+        s = ""
+
+        parameters_str = ", ".join(p.name for p in self.parameters)
+
+        if len(self.description) > 0:
+            description_lua = self.description.replace("\n", "\n--")
+            s += f"-- {description_lua}\n"
+
+        if len(self.parameters) > 0:
+            for param in self.parameters:
+                s += f"---@param {param.name} {param.type_}"
+                if len(param.description) > 0:
+                    description_lua = param.description.replace("\n", "\n--")
+                    s += f" {description_lua}"
+                s += "\n"
+
+        s += f"---@return {self.parent.name}\n"
+        s += f"function {self.parent.name}:new({parameters_str}) end\n"
+
+        return s
 
     def print_markdown(self):
         s = ""
@@ -264,6 +391,42 @@ class Function:
         s += f"Return Description: {self.return_description}\n"
 
         s += f"Description: {self.description}\n"
+        return s
+
+    def print_definition(self, prefix):
+        s = ""
+
+        parameters_str = ", ".join(p.name for p in self.parameters)
+
+        if len(self.description) > 0:
+            if "Global Table" not in prefix:
+                if len(lua_api_namespace) > 0:
+                    a = lua_api_namespace + "." + prefix + self.name
+                else:
+                    a = prefix + self.name
+
+                description_lua = self.description.replace("\n", "\n--")
+                s += f"-- {description_lua.replace(prefix + self.name, a)}\n"
+            else:
+                s += f"-- {description_lua}\n"
+
+        if len(self.parameters) > 0:
+            for param in self.parameters:
+                s += f"---@param {param.name} {param.type_}"
+                if len(param.description) > 0:
+                    s += f" {param.description}"
+                s += "\n"
+
+        if self.return_type is not None and len(self.return_type) > 0:
+            s += f"---@return {self.return_type} # {self.return_description}"
+
+            s += "\n"
+
+        table_or_class_sep = "." if isinstance(self.parent, Table) else ":"
+        s += f"function {self.parent.name}{table_or_class_sep}{self.name}({parameters_str}) end\n"
+
+        s += "\n"
+
         return s
 
     def print_markdown(self, prefix):
@@ -392,12 +555,14 @@ def parse_lua_api_doc(folder_paths):
                                             line_lower,
                                         )
                                     case DocKind.Field:
-                                        (cur_field, cur_table, cur_class) = parse_field_doc(
-                                            cur_field,
-                                            cur_table,
-                                            cur_class,
-                                            line,
-                                            line_lower,
+                                        (cur_field, cur_table, cur_class) = (
+                                            parse_field_doc(
+                                                cur_field,
+                                                cur_table,
+                                                cur_class,
+                                                line,
+                                                line_lower,
+                                            )
                                         )
                                     case DocKind.Constructor:
                                         (
@@ -545,6 +710,7 @@ def parse_namespace(line, line_lower):
     ):
         lua_api_namespace = line.split(lua_api_comment_separator, 1)[1].strip()
 
+
 def parse_constructor_doc(cur_constructor, cur_class, line, line_lower):
     if (
         is_lua_doc_comment_startswith(line_lower, "class")
@@ -623,6 +789,18 @@ for table_name, table in tables.items():
     f.close()
 print("Wrote tables")
 
+for table_name, table in tables.items():
+    if "Global Table" not in table_name:
+        table_name = append_lua_api_namespace_to_str(table_name)
+
+    file_name = os.path.join(output_tables_folder_path, f"{table_name}.lua")
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    f = open(file_name, "ba")
+    f.write(bytes(str(table.print_definition()), "UTF8"))
+    f.close()
+print("Wrote table definitions")
+
 output_classes_folder_path = os.path.join(output_doc_folder_path, "classes")
 
 try:
@@ -641,23 +819,35 @@ for class_name, class_ in classes.items():
     f.close()
 print("Wrote classes")
 
+for class_name, class_ in classes.items():
+    class_name = append_lua_api_namespace_to_str(class_name)
+
+    file_name = os.path.join(output_classes_folder_path, f"{class_name}.lua")
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    f = open(file_name, "ba")
+    f.write(bytes(str(class_.print_definition()), "UTF8"))
+    f.close()
+print("Wrote class definitions")
+
+
 def copy_folder_contents(source_folder, destination_folder):
     # Make sure source folder exists
     if not os.path.exists(source_folder):
-        #print(f"Source folder '{source_folder}' does not exist. Not copying folder. (This is most likely ok)")
+        # print(f"Source folder '{source_folder}' does not exist. Not copying folder. (This is most likely ok)")
         return
     else:
         print(f"Copying '{source_folder}' to '{destination_folder}'")
-    
+
     # Make sure destination folder exists
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
-    
+
     # Iterate over the files and subfolders in the source folder
     for item in os.listdir(source_folder):
         source_item = os.path.join(source_folder, item)
         destination_item = os.path.join(destination_folder, item)
-        
+
         # If it's a file, copy it to the destination folder
         if os.path.isfile(source_item):
             shutil.copy2(source_item, destination_item)
@@ -665,5 +855,12 @@ def copy_folder_contents(source_folder, destination_folder):
         elif os.path.isdir(source_item):
             shutil.copytree(source_item, destination_item, symlinks=True)
 
-copy_folder_contents(os.path.join(rom_base_src_folder, "..", "docs", "lua", "classes"), os.path.join(output_doc_folder_path, "classes"))
-copy_folder_contents(os.path.join(rom_base_src_folder, "..", "docs", "lua", "tables"), os.path.join(output_doc_folder_path, "tables"))
+
+copy_folder_contents(
+    os.path.join(rom_base_src_folder, "..", "docs", "lua", "classes"),
+    os.path.join(output_doc_folder_path, "classes"),
+)
+copy_folder_contents(
+    os.path.join(rom_base_src_folder, "..", "docs", "lua", "tables"),
+    os.path.join(output_doc_folder_path, "tables"),
+)
