@@ -793,7 +793,7 @@ for table_name, table in tables.items():
     if "Global Table" not in table_name:
         table_name = append_lua_api_namespace_to_str(table_name)
 
-    file_name = os.path.join(output_tables_folder_path, f"{table_name}.lua")
+    file_name = os.path.join(output_tables_folder_path, "definitions", f"{table_name}.lua")
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
@@ -822,7 +822,7 @@ print("Wrote classes")
 for class_name, class_ in classes.items():
     class_name = append_lua_api_namespace_to_str(class_name)
 
-    file_name = os.path.join(output_classes_folder_path, f"{class_name}.lua")
+    file_name = os.path.join(output_classes_folder_path, "definitions", f"{class_name}.lua")
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
