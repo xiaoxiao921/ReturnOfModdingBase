@@ -770,9 +770,15 @@ def append_lua_api_namespace_to_str(thing):
 parse_lua_api_doc(src_folders)
 
 output_tables_folder_path = os.path.join(output_doc_folder_path, "tables")
+output_tables_definitions_folder_path = os.path.join(output_doc_folder_path, "tables", "definitions")
 
 try:
     os.makedirs(output_tables_folder_path)
+except:
+    pass
+
+try:
+    os.makedirs(output_tables_definitions_folder_path)
 except:
     pass
 
@@ -793,7 +799,7 @@ for table_name, table in tables.items():
     if "Global Table" not in table_name:
         table_name = append_lua_api_namespace_to_str(table_name)
 
-    file_name = os.path.join(output_tables_folder_path, "definitions", f"{table_name}.lua")
+    file_name = os.path.join(output_tables_definitions_folder_path, f"{table_name}.lua")
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
@@ -802,9 +808,15 @@ for table_name, table in tables.items():
 print("Wrote table definitions")
 
 output_classes_folder_path = os.path.join(output_doc_folder_path, "classes")
+output_classes_definitions_folder_path = os.path.join(output_doc_folder_path, "classes", "definitions")
 
 try:
     os.makedirs(output_classes_folder_path)
+except:
+    pass
+
+try:
+    os.makedirs(output_classes_definitions_folder_path)
 except:
     pass
 
@@ -822,7 +834,7 @@ print("Wrote classes")
 for class_name, class_ in classes.items():
     class_name = append_lua_api_namespace_to_str(class_name)
 
-    file_name = os.path.join(output_classes_folder_path, "definitions", f"{class_name}.lua")
+    file_name = os.path.join(output_classes_definitions_folder_path, f"{class_name}.lua")
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
