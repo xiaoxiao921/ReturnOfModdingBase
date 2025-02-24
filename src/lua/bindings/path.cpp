@@ -77,7 +77,7 @@ namespace lua::path
 	// Name: get_directories
 	// Param: root_path: string: The path to the directory to search.
 	// Returns: string table: Returns the names of subdirectories under the given root_path
-	static std::vector<std::string> get_directories(const std::string& root_path)
+	static sol::as_table_t<std::vector<std::string>> get_directories(const std::string& root_path)
 	{
 		std::vector<std::string> res;
 
@@ -106,7 +106,7 @@ namespace lua::path
 	// Name: get_files
 	// Param: root_path: string: The path to the directory to search.
 	// Returns: string table: Returns the names of all the files under the given root_path
-	static std::vector<std::string> get_files(const std::string& root_path)
+	static sol::as_table_t<std::vector<std::string>> get_files(const std::string& root_path)
 	{
 		std::vector<std::string> res;
 
@@ -212,7 +212,7 @@ namespace lua::path
 		{
 			LOG(WARNING) << "Unknown exception while checking existence of path " << path;
 		}
-	
+
 		return false;
 	}
 
