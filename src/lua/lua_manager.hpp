@@ -381,7 +381,9 @@ namespace big
 			}
 			else
 			{
-				m_modules.pop_back();
+				// Don't remove the module from the list if it failed to load
+				// for allowing the user to potentially hot-reload it and fix the error
+				//m_modules.pop_back();
 			}
 
 			return load_result;
