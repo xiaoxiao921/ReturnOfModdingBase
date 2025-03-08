@@ -11,6 +11,33 @@ using namespace al;
 
 // clang-format on
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+	int rom_lua_bind_get_usertype_pointer(lua_State* L)
+	{
+		// Check if the first argument is a userdata
+		if (!lua_isuserdata(L, 1))
+		{
+			return luaL_error(L, "Expected a userdata.");
+		}
+
+		// Get the raw pointer to the userdata
+		void* userdata = *(void**)lua_touserdata(L, 1);
+
+		// Push the pointer as a Lua number
+		lua_pushnumber(L, (lua_Number)(uintptr_t)userdata);
+
+		// Return 1 value to Lua (the pointer)
+		return 1;
+	}
+
+#ifdef __cplusplus
+}
+#endif
+
 namespace lua::memory
 {
 	pointer::pointer(uintptr_t address) :
@@ -829,73 +856,12 @@ namespace lua::memory
 		ns["dynamic_hook_mid"]        = dynamic_hook_mid;
 		ns["dynamic_call"]            = dynamic_call;
 		ns["resolve_pointer_to_type"] = resolve_pointer_to_type;
+
 		// Lua API: Function
 		// Table: memory
 		// Name: get_usertype_pointer
 		// Param: usertype_object: any_usertype: A lua usertype instance.
 		// Returns: number: The object address as a lua number.
-		{
-			lua_State* L = state.lua_state();
-
-			if (!rom::g_lua_api_namespace.empty())
-			{
-				// Retrieve "<g_target_module_name>.memory"
-				lua_getglobal(L, rom::g_lua_api_namespace.c_str());
-				if (lua_istable(L, -1))
-				{
-					lua_getfield(L, -1, "memory"); // Get "memory" inside the module
-				}
-				else
-				{
-					LOG(ERROR) << "Failed retrieving " << rom::g_lua_api_namespace << " table";
-					lua_pop(L, 1); // Pop non-table value
-					return;
-				}
-			}
-			else
-			{
-				// Retrieve the global "memory" table
-				lua_getglobal(L, "memory");
-			}
-
-			if (lua_istable(L, -1))
-			{
-				// Add the "get_usertype_pointer" function to the "memory" table
-				lua_pushstring(L, "get_usertype_pointer"); // Push the key
-				lua_pushcfunction(L,
-				                  [](lua_State* L) -> int
-				                  {
-					                  // Check if the first argument is a userdata
-					                  if (!lua_isuserdata(L, 1))
-					                  {
-						                  return luaL_error(L, "Expected a userdata.");
-					                  }
-
-					                  // Get the raw pointer to the userdata
-					                  void* userdata = *(void**)lua_touserdata(L, 1);
-
-					                  // Push the pointer as a Lua number
-					                  lua_pushnumber(L, (lua_Number)(uintptr_t)userdata);
-
-					                  // Return 1 value to Lua (the pointer)
-					                  return 1;
-				                  });
-				lua_settable(L, -3); // Set the function in the "memory" table
-
-				// Pop the "memory" table off the stack
-				lua_pop(L, 1);
-			}
-			else
-			{
-				LOG(ERROR) << "Failed retrieving memory table";
-				lua_pop(L, 1); // Pop non-table value
-			}
-
-			// If we accessed a nested table, pop the module table as well
-			if (!rom::g_target_module_name.empty())
-			{
-				lua_pop(L, 1);
-			}
-		}
+		ns["get_usertype_pointer"] = &rom_lua_bind_get_usertype_pointer;
 	}
 } // namespace lua::memory
