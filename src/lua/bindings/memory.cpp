@@ -229,14 +229,13 @@ namespace lua::memory
 	// Param: return_type: string: Type of the return value of the detoured function.
 	// Param: param_types: table<string>: Types of the parameters of the detoured function.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
-	// Param: pre_callback: function or nil: Optional. The function that will be called before the original function is about to be called. The callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> Returns true or false (boolean) depending on whether you want the original function to be called.
-	// Param: post_callback: function or nil: Optional. The function that will be called after the original function is called (or just after the pre callback is called, if the original function was skipped). The callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> void
+	// Param: callbacks: table<function>: Table first element (can be nil): Pre function callback, lua function that will be called before the original function is about to be called. Pre function callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> Returns true or false (boolean) depending on whether you want the original function to be called. Table second element (can be nil): function that will be called after the original function. Post function callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> No return value.
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
 	// -- Check the implementation of the asmjit::TypeId get_type_id function if you are unsure what to use for return type / parameters types
 	// memory.dynamic_hook("test_hook", "float", {"const char*"}, ptr,
-	// function(ret_val, str)
+	// {function(ret_val, str)
 	//
 	//     --str:set("replaced str")
 	//     ret_val:set(69.69)
@@ -249,9 +248,10 @@ namespace lua::memory
 	//     log.info("post callback from lua 1", ret_val:get(), str:get())
 	//     ret_val:set(79.69)
 	//     log.info("post callback from lua 2", ret_val:get(), str:get())
-	// end)
+	// end})
 	// ```
-	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::object pre_lua_callback, sol::object post_lua_callback, sol::this_environment env_)
+
+	static void dynamic_hook_table_overload(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::table callbacks, sol::this_environment env_)
 	{
 		if (!target_func_ptr_obj.is_valid())
 		{
@@ -267,15 +267,17 @@ namespace lua::memory
 
 		const auto target_func_ptr = target_func_ptr_obj.get_address();
 
-		bool need_hook = false;
-		if (pre_lua_callback.get_type() == sol::type::function)
+		bool need_hook                                           = false;
+		sol::optional<sol::protected_function> pre_lua_callback  = callbacks[1];
+		sol::optional<sol::protected_function> post_lua_callback = callbacks[2];
+		if (pre_lua_callback.has_value())
 		{
-			module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr].push_back(pre_lua_callback);
+			module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr].push_back(pre_lua_callback.value());
 			need_hook = true;
 		}
-		if (post_lua_callback.get_type() == sol::type::function)
+		if (post_lua_callback.has_value())
 		{
-			module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr].push_back(post_lua_callback);
+			module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr].push_back(post_lua_callback.value());
 			need_hook = true;
 		}
 
@@ -312,6 +314,14 @@ namespace lua::memory
 				module->m_data.m_dynamic_hooks.push_back(runtime_func);
 			}
 		}
+	}
+
+	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function pre_lua_callback, sol::protected_function post_lua_callback, sol::this_environment env_)
+	{
+		sol::table callbacks(env_.env.value().lua_state(), sol::create);
+		callbacks[1] = pre_lua_callback;
+		callbacks[2] = post_lua_callback;
+		dynamic_hook_table_overload(hook_name, return_type, param_types_table, target_func_ptr_obj, callbacks, env_);
 	}
 
 	static uintptr_t mid_callback(const runtime_func_t::parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr)
@@ -852,7 +862,7 @@ namespace lua::memory
 		ns["free"]         = free;
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
-		ns["dynamic_hook"]            = dynamic_hook;
+		ns["dynamic_hook"]            = sol::overload(dynamic_hook, dynamic_hook_table_overload);
 		ns["dynamic_hook_mid"]        = dynamic_hook_mid;
 		ns["dynamic_call"]            = dynamic_call;
 		ns["resolve_pointer_to_type"] = resolve_pointer_to_type;
