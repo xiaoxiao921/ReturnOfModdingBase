@@ -227,6 +227,37 @@ namespace big
 		}
 	}
 
+	static std::optional<sol::environment> get_env_from_lua_state(lua_State* L)
+	{
+		lua_Debug info;
+		int level          = 1;
+		int pre_stack_size = lua_gettop(L);
+		if (lua_getstack(L, level, &info) != 1)
+		{
+			LOG(ERROR) << "error: unable to traverse the stack";
+			lua_settop(L, pre_stack_size);
+			return {};
+		}
+		if (lua_getinfo(L, "fnluS", &info) == 0)
+		{
+			LOG(ERROR) << "manually -- error: unable to get stack "
+			              "information";
+			lua_settop(L, pre_stack_size);
+			return {};
+		}
+
+		sol::function f(L, -1);
+		sol::environment env(sol::env_key, f);
+		if (!env.valid())
+		{
+			LOG(ERROR) << "manually -- error: no environment to get";
+			lua_settop(L, pre_stack_size);
+			return {};
+		}
+
+		return env;
+	}
+
 	// https://sol2.readthedocs.io/en/latest/exceptions.html
 	static int exception_handler(lua_State* L, sol::optional<const std::exception&> maybe_exception, sol::string_view description)
 	{
@@ -243,6 +274,17 @@ namespace big
 			LOG(ERROR) << description;
 		}
 		Logger::FlushQueue();
+
+		const auto opt_env = get_env_from_lua_state(L);
+		if (opt_env.has_value())
+		{
+			const auto mod = lua_module::this_from(opt_env.value());
+			if (mod)
+			{
+				mod->m_error_count++;
+				LOG(INFO) << "incremented error";
+			}
+		}
 
 		// you must push 1 element onto the stack to be
 		// transported through as the error object in Lua
@@ -267,12 +309,14 @@ namespace big
 	static int traceback_error_handler(lua_State* L)
 	{
 		std::string msg = "An unknown error has triggered the error handler";
+
 		sol::optional<sol::string_view> maybetopmsg = sol::stack::unqualified_check_get<sol::string_view>(L, 1, &sol::no_panic);
 		if (maybetopmsg)
 		{
 			const sol::string_view& topmsg = maybetopmsg.value();
 			msg.assign(topmsg.data(), topmsg.size());
 		}
+
 		luaL_traceback(L, L, msg.c_str(), 1);
 		sol::optional<sol::string_view> maybetraceback = sol::stack::unqualified_check_get<sol::string_view>(L, -1, &sol::no_panic);
 		if (maybetraceback)
@@ -280,7 +324,19 @@ namespace big
 			const sol::string_view& traceback = maybetraceback.value();
 			msg.assign(traceback.data(), traceback.size());
 		}
+
+		const auto opt_env = get_env_from_lua_state(L);
+		if (opt_env.has_value())
+		{
+			const auto mod = lua_module::this_from(opt_env.value());
+			if (mod)
+			{
+				mod->m_error_count++;
+			}
+		}
+
 		LOG(ERROR) << msg;
+
 		return sol::stack::push(L, msg);
 	}
 

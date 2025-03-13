@@ -153,6 +153,8 @@ namespace big
 			LOG(ERROR) << m_info.m_guid_with_version << " failed to load: " << result.get<sol::error>().what();
 			Logger::FlushQueue();
 
+			m_error_count++;
+
 			return load_module_result::FAILED_TO_LOAD;
 		}
 		else
