@@ -102,7 +102,9 @@ endif()
 message("sol2")
 FetchContent_Declare(
 	sol2
-	GIT_REPOSITORY "https://github.com/xiaoxiao921/sol2.git"
-	GIT_TAG fd23d60ea7f04fb42d82131a4a75e0924fd0f678
+	GIT_REPOSITORY "https://github.com/ThePhD/sol2.git"
+	GIT_SHALLOW ON
+    GIT_SUBMODULES ""
+	GIT_TAG "v3.3.0"
 )
 FetchContent_MakeAvailable(sol2)
