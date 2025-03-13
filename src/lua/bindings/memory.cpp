@@ -251,7 +251,7 @@ namespace lua::memory
 	//     log.info("post callback from lua 2", ret_val:get(), str:get())
 	// end)
 	// ```
-	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::optional<sol::protected_function> pre_lua_callback, sol::optional<sol::protected_function> post_lua_callback, sol::this_environment env_)
+	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::object pre_lua_callback, sol::object post_lua_callback, sol::this_environment env_)
 	{
 		if (!target_func_ptr_obj.is_valid())
 		{
@@ -268,14 +268,14 @@ namespace lua::memory
 		const auto target_func_ptr = target_func_ptr_obj.get_address();
 
 		bool need_hook = false;
-		if (pre_lua_callback.has_value() && pre_lua_callback.value().valid())
+		if (pre_lua_callback.get_type() == sol::type::function)
 		{
-			module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr].push_back(pre_lua_callback.value());
+			module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr].push_back(pre_lua_callback);
 			need_hook = true;
 		}
-		if (post_lua_callback.has_value() && post_lua_callback.value().valid())
+		if (post_lua_callback.get_type() == sol::type::function)
 		{
-			module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr].push_back(post_lua_callback.value());
+			module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr].push_back(post_lua_callback);
 			need_hook = true;
 		}
 

@@ -9,6 +9,7 @@
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
 // clang-format on
+#undef ERROR
 
 namespace big
 {
