@@ -229,13 +229,14 @@ namespace lua::memory
 	// Param: return_type: string: Type of the return value of the detoured function.
 	// Param: param_types: table<string>: Types of the parameters of the detoured function.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
-	// Param: callbacks: table<function>: Table first element (can be nil): Pre function callback, lua function that will be called before the original function is about to be called. Pre function callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> Returns true or false (boolean) depending on whether you want the original function to be called. Table second element (can be nil): function that will be called after the original function. Post function callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> No return value.
+	// Param: pre_callback: function or nil: Optional. The function that will be called before the original function is about to be called. The callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> Returns true or false (boolean) depending on whether you want the original function to be called.
+	// Param: post_callback: function or nil: Optional. The function that will be called after the original function is called (or just after the pre callback is called, if the original function was skipped). The callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> void
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
 	// -- Check the implementation of the asmjit::TypeId get_type_id function if you are unsure what to use for return type / parameters types
 	// memory.dynamic_hook("test_hook", "float", {"const char*"}, ptr,
-	// {function(ret_val, str)
+	// function(ret_val, str)
 	//
 	//     --str:set("replaced str")
 	//     ret_val:set(69.69)
@@ -248,7 +249,7 @@ namespace lua::memory
 	//     log.info("post callback from lua 1", ret_val:get(), str:get())
 	//     ret_val:set(79.69)
 	//     log.info("post callback from lua 2", ret_val:get(), str:get())
-	// end})
+	// end)
 	// ```
 	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::object pre_lua_callback, sol::object post_lua_callback, sol::this_environment env_)
 	{
