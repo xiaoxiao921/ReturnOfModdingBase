@@ -63,6 +63,22 @@ namespace lua::memory
 			return m_target_func_ptr;
 		}
 
+		inline void enable_hook()
+		{
+			if (m_detour)
+			{
+				m_detour->enable();
+			}
+		}
+
+		inline void disable_hook()
+		{
+			if (m_detour)
+			{
+				m_detour->disable();
+			}
+		}
+
 		void debug_print_args(const asmjit::FuncSignature& sig);
 
 		// Construct a callback given the raw signature at runtime. 'Callback' param is the C stub to transfer to,

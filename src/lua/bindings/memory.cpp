@@ -230,6 +230,7 @@ namespace lua::memory
 	// Param: param_types: table<string>: Types of the parameters of the detoured function.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
 	// Param: callbacks: table<function>: Table first element (can be nil): Pre function callback, lua function that will be called before the original function is about to be called. Pre function callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> Returns true or false (boolean) depending on whether you want the original function to be called. Table second element (can be nil): function that will be called after the original function. Post function callback must match the following signature: ( return_value (value_wrapper), arg1 (value_wrapper), arg2 (value_wrapper), ... ) -> No return value.
+	// Returns: number: Unique identifier for later disabling / enabling the hook on the fly.
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
@@ -251,18 +252,18 @@ namespace lua::memory
 	// end})
 	// ```
 
-	static void dynamic_hook_table_overload(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::table callbacks, sol::this_environment env_)
+	static uintptr_t dynamic_hook_table_overload(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::table callbacks, sol::this_environment env_)
 	{
 		if (!target_func_ptr_obj.is_valid())
 		{
 			LOG(ERROR) << "Invalid target func ptr obj.";
-			return;
+			return 0;
 		}
 
 		big::lua_module* module = big::lua_module::this_from(env_);
 		if (!module)
 		{
-			return;
+			return 0;
 		}
 
 		const auto target_func_ptr = target_func_ptr_obj.get_address();
@@ -312,16 +313,20 @@ namespace lua::memory
 			if (runtime_func)
 			{
 				module->m_data.m_dynamic_hooks.push_back(runtime_func);
+				return target_func_ptr;
 			}
 		}
+
+
+		return 0;
 	}
 
-	static void dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function pre_lua_callback, sol::protected_function post_lua_callback, sol::this_environment env_)
+	static uintptr_t dynamic_hook(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::protected_function pre_lua_callback, sol::protected_function post_lua_callback, sol::this_environment env_)
 	{
 		sol::table callbacks(env_.env.value().lua_state(), sol::create);
 		callbacks[1] = pre_lua_callback;
 		callbacks[2] = post_lua_callback;
-		dynamic_hook_table_overload(hook_name, return_type, param_types_table, target_func_ptr_obj, callbacks, env_);
+		return dynamic_hook_table_overload(hook_name, return_type, param_types_table, target_func_ptr_obj, callbacks, env_);
 	}
 
 	static uintptr_t mid_callback(const runtime_func_t::parameters_t* params, const size_t param_count, const uintptr_t target_func_ptr)
@@ -363,6 +368,7 @@ namespace lua::memory
 	// Param: stack_restore_offset: int: An offset used to restore stack, only need when you want to customize the jump location.
 	// Param: target_func_ptr: memory.pointer: The pointer to the function to detour.
 	// Param: mid_callback: function: The function that will be called when the program reaches the position. The callback must match the following signature: ( args (can be a value_wrapper, or a lua usertype directly, depending if you used `add_type_info_from_string` through some c++ code and exposed it to the lua vm) ) -> Returns memory.pointer if you want to customize the jump location. Be careful when customizing the jump location, you need to restore the registers and the stack before the jump.
+	// Returns: number: Unique identifier for later disabling / enabling the hook on the fly.
 	// **Example Usage:**
 	// ```lua
 	// local ptr = memory.scan_pattern("some ida sig")
@@ -372,23 +378,23 @@ namespace lua::memory
 	// end)
 	// ```
 	// But scan_pattern may be affected by the other hooks.
-	static void dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, int stack_restore_offset, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
+	static uintptr_t dynamic_hook_mid(const std::string& hook_name_str, sol::table param_captures_targets, sol::table param_captures_types, int stack_restore_offset, lua::memory::pointer& target_func_ptr_obj, sol::protected_function lua_mid_callback, sol::this_environment env)
 	{
 		if (!target_func_ptr_obj.is_valid())
 		{
 			LOG(ERROR) << "Invalid target func ptr obj.";
-			return;
+			return 0;
 		}
 
 		big::lua_module* mdl = big::lua_module::this_from(env);
 		if (!mdl)
 		{
-			return;
+			return 0;
 		}
 
 		if (!lua_mid_callback.valid())
 		{
-			return;
+			return 0;
 		}
 
 		const auto target_func_ptr = target_func_ptr_obj.get_address();
@@ -435,6 +441,35 @@ namespace lua::memory
 		if (runtime_func)
 		{
 			mdl->m_data.m_dynamic_hooks.push_back(runtime_func);
+			return target_func_ptr;
+		}
+
+		return 0;
+	}
+
+	// Lua API: Function
+	// Table: memory
+	// Name: dynamic_hook_enable
+	// Param: identifier: number: The identifier returned by the `dynamic_hook` family functions.
+	static void dynamic_hook_enable(uintptr_t identifier)
+	{
+		auto runtime_func = big::g_lua_manager->get_existing_dynamic_hook(identifier);
+		if (runtime_func)
+		{
+			runtime_func->enable_hook();
+		}
+	}
+
+	// Lua API: Function
+	// Table: memory
+	// Name: dynamic_hook_disable
+	// Param: identifier: number: The identifier returned by the `dynamic_hook` family functions.
+	static void dynamic_hook_disable(uintptr_t identifier)
+	{
+		auto runtime_func = big::g_lua_manager->get_existing_dynamic_hook(identifier);
+		if (runtime_func)
+		{
+			runtime_func->disable_hook();
 		}
 	}
 
@@ -864,6 +899,8 @@ namespace lua::memory
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
 		ns["dynamic_hook"]            = sol::overload(dynamic_hook, dynamic_hook_table_overload);
 		ns["dynamic_hook_mid"]        = dynamic_hook_mid;
+		ns["dynamic_hook_enable"]     = dynamic_hook_enable;
+		ns["dynamic_hook_disable"]    = dynamic_hook_disable;
 		ns["dynamic_call"]            = dynamic_call;
 		ns["resolve_pointer_to_type"] = resolve_pointer_to_type;
 
