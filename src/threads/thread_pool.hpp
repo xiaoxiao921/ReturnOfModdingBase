@@ -21,9 +21,26 @@ namespace big
 	// https://github.com/mhdshameel/WorkerPool
 	class thread_pool
 	{
+	private:
+		std::vector<std::thread> _threads;
+		bool is_ready; //this is set thread safe using call_once
+		bool cancel_flag;
+		constexpr static size_t max_threads = 4;
+
+		std::queue<std::tuple<Task, std::promise<void>>> task_queue;
+		std::mutex tq_mx;
+
+		std::unique_ptr<std::counting_semaphore<max_threads * max_threads>> pull_task_signal;
+		/*
+		* Not able to use condtion variable instead of semaphore for signalling the threads to pull tasks because of the lost wakeups
+		* because sometimes we can have in this order: task addition to queue and then waiting on cv
+		* */
+		std::once_flag _isready_onceflag;
+		std::atomic<int> available_workers;
+
 	public:
 
-		thread_pool() :
+		inline thread_pool() :
 		    is_ready(0),
 		    cancel_flag(false),
 		    available_workers(0)
@@ -48,7 +65,7 @@ namespace big
 		* And it will block till the current task of execution is completed
 		* It is upto to the consumer of the library to not assign long blocking tasks
 		* */
-		~thread_pool()
+		inline ~thread_pool()
 		{
 			cancel_flag = true;
 			pull_task_signal->release(_threads.size());
@@ -62,12 +79,12 @@ namespace big
 			g_thread_pool = nullptr;
 		}
 
-		[[nodiscard]] bool is_thread_available()
+		inline [[nodiscard]] bool is_thread_available()
 		{
 			return is_ready && (available_workers > 0);
 		};
 
-		[[nodiscard]] bool are_all_threads_available()
+		inline [[nodiscard]] bool are_all_threads_available()
 		{
 			return available_workers == max_threads;
 		}
@@ -79,7 +96,7 @@ namespace big
 		* Params:
 		* task_to_run - This is the task to be executed. Any callable of signature void() will be accepted
 		* */
-		std::future<void> push(Task&& task_to_run)
+		inline std::future<void> push(Task&& task_to_run)
 		{
 			// don't allow enqueueing after stopping the pool
 			if (cancel_flag)
@@ -97,68 +114,50 @@ namespace big
 		}
 
 	private:
-		std::vector<std::thread> _threads;
-		bool is_ready; //this is set thread safe using call_once
-		bool cancel_flag;
-		constexpr static size_t max_threads = 4;
-
-		void routine() noexcept;
-
-		std::queue<std::tuple<Task, std::promise<void>>> task_queue;
-		std::mutex tq_mx;
-
-		std::unique_ptr<std::counting_semaphore<max_threads * max_threads>> pull_task_signal;
-		/*
-		* Not able to use condtion variable instead of semaphore for signalling the threads to pull tasks because of the lost wakeups
-		* because sometimes we can have in this order: task addition to queue and then waiting on cv
-		* */
-		std::once_flag _isready_onceflag;
-		std::atomic<int> available_workers;
-	};
-
-	void thread_pool::routine() noexcept
-	{
-		std::call_once(
-		    _isready_onceflag,
-		    [](bool& is_ready)
-		    {
-			    is_ready = true;
-		    },
-		    is_ready);
-
-		while (!(cancel_flag && task_queue.empty()))
+		inline void routine() noexcept
 		{
-			available_workers++;
-			try
-			{
-				if (!cancel_flag)
-				{
-					pull_task_signal->acquire();
-				}
+			std::call_once(
+			    _isready_onceflag,
+			    [](bool& is_ready)
+			    {
+				    is_ready = true;
+			    },
+			    is_ready);
 
-				std::unique_lock lk(tq_mx);
-				available_workers--;
-				if (task_queue.empty())
+			while (!(cancel_flag && task_queue.empty()))
+			{
+				available_workers++;
+				try
 				{
-					continue;
-				}
-				auto [payload, payload_promise] = std::exchange(task_queue.front(), {});
-				/*
+					if (!cancel_flag)
+					{
+						pull_task_signal->acquire();
+					}
+
+					std::unique_lock lk(tq_mx);
+					available_workers--;
+					if (task_queue.empty())
+					{
+						continue;
+					}
+					auto [payload, payload_promise] = std::exchange(task_queue.front(), {});
+					/*
 				The use of std::exchange ensures the task_queue's front element is accessed atomically and
 				any potential data races between threads accessing task_queue are avoided
 				*/
 
-				task_queue.pop();
-				lk.unlock();
+					task_queue.pop();
+					lk.unlock();
 
-				//execute the work assigned
-				payload();
+					//execute the work assigned
+					payload();
 
-				payload_promise.set_value();
-			}
-			catch (const std::exception& ex)
-			{
+					payload_promise.set_value();
+				}
+				catch (const std::exception& ex)
+				{
+				}
 			}
 		}
-	}
+	};
 } // namespace big
