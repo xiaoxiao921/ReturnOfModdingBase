@@ -1,125 +1,59 @@
 #include "thread_pool.hpp"
 
-#include "logger/logger.hpp"
-
-#undef ERROR
-
 namespace big
 {
-	thread_pool::thread_pool(const std::size_t preallocated_thread_count) :
-	    m_accept_jobs(true),
-	    m_allocated_thread_count(preallocated_thread_count)
+	thread_pool::thread_pool(size_t num_threads) :
+	    stop(false)
 	{
-		rescale_thread_pool();
+		for (size_t i = 0; i < num_threads; ++i)
+		{
+			m_workers.emplace_back(
+			    [this]
+			    {
+				    while (true)
+				    {
+					    std::function<void()> job;
+					    {
+						    std::unique_lock<std::mutex> lock(m_queue_mutex);
+						    m_condition.wait(lock,
+						                     [this]
+						                     {
+							                     return stop || !m_jobs.empty();
+						                     });
 
-		g_thread_pool = this;
+						    if (stop && m_jobs.empty())
+						    {
+							    return;
+						    }
+
+						    job = std::move(m_jobs.front());
+						    m_jobs.pop();
+					    }
+					    job();
+				    }
+			    });
+		}
 	}
 
 	thread_pool::~thread_pool()
 	{
-		g_thread_pool = nullptr;
-	}
-
-	void thread_pool::rescale_thread_pool()
-	{
-		LOG(DEBUG) << "Resizing thread pool from " << m_thread_pool.size() << " to " << m_allocated_thread_count;
-		m_thread_pool.reserve(m_allocated_thread_count);
-
-		if (m_thread_pool.size() < m_allocated_thread_count)
 		{
-			for (uint32_t i = 0; i < m_allocated_thread_count; i++)
-			{
-				m_thread_pool.emplace_back(std::thread(&thread_pool::run, this));
-			}
+			std::unique_lock<std::mutex> lock(m_queue_mutex);
+			stop = true;
+		}
+		m_condition.notify_all();
+		for (std::thread& worker : m_workers)
+		{
+			worker.join();
 		}
 	}
 
-	void thread_pool::destroy()
+	void thread_pool::enqueue(std::function<void()> job)
 	{
 		{
-			std::scoped_lock lock(m_lock);
-			m_accept_jobs = false;
+			std::unique_lock<std::mutex> lock(m_queue_mutex);
+			m_jobs.push(std::move(job));
 		}
-		m_data_condition.notify_all();
-
-		for (auto& thread : m_thread_pool)
-		{
-			thread.join();
-		}
-
-		m_thread_pool.clear();
-	}
-
-	void thread_pool::push(std::function<void()> func, std::source_location location)
-	{
-		if (func)
-		{
-			{
-				std::scoped_lock lock(m_lock);
-				m_job_stack.push({func, location});
-
-				if (m_allocated_thread_count < m_job_stack.size())
-				{
-					LOG(WARNING) << "Thread pool potentially starved, resizing to accommodate for load.";
-
-					if (m_allocated_thread_count++ >= MAX_POOL_SIZE)
-					{
-						LOG(ERROR) << "The thread pool limit has been reached, whatever you did this should not occur "
-						              "in production.";
-					}
-					if (m_accept_jobs && m_allocated_thread_count <= MAX_POOL_SIZE)
-					{
-						rescale_thread_pool();
-					}
-				}
-			}
-			m_data_condition.notify_all();
-		}
-	}
-
-	void thread_pool::run()
-	{
-		for (;;)
-		{
-			std::unique_lock lock(m_lock);
-
-			m_data_condition.wait(lock,
-			                      [this]()
-			                      {
-				                      return !m_job_stack.empty() || !m_accept_jobs;
-			                      });
-
-			if (!m_accept_jobs)
-			{
-				break;
-			}
-			if (m_job_stack.empty())
-			{
-				continue;
-			}
-
-			thread_pool_job job = m_job_stack.top();
-			m_job_stack.pop();
-			lock.unlock();
-
-			m_allocated_thread_count--;
-
-			try
-			{
-				const auto source_file = std::filesystem::path(job.m_source_location.file_name()).filename().string();
-				LOG(DEBUG) << "Thread " << std::this_thread::get_id() << " executing " << source_file << ":"
-				           << job.m_source_location.line();
-
-				std::invoke(job.m_func);
-			}
-			catch (const std::exception& e)
-			{
-				LOG(WARNING) << "Exception thrown while executing job in thread:" << std::endl << e.what();
-			}
-
-			m_allocated_thread_count++;
-		}
-
-		LOG(DEBUG) << "Thread " << std::this_thread::get_id() << " exiting...";
+		m_condition.notify_one();
 	}
 } // namespace big

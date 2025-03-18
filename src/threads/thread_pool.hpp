@@ -4,43 +4,28 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <queue>
 #include <source_location>
 #include <stack>
 #include <vector>
 
 namespace big
 {
-	// if this limit is hit you did something wrong coding wise.
-	constexpr auto MAX_POOL_SIZE = 32u;
-
-	struct thread_pool_job
-	{
-		std::function<void()> m_func;
-		std::source_location m_source_location;
-	};
-
 	class thread_pool
 	{
-		std::atomic<bool> m_accept_jobs;
-		std::condition_variable m_data_condition;
-
-		std::stack<thread_pool_job> m_job_stack;
-		std::mutex m_lock;
-		std::vector<std::thread> m_thread_pool;
-
-		std::atomic<size_t> m_allocated_thread_count;
+	private:
+		std::vector<std::thread> m_workers;
+		std::queue<std::function<void()>> m_jobs;
+		std::mutex m_queue_mutex;
+		std::condition_variable m_condition;
+		std::atomic<bool> m_stop;
 
 	public:
-		// We only has 2 blocking threads, 4 should be sufficient but the pool should automatically allocate more if needed
-		thread_pool(const std::size_t preallocated_thread_count = 4);
+		thread_pool(size_t num_threads = 4);
+
 		~thread_pool();
 
-		void destroy();
-		void push(std::function<void()> func, std::source_location location = std::source_location::current());
-
-	private:
-		void run();
-		void rescale_thread_pool();
+		void enqueue(std::function<void()> job);
 	};
 
 	inline thread_pool* g_thread_pool{};
