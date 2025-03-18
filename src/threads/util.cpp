@@ -20,13 +20,30 @@ namespace big::threads
 				{
 					if (te.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(te.th32OwnerProcessID) && te.th32OwnerProcessID == target_process_id)
 					{
-						HANDLE thread = ::OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
-						if (thread)
+						HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+						if (hThread)
 						{
-							ResumeThread(thread);
-							CloseHandle(thread);
-
-							are_suspended = false;
+							// Get the module of the thread
+							HANDLE hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, target_process_id);
+							if (hModuleSnap != INVALID_HANDLE_VALUE)
+							{
+								MODULEENTRY32 me;
+								me.dwSize = sizeof(me);
+								if (Module32First(hModuleSnap, &me))
+								{
+									do
+									{
+										if (_stricmp(me.szModule, "ntdll.dll") != 0 && me.th32ProcessID == target_process_id)
+										{
+											ResumeThread(hThread);
+											are_suspended = false;
+											break;
+										}
+									} while (Module32Next(hModuleSnap, &me));
+								}
+								CloseHandle(hModuleSnap);
+							}
+							CloseHandle(hThread);
 						}
 					}
 				} while (Thread32Next(h, &te));
@@ -48,13 +65,30 @@ namespace big::threads
 				{
 					if (te.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(te.th32OwnerProcessID) && te.th32OwnerProcessID == target_process_id && te.th32ThreadID != thread_id_to_not_suspend)
 					{
-						HANDLE thread = ::OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
-						if (thread)
+						HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+						if (hThread)
 						{
-							SuspendThread(thread);
-							CloseHandle(thread);
-
-							are_suspended = true;
+							// Get the module of the thread
+							HANDLE hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, target_process_id);
+							if (hModuleSnap != INVALID_HANDLE_VALUE)
+							{
+								MODULEENTRY32 me;
+								me.dwSize = sizeof(me);
+								if (Module32First(hModuleSnap, &me))
+								{
+									do
+									{
+										if (_stricmp(me.szModule, "ntdll.dll") != 0 && me.th32ProcessID == target_process_id)
+										{
+											SuspendThread(hThread);
+											are_suspended = true;
+											break;
+										}
+									} while (Module32Next(hModuleSnap, &me));
+								}
+								CloseHandle(hModuleSnap);
+							}
+							CloseHandle(hThread);
 						}
 					}
 				} while (Thread32Next(h, &te));
