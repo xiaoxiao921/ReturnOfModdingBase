@@ -15,6 +15,9 @@ namespace big
 {
 	using Task = std::function<void()>;
 
+	class thread_pool;
+	inline thread_pool* g_thread_pool;
+
 	// https://github.com/mhdshameel/WorkerPool
 	class thread_pool
 	{
