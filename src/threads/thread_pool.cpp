@@ -3,7 +3,7 @@
 namespace big
 {
 	thread_pool::thread_pool(size_t num_threads) :
-	    stop(false)
+	    m_stop(false)
 	{
 		for (size_t i = 0; i < num_threads; ++i)
 		{
@@ -18,10 +18,10 @@ namespace big
 						    m_condition.wait(lock,
 						                     [this]
 						                     {
-							                     return stop || !m_jobs.empty();
+							                     return m_stop || !m_jobs.empty();
 						                     });
 
-						    if (stop && m_jobs.empty())
+						    if (m_stop && m_jobs.empty())
 						    {
 							    return;
 						    }
@@ -39,7 +39,7 @@ namespace big
 	{
 		{
 			std::unique_lock<std::mutex> lock(m_queue_mutex);
-			stop = true;
+			m_stop = true;
 		}
 		m_condition.notify_all();
 		for (std::thread& worker : m_workers)
