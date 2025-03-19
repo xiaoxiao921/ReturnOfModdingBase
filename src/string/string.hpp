@@ -59,6 +59,28 @@ namespace big::string
 		return result;
 	}
 
+	template<typename T = std::string>
+	inline std::vector<T> split(const std::string& text, const std::string& delim, size_t max_splits = std::string::npos)
+	{
+		std::vector<T> result;
+		size_t start  = 0, end;
+		size_t splits = 0;
+
+		max_splits--;
+
+		while ((end = text.find(delim, start)) != std::string::npos && splits < max_splits)
+		{
+			result.push_back(get_text_value<T>(text.substr(start, end - start)));
+			start = end + delim.length();
+			splits++;
+		}
+
+		// Add the remaining part
+		result.push_back(get_text_value<T>(text.substr(start)));
+
+		return result;
+	}
+
 	inline std::string replace(const std::string& original, const std::string& old_value, const std::string& new_value)
 	{
 		std::string result = original;
