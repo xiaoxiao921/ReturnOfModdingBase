@@ -460,7 +460,7 @@ namespace lua::memory
 			}
 			case '*':
 			{
-				std::string sub_str = parse_address_component(name, i);
+				std::string sub_str = parse_address_component(name, it);
 				auto num            = parse_number_from_string(sub_str);
 				if (!num.has_value())
 				{
