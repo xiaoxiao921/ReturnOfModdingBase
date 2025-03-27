@@ -114,6 +114,7 @@ namespace big
 			delete[] memory;
 		}
 
+		std::unique_lock lock(m_file_watcher_mutex);
 		m_data = {};
 	}
 
