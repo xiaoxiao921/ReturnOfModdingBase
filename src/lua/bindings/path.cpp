@@ -246,7 +246,7 @@ namespace lua::path
 		{
 			std::shared_lock lock(mdl->m_file_watcher_mutex);
 			need_create = mdl->m_data.m_file_watchers.count(directory) == 0;
-			LOG(INFO) << "add file watcher: " << directory;
+			LOG(INFO) << "Add file watcher: " << directory;
 		}
 		{
 			std::unique_lock lock(mdl->m_file_watcher_mutex);
@@ -274,7 +274,6 @@ namespace lua::path
 					    std::shared_lock lock(mdl->m_file_watcher_mutex);
 					    if (mdl->m_data.m_file_watchers.count(directory) == 0)
 					    {
-							LOG(INFO) << "remove file watcher: " << directory;
 						    break;
 					    }
 
