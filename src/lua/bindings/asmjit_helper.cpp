@@ -255,7 +255,7 @@ namespace lua::memory
 			                    return c == ' ';
 		                    });
 
-		index = end;
+		index = --end;
 		return sub_str;
 	}
 
