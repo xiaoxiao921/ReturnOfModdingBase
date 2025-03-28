@@ -228,7 +228,7 @@ namespace lua::path
 	// **Example Usage:**
 	// ```lua
 	// path.add_file_watcher(_ENV["!config_mod_folder_path"], function (file_path)
-    // 		log.info(file_path)
+	// 		log.info(file_path)
 	// end)
 	// ```
 	void add_file_watcher(std::string directory, sol::protected_function callback, sol::this_environment env)
@@ -271,25 +271,26 @@ namespace lua::path
 
 				    while (true)
 				    {
-					    std::shared_lock lock(mdl->m_file_watcher_mutex);
-					    if (mdl->m_data.m_file_watchers.count(directory) == 0)
 					    {
-						    break;
-					    }
-
-					    for (auto& watcher : watchers)
-					    {
-						    auto modified_files = watcher.check();
-						    for (const auto& file_path : modified_files)
+						    std::shared_lock lock(mdl->m_file_watcher_mutex);
+						    if (mdl->m_data.m_file_watchers.count(directory) == 0)
 						    {
-							    const auto it = mdl->m_data.m_file_watchers.at(directory);
-							    for (const auto& cb : it)
+							    break;
+						    }
+
+						    for (auto& watcher : watchers)
+						    {
+							    auto modified_files = watcher.check();
+							    for (const auto& file_path : modified_files)
 							    {
-								    cb(file_path.string());
+								    const auto it = mdl->m_data.m_file_watchers.at(directory);
+								    for (const auto& cb : it)
+								    {
+									    cb(file_path.string());
+								    }
 							    }
 						    }
 					    }
-
 					    using namespace std::chrono_literals;
 					    std::this_thread::sleep_for(500ms);
 				    }
