@@ -7,6 +7,7 @@
 #include "lua_patch.hpp"
 #include "module_info.hpp"
 
+#include <shared_mutex>
 #include <thunderstore/v1/manifest.hpp>
 
 namespace big
@@ -43,7 +44,11 @@ namespace big
 			std::unordered_map<uintptr_t, std::unique_ptr<uint8_t[]>> m_dynamic_call_jit_functions;
 
 			std::unordered_map<uintptr_t, sol::protected_function> m_dynamic_hook_mid_callbacks;
+
+			std::unordered_map<std::string, std::vector<sol::protected_function>> m_file_watchers;
 		};
+
+		std::shared_mutex m_file_watcher_mutex;
 
 		lua_module_data m_data;
 

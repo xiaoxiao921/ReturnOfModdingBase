@@ -3,7 +3,8 @@
 #include <optional>
 #include <string>
 #include <vector>
-
+#include <algorithm>
+#include <string/string.hpp>
 
 namespace lua::memory
 {
@@ -23,7 +24,7 @@ namespace lua::memory
 
 	std::string parse_address_component(std::string_view name, size_t& index);
 
-	uint64_t parse_number_from_string(std::string_view str);
+	std::optional<uint64_t> parse_number_from_string(std::string_view str);
 
 	std::optional<asmjit::x86::Mem> get_addr_from_name(std::string_view name, const int64_t rsp_offset = 0);
 

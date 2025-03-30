@@ -1,6 +1,9 @@
 #pragma once
 #include "path.hpp"
 
+#include "directory_watcher/directory_watcher.hpp"
+#include "lua/lua_manager.hpp"
+
 #include <filesystem>
 
 // clang-format off
@@ -216,6 +219,86 @@ namespace lua::path
 		return false;
 	}
 
+	// Lua API: Function
+	// Table: path
+	// Name: add_file_watcher
+	// Param: path: string: The path to add file watcher.
+	// Param: callback: function: callback that match signature function ( file_path ).
+	// Registers a callback that will be called when a file changes.
+	// **Example Usage:**
+	// ```lua
+	// path.add_file_watcher(_ENV["!config_mod_folder_path"], function (file_path)
+	// 		log.info(file_path)
+	// end)
+	// ```
+	void add_file_watcher(std::string directory, sol::protected_function callback, sol::this_environment env)
+	{
+		auto mdl = big::lua_module::this_from(env);
+		if (!mdl)
+		{
+			return;
+		}
+		if (!callback.valid())
+		{
+			return;
+		}
+		bool need_create = false;
+		{
+			std::shared_lock lock(mdl->m_file_watcher_mutex);
+			need_create = mdl->m_data.m_file_watchers.count(directory) == 0;
+			LOG(INFO) << "Add file watcher: " << directory;
+		}
+		{
+			std::unique_lock lock(mdl->m_file_watcher_mutex);
+			mdl->m_data.m_file_watchers[directory].push_back(callback);
+		}
+		if (need_create)
+		{
+			std::thread(
+			    [directory, mdl]
+			    {
+				    std::vector<big::directory_watcher> watchers;
+				    watchers.emplace_back(directory);
+				    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
+				    {
+					    if (!entry.is_directory())
+					    {
+						    continue;
+					    }
+
+					    watchers.emplace_back(entry.path());
+				    }
+
+				    while (true)
+				    {
+					    {
+						    std::shared_lock lock(mdl->m_file_watcher_mutex);
+						    if (mdl->m_data.m_file_watchers.count(directory) == 0)
+						    {
+							    break;
+						    }
+
+						    for (auto& watcher : watchers)
+						    {
+							    auto modified_files = watcher.check();
+							    for (const auto& file_path : modified_files)
+							    {
+								    const auto it = mdl->m_data.m_file_watchers.at(directory);
+								    for (const auto& cb : it)
+								    {
+									    cb(file_path.string());
+								    }
+							    }
+						    }
+					    }
+					    using namespace std::chrono_literals;
+					    std::this_thread::sleep_for(500ms);
+				    }
+			    })
+			    .detach();
+		}
+	}
+
 	void bind(sol::table& state)
 	{
 		auto ns = state.create_named("path");
@@ -228,5 +311,6 @@ namespace lua::path
 		ns["stem"]             = stem;
 		ns["create_directory"] = create_directory;
 		ns["exists"]           = exists;
+		ns["add_file_watcher"] = add_file_watcher;
 	}
 } // namespace lua::path
