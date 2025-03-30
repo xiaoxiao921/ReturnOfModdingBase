@@ -96,65 +96,79 @@ namespace big
 
 	std::vector<std::filesystem::path> directory_watcher::check()
 	{
-		DWORD transferred         = 0;
-		ULONG_PTR key             = 0;
-		LPOVERLAPPED lpOverlapped = nullptr;
-
-		std::unordered_set<std::wstring> current_modifications;
-
 		std::vector<std::filesystem::path> modifications;
 
-		BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 0);
-		if (!result)
+		// TODO: Investigate why _last_modifications = current_modifications; can fail and hard crash.
+		try
 		{
-			DWORD error = GetLastError();
-			if (error == WAIT_TIMEOUT)
+			DWORD transferred         = 0;
+			ULONG_PTR key             = 0;
+			LPOVERLAPPED lpOverlapped = nullptr;
+
+			std::unordered_set<std::wstring> current_modifications;
+
+			BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 0);
+			if (!result)
 			{
-				last_modifications = current_modifications;
-				return modifications;
+				DWORD error = GetLastError();
+				if (error == WAIT_TIMEOUT)
+				{
+					_last_modifications = current_modifications;
+					return modifications;
+				}
+				else if (error == ERROR_INVALID_HANDLE)
+				{
+					LOG(ERROR) << "GetQueuedCompletionStatus failed: Invalid handle";
+					_last_modifications = current_modifications;
+					return modifications;
+				}
+				else
+				{
+					LOG(ERROR) << "GetQueuedCompletionStatus failed: " << error;
+					_last_modifications = current_modifications;
+					return modifications;
+				}
 			}
-			else if (error == ERROR_INVALID_HANDLE)
+
+			auto record = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(_buffer.data());
+
+			while (true)
 			{
-				LOG(ERROR) << "GetQueuedCompletionStatus failed: Invalid handle";
-				last_modifications = current_modifications;
-				return modifications;
+				const std::wstring filename(record->FileName, record->FileNameLength / sizeof(WCHAR));
+
+				const std::wstring full_path = std::filesystem::path(_path / filename).wstring();
+				if (!_last_modifications.contains(full_path))
+				{
+					modifications.push_back(full_path);
+					current_modifications.insert(full_path);
+				}
+
+				if (record->NextEntryOffset == 0)
+				{
+					break;
+				}
+				record = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(reinterpret_cast<const BYTE*>(record) + record->NextEntryOffset);
 			}
-			else
+
+			ZeroMemory((void*)&_overlapped, sizeof(OVERLAPPED));
+			DWORD buffer_length;
+			if (!ReadDirectoryChangesW(_file_handle, (void*)_buffer.data(), static_cast<DWORD>(_buffer.size()), FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE, &buffer_length, (LPOVERLAPPED)&_overlapped, nullptr))
 			{
-				LOG(ERROR) << "GetQueuedCompletionStatus failed: " << error;
-				last_modifications = current_modifications;
-				return modifications;
+				LOG(ERROR) << "ReadDirectoryChangesW failed: " << GetLastError();
 			}
+
+			_last_modifications = current_modifications;
+			return modifications;
+		}
+		catch (const std::exception& e)
+		{
+			LOG(ERROR) << "Exception while doing check(): " << e.what();
+		}
+		catch (...)
+		{
+			LOG(ERROR) << "Unknown exception while doing check()";
 		}
 
-		auto record = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(_buffer.data());
-
-		while (true)
-		{
-			const std::wstring filename(record->FileName, record->FileNameLength / sizeof(WCHAR));
-
-			const std::wstring full_path = std::filesystem::path(_path / filename).wstring();
-			if (!last_modifications.contains(full_path))
-			{
-				modifications.push_back(full_path);
-				current_modifications.insert(full_path);
-			}
-
-			if (record->NextEntryOffset == 0)
-			{
-				break;
-			}
-			record = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(reinterpret_cast<const BYTE*>(record) + record->NextEntryOffset);
-		}
-
-		ZeroMemory((void*)&_overlapped, sizeof(OVERLAPPED));
-		DWORD buffer_length;
-		if (!ReadDirectoryChangesW(_file_handle, (void*)_buffer.data(), static_cast<DWORD>(_buffer.size()), FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE, &buffer_length, (LPOVERLAPPED)&_overlapped, nullptr))
-		{
-			LOG(ERROR) << "ReadDirectoryChangesW failed: " << GetLastError();
-		}
-
-		last_modifications = current_modifications;
 		return modifications;
 	}
 } // namespace big
