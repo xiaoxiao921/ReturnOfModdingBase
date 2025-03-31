@@ -406,15 +406,34 @@ namespace big
 
 		for (const auto& module : m_modules)
 		{
+			bool has_errors = module->m_error_count > 0;
+			if (has_errors)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+			}
+
 			if (ImGui::BeginMenu(module->guid().c_str()))
 			{
+				if (has_errors)
+				{
+					ImGui::PopStyleColor();
+					ImGui::Text("Error Count: %d (Hover for more details)", module->m_error_count);
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetTooltip("The mod produced %d errors. It may not work correctly. If it still works as "
+						                  "expected, feel free to ignore this warning.",
+						                  module->m_error_count);
+					}
+				}
+
 				if (ImGui::BeginMenu("Mod Info"))
 				{
 					const auto& manifest = module->manifest();
 					imgui_text("Version: %s", manifest.version_number);
 					imgui_text("Website URL: %s", manifest.website_url);
 					imgui_text("Description: %s", manifest.description);
-					if (manifest.dependencies.size())
+
+					if (!manifest.dependencies.empty())
 					{
 						int i = 0;
 						for (const auto& dependency : manifest.dependencies)
@@ -426,12 +445,22 @@ namespace big
 					ImGui::EndMenu();
 				}
 
+				if (ImGui::Button("Open Mod Folder"))
+				{
+					const std::wstring command = L"explorer " + module->path().parent_path().wstring();
+					_wsystem(command.c_str());
+				}
+
 				for (const auto& element : module->m_data.m_menu_bar_callbacks)
 				{
 					element->draw();
 				}
 
 				ImGui::EndMenu();
+			}
+			else if (has_errors)
+			{
+				ImGui::PopStyleColor();
 			}
 		}
 	}
