@@ -229,19 +229,21 @@ namespace big
 
 	static std::optional<sol::environment> get_env_from_lua_state(lua_State* L)
 	{
+		// logs commented out, users might get confused otherwise.
+
 		lua_Debug info;
 		int level          = 1;
 		int pre_stack_size = lua_gettop(L);
 		if (lua_getstack(L, level, &info) != 1)
 		{
-			LOG(ERROR) << "error: unable to traverse the stack";
+			//LOG(ERROR) << "error: unable to traverse the stack";
 			lua_settop(L, pre_stack_size);
 			return {};
 		}
 		if (lua_getinfo(L, "fnluS", &info) == 0)
 		{
-			LOG(ERROR) << "manually -- error: unable to get stack "
-			              "information";
+			//LOG(ERROR) << "manually -- error: unable to get stack "
+			//"information";
 			lua_settop(L, pre_stack_size);
 			return {};
 		}
@@ -250,7 +252,7 @@ namespace big
 		sol::environment env(sol::env_key, f);
 		if (!env.valid())
 		{
-			LOG(ERROR) << "manually -- error: no environment to get";
+			//LOG(ERROR) << "manually -- error: no environment to get";
 			lua_settop(L, pre_stack_size);
 			return {};
 		}
