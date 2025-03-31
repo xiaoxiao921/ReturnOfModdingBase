@@ -204,26 +204,50 @@ namespace big
 
 	void lua_manager::process_file_watcher_queue()
 	{
-		std::scoped_lock l(m_to_reload_lock);
-		bool entered = false;
-		while (m_to_reload_queue.size())
 		{
-			entered = true;
+			std::scoped_lock l(m_to_reload_lock);
+			bool entered = false;
+			while (m_to_reload_queue.size())
+			{
+				entered = true;
 
-			std::scoped_lock l(m_module_lock);
+				std::scoped_lock l(m_module_lock);
 
-			auto& mod = m_to_reload_queue.front();
+				auto& mod = m_to_reload_queue.front();
 
-			mod->cleanup();
-			mod->load_and_call_plugin(m_state);
+				mod->cleanup();
+				mod->load_and_call_plugin(m_state);
 
-			m_to_reload_queue.pop();
+				m_to_reload_queue.pop();
+			}
+
+			if (entered)
+			{
+				m_to_reload_duplicate_checker.clear();
+				m_to_reload_duplicate_checker_2.clear();
+			}
 		}
-
-		if (entered)
 		{
-			m_to_reload_duplicate_checker.clear();
-			m_to_reload_duplicate_checker_2.clear();
+			std::lock_guard<std::mutex> lock(m_to_do_file_callback_lock);
+			while (m_to_do_file_callback_queue.size())
+			{
+				std::scoped_lock l(m_module_lock);
+				
+				auto [mdl, directory, file_name] = m_to_do_file_callback_queue.front();
+
+				std::shared_lock lock(mdl->m_file_watcher_mutex);
+
+				auto callbacks = mdl->m_data.m_file_watchers.find(directory);
+				if (callbacks != mdl->m_data.m_file_watchers.end())
+				{
+					for (const auto& cb : callbacks->second)
+					{
+						cb(file_name);
+					}
+				}
+
+				m_to_do_file_callback_queue.pop();
+			}
 		}
 	}
 

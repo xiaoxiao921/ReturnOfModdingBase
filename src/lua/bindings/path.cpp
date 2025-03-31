@@ -223,12 +223,12 @@ namespace lua::path
 	// Table: path
 	// Name: add_file_watcher
 	// Param: path: string: The path to add file watcher.
-	// Param: callback: function: callback that match signature function ( file_path ).
+	// Param: callback: function: callback that match signature function ( file_name ).
 	// Registers a callback that will be called when a file changes.
 	// **Example Usage:**
 	// ```lua
-	// path.add_file_watcher(_ENV["!config_mod_folder_path"], function (file_path)
-	// 		log.info(file_path)
+	// path.add_file_watcher(_ENV["!config_mod_folder_path"], function (file_name)
+	// 		log.info(file_name)
 	// end)
 	// ```
 	void add_file_watcher(std::string directory, sol::protected_function callback, sol::this_environment env)
@@ -283,11 +283,10 @@ namespace lua::path
 							    auto modified_files = watcher.check();
 							    for (const auto& file_path : modified_files)
 							    {
-								    const auto it = mdl->m_data.m_file_watchers.at(directory);
-								    for (const auto& cb : it)
-								    {
-									    cb(file_path.string());
-								    }
+								    std::lock_guard<std::mutex> lock(big::g_lua_manager->m_to_do_file_callback_lock);
+								    std::string file_name = file_path.string().substr(directory.size() + 1);
+
+								    big::g_lua_manager->m_to_do_file_callback_queue.push(std::make_tuple(mdl, directory, file_name));
 							    }
 						    }
 					    }
