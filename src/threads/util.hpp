@@ -9,6 +9,8 @@ namespace big::threads
 {
 	extern bool are_suspended;
 
+	extern PVOID get_thread_start_address(HANDLE hThread);
+
 	extern void resume_all(DWORD target_process_id = GetCurrentProcessId(), DWORD thread_id_to_not_suspend = GetCurrentThreadId());
 
 	extern void suspend_all_but_one(DWORD target_process_id = GetCurrentProcessId(), DWORD thread_id_to_not_suspend = GetCurrentThreadId());
