@@ -282,7 +282,6 @@ namespace big
 			if (mod)
 			{
 				mod->m_error_count++;
-				LOG(INFO) << "incremented error";
 			}
 		}
 
