@@ -360,16 +360,13 @@ namespace big
 		// Table: mods
 		// Name: loading_order
 		// Returns: table<int, string>: Table containing the order in which mods are loaded by the mod loader.
-		mods["loading_order"] = sol::property(
-		    []() -> sol::table
-		    {
-			    sol::table t = g_lua_manager->m_state.create_table();
-			    for (size_t i = 0; i < g_lua_manager->m_modules_loading_order.size(); i++)
-			    {
-				    t[i + 1] = g_lua_manager->m_modules_loading_order[i];
-			    }
-			    return t;
-		    });
+
+		// TODO: This is not normal!!!
+#ifdef LUA_USE_LUAJIT
+		mods["loading_order"] = sol::as_table(std::ref(g_lua_manager->m_modules_loading_order));
+#else
+		mods["loading_order"] = std::ref(g_lua_manager->m_modules_loading_order);
+#endif
 
 		// Lua API: Function
 		// Table: mods
