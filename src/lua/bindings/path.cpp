@@ -283,11 +283,10 @@ namespace lua::path
 							    auto modified_files = watcher.check();
 							    for (const auto& file_path : modified_files)
 							    {
-								    const auto it = mdl->m_data.m_file_watchers.at(directory);
-								    for (const auto& cb : it)
-								    {
-									    cb(file_path.string());
-								    }
+								    std::lock_guard<std::mutex> lock(big::g_lua_manager->m_to_do_file_callback_lock);
+								    std::string file_name = file_path.string().substr(directory.size() + 1);
+
+								    big::g_lua_manager->m_to_do_file_callback_queue.push(std::make_tuple(mdl, directory, file_name));
 							    }
 						    }
 					    }
