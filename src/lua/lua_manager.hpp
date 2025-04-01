@@ -30,7 +30,11 @@ namespace big
 		std::queue<lua_module*> m_to_reload_queue;
 		std::unordered_set<std::string> m_to_reload_duplicate_checker;
 		std::unordered_set<std::wstring> m_to_reload_duplicate_checker_2;
-
+	
+	public:
+		std::mutex m_to_do_file_callback_lock;
+		std::queue<std::tuple<lua_module*, std::string, std::string>> m_to_do_file_callback_queue;
+	
 	public:
 
 		std::recursive_mutex m_module_lock;
