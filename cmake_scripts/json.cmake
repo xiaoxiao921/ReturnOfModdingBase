@@ -4,8 +4,8 @@ set(JSON_MultipleHeaders OFF)
 
 FetchContent_Declare(
     json
-    GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git
-    GIT_TAG        67e6070f9d9a44b4dec79ebe6b591f39d2285593
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        9f40a7b454befb6e836b493b41df9e64c7a6fd63
     GIT_PROGRESS TRUE
 )
 message("json")
