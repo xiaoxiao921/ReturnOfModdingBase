@@ -31,6 +31,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 #include <lua/bindings/toml/utilities/utilities.hpp>
 #include <optional>
 #include <string>
+#include <filesystem>
+#include <chrono>
 #include <toml.hpp>
 
 template<class T>
@@ -176,6 +178,12 @@ extern "C"
 			{
 				return luaL_error(L, (std::string("The file \"") + filePath + "\" cannot be opened for writing.").c_str());
 			}
+			
+			std::filesystem::path filePathPath(filePath);
+			std::filesystem::file_time_type ftime = std::filesystem::last_write_time(filePathPath);
+			auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(ftime);
+			std::time_t timestamp = std::chrono::system_clock::to_time_t(systemTime);
+			return sol::stack::push(state.lua_state(), timestamp);
 		}
 		else
 		{

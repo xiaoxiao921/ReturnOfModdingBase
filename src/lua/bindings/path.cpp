@@ -286,7 +286,10 @@ namespace lua::path
 								    std::lock_guard<std::mutex> lock(big::g_lua_manager->m_to_do_file_callback_lock);
 								    std::string file_name = file_path.string().substr(directory.size() + 1);
 
-								    big::g_lua_manager->m_to_do_file_callback_queue.push(std::make_tuple(mdl, directory, file_name));
+								    std::filesystem::file_time_type ftime = std::filesystem::last_write_time(file_path);
+								    auto systemTime       = std::chrono::clock_cast<std::chrono::system_clock>(ftime);
+								    std::time_t timestamp = std::chrono::system_clock::to_time_t(systemTime);
+								    big::g_lua_manager->m_to_do_file_callback_queue.push(std::make_tuple(mdl, directory, file_name, timestamp));
 							    }
 						    }
 					    }
