@@ -233,7 +233,7 @@ namespace big
 			{
 				std::scoped_lock l(m_module_lock);
 				
-				auto [mdl, directory, file_name] = m_to_do_file_callback_queue.front();
+				auto [mdl, directory, file_name, timestamp] = m_to_do_file_callback_queue.front();
 
 				std::shared_lock lock(mdl->m_file_watcher_mutex);
 
@@ -242,7 +242,7 @@ namespace big
 				{
 					for (const auto& cb : callbacks->second)
 					{
-						cb(file_name);
+						cb(file_name, timestamp);
 					}
 				}
 
