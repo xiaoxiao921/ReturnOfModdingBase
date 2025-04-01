@@ -7,6 +7,7 @@
 #include "rom/rom.hpp"
 
 #include <sstream>
+#include <string/string_conversions.hpp>
 #undef ERROR
 
 namespace big
@@ -81,7 +82,7 @@ namespace big
 				EnableMenuItem(GetSystemMenu(GetConsoleWindow(), 0), SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
 			}
 		}
-		create_backup();
+		handle_backups();
 		open_outstreams();
 
 		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the console.");
@@ -127,22 +128,86 @@ namespace big
 		}
 	}
 
-	void logger::create_backup()
+	void logger::handle_backups()
 	{
-		if (m_file.exists())
+		try
 		{
-			auto file_time  = std::filesystem::last_write_time(m_file.get_path());
-			auto time_t     = to_time_t(file_time);
-			auto local_time = std::localtime(&time_t);
+			std::vector<std::pair<std::wstring, uintmax_t>> files;
+			uintmax_t total_size = 0;
 
-			m_file.move(std::format("./backup/{:0>2}-{:0>2}-{}-{:0>2}-{:0>2}-{:0>2}_{}",
-			                        local_time->tm_mon + 1,
-			                        local_time->tm_mday,
-			                        local_time->tm_year + 1900,
-			                        local_time->tm_hour,
-			                        local_time->tm_min,
-			                        local_time->tm_sec,
-			                        m_file.get_path().filename().string().c_str()));
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_file.get_path().parent_path() / "backup", std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
+			{
+				if (entry.is_regular_file() && entry.path().extension() == ".log")
+				{
+					uintmax_t file_size  = entry.file_size();
+					total_size          += file_size;
+					files.emplace_back(entry.path().wstring(), file_size);
+				}
+			}
+
+			constexpr auto MB_100 = 100 * 1024 * 1024;
+			constexpr auto MB_50  = 50 * 1024 * 1024;
+			if (total_size > MB_100)
+			{
+				LOG(WARNING) << "Deleting backup file until folder is under 50MB.";
+
+				// Sort files by size in descending order
+				std::sort(files.begin(),
+				          files.end(),
+				          [](const auto& a, const auto& b)
+				          {
+					          return a.second > b.second;
+				          });
+
+				// Delete largest files until size is under 50MB
+				for (const auto& file : files)
+				{
+					if (total_size <= MB_50)
+					{
+						break;
+					}
+					if (std::filesystem::remove(file.first))
+					{
+						LOG(WARNING) << "Deleting backup file " << big::string_conversions::utf16_to_utf8(file.first);
+						total_size -= file.second;
+					}
+				}
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LOG(WARNING) << "Exception while handling backups: " << e.what();
+		}
+		catch (...)
+		{
+			LOG(WARNING) << "Unknown exception while handling backups.";
+		}
+
+		try
+		{
+			if (m_file.exists())
+			{
+				auto file_time  = std::filesystem::last_write_time(m_file.get_path());
+				auto time_t     = to_time_t(file_time);
+				auto local_time = std::localtime(&time_t);
+
+				m_file.move(std::format("./backup/{:0>2}-{:0>2}-{}-{:0>2}-{:0>2}-{:0>2}_{}",
+				                        local_time->tm_mon + 1,
+				                        local_time->tm_mday,
+				                        local_time->tm_year + 1900,
+				                        local_time->tm_hour,
+				                        local_time->tm_min,
+				                        local_time->tm_sec,
+				                        m_file.get_path().filename().string().c_str()));
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LOG(WARNING) << "Exception while creating backup " << e.what();
+		}
+		catch (...)
+		{
+			LOG(WARNING) << "Unknown exception while creating backup.";
 		}
 	}
 
@@ -193,6 +258,8 @@ namespace big
 
 	static std::string get_local_timestamp(const std::chrono::system_clock::time_point& timestamp)
 	{
+		// TODO: This function is a bit sus, might get away with using to_time_t(TP tp) and what handle_backups is doing?
+
 		using namespace std::chrono;
 
 		auto time_t_timestamp = system_clock::to_time_t(timestamp);

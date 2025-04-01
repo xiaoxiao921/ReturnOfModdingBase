@@ -44,7 +44,7 @@ namespace big
 		void refresh_log_filter_values_from_config();
 
 	private:
-		void create_backup();
+		void handle_backups();
 
 		void open_outstreams();
 		void close_outstreams();
