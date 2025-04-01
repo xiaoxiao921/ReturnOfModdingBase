@@ -364,6 +364,7 @@ namespace big
 		// Returns: table<int, string>: Table containing the order in which mods are loaded by the mod loader.
 
 		// TODO: This is not normal!!!
+		// Using as_table seems to be broken for some reason when not under luajit???
 #ifdef LUA_USE_LUAJIT
 		mods["loading_order"] = sol::as_table(std::ref(g_lua_manager->m_modules_loading_order));
 #else

@@ -75,12 +75,21 @@ namespace lua::path
 		return "";
 	}
 
+	// TODO: This is not normal!!!
+	// Using as_table seems to be broken for some reason when not under luajit???
+	// seems to impact performance for these two
+#ifdef LUA_USE_LUAJIT
+	using get_directories_and_files_ret_type = sol::as_table_t<std::vector<std::string>>;
+#else
+	using get_directories_and_files_ret_type = std::vector<std::string>;
+#endif
+
 	// Lua API: Function
 	// Table: path
 	// Name: get_directories
 	// Param: root_path: string: The path to the directory to search.
 	// Returns: string table: Returns the names of subdirectories under the given root_path
-	static sol::as_table_t<std::vector<std::string>> get_directories(const std::string& root_path)
+	static get_directories_and_files_ret_type get_directories(const std::string& root_path)
 	{
 		std::vector<std::string> res;
 
@@ -109,7 +118,7 @@ namespace lua::path
 	// Name: get_files
 	// Param: root_path: string: The path to the directory to search.
 	// Returns: string table: Returns the names of all the files under the given root_path
-	static sol::as_table_t<std::vector<std::string>> get_files(const std::string& root_path)
+	static get_directories_and_files_ret_type get_files(const std::string& root_path)
 	{
 		std::vector<std::string> res;
 
