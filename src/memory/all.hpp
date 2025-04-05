@@ -6,4 +6,5 @@
 #include "module.hpp"
 #include "pattern.hpp"
 #include "range.hpp"
+#include "rw.hpp"
 #include "signature.hpp"
