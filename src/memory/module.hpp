@@ -42,7 +42,7 @@ namespace memory
 
 	public:
 		template<class F>
-		bool for_each_imports(HMODULE module, const char* dll_name, const F& f)
+		static inline bool for_each_imports(HMODULE module, const char* dll_name, const F& f)
 		{
 			if (module == 0)
 			{
