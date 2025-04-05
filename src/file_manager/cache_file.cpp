@@ -20,7 +20,7 @@ namespace big
 	{
 	}
 
-	void cache_file::free()
+	void cache_file::free_data()
 	{
 		m_data.reset();
 	}

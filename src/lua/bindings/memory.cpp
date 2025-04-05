@@ -137,7 +137,7 @@ namespace lua::memory
 	// Table: memory
 	// Name: free
 	// Param: ptr: pointer: The pointer that must be freed.
-	static void free(pointer ptr, sol::this_environment env)
+	static void lua_memory_free(pointer ptr, sol::this_environment env)
 	{
 		delete[] (void*)ptr.get_address();
 		big::lua_module* module = big::lua_module::this_from(env);
@@ -894,7 +894,7 @@ namespace lua::memory
 
 		ns["scan_pattern"] = scan_pattern;
 		ns["allocate"]     = allocate;
-		ns["free"]         = free;
+		ns["free"]         = lua_memory_free;
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
 		ns["dynamic_hook"]            = sol::overload(dynamic_hook, dynamic_hook_table_overload);
