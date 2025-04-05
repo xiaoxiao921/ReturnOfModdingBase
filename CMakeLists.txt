@@ -12,6 +12,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 message("\nFetching modules")
 include(cmake_scripts/async-logger.cmake)
 include(cmake_scripts/cpp-semver.cmake)
+include(cmake_scripts/hashmap.cmake)
 include(cmake_scripts/imgui.cmake)
 include(cmake_scripts/json.cmake)
 include(cmake_scripts/lua.cmake)
@@ -63,7 +64,7 @@ else()
 
     target_link_libraries(ReturnOfModdingBase PUBLIC lua_static)
 endif()
-target_link_libraries(ReturnOfModdingBase PUBLIC pugixml AsyncLogger dbghelp imgui sol2 tomlplusplus::tomlplusplus magic_enum PolyHook_2)
+target_link_libraries(ReturnOfModdingBase PUBLIC unordered_dense::unordered_dense pugixml AsyncLogger dbghelp imgui sol2 tomlplusplus::tomlplusplus magic_enum PolyHook_2)
 
 # Warnings as errors
 set_property(TARGET ReturnOfModdingBase PROPERTY COMPILE_WARNING_AS_ERROR ON)
