@@ -32,7 +32,7 @@ namespace big
 		/// <summary>
 		/// Frees any memory used to hold the cached data.
 		/// </summary>
-		void free();
+		void free_data();
 
 		/// <summary>
 		/// Attempts to load the cache from disk
