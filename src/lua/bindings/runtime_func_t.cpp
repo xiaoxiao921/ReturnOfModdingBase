@@ -3,6 +3,8 @@
 
 #include "lua/lua_manager.hpp"
 
+#include <ankerl/unordered_dense.h>
+
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
@@ -366,7 +368,7 @@ namespace lua::memory
 		cc.sub(asmjit::x86::rsp, stack_size);
 
 		// save capture registers to save change
-		std::unordered_map<uint8_t, asmjit::x86::Gp> cap_Gps;
+		ankerl::unordered_dense::map<uint8_t, asmjit::x86::Gp> cap_Gps;
 		std::vector<asmjit::x86::Mem> target_address_cache(param_types.size(), asmjit::x86::Mem());
 
 		// capture registers to the stack

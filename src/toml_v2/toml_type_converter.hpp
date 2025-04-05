@@ -1,4 +1,5 @@
 #pragma once
+#include <ankerl/unordered_dense.h>s
 #include <any>
 #include <charconv>
 #include <map>
@@ -22,12 +23,12 @@ namespace toml_v2
 				        }
 				        else
 				        {
-					        return g(std::any_cast<T const&>(a));
+					        return g(std::any_cast<const T&>(a));
 				        }
 			        }};
 		}
 
-		static inline std::unordered_map<std::type_index, std::function<std::string(const std::any&)>> any_visitor_ser{
+		static inline ankerl::unordered_dense::map<std::type_index, std::function<std::string(const std::any&)>> any_visitor_ser{
 		    to_any_visitor_ser<const char*>(
 		        [](const char* x) -> std::string
 		        {
@@ -144,7 +145,7 @@ namespace toml_v2
 			        }};
 		}
 
-		static inline std::unordered_map<std::type_index, std::function<std::any(const std::string&)>> any_visitor_deser{
+		static inline ankerl::unordered_dense::map<std::type_index, std::function<std::any(const std::string&)>> any_visitor_deser{
 		    to_any_visitor_deser<std::string>(
 		        [](const std::string& x) -> std::any
 		        {

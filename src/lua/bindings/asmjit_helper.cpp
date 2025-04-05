@@ -1,8 +1,8 @@
 #pragma once
 #include "asmjit_helper.hpp"
 
+#include <ankerl/unordered_dense.h>
 #include <charconv>
-#include <unordered_map>
 
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
@@ -121,7 +121,7 @@ namespace lua::memory
 	std::optional<asmjit::x86::Gp> get_gp_from_name(const std::string& name)
 	{
 		// clang-format off
-		static const std::unordered_map<std::string, asmjit::x86::Gp> reg_map =
+		static const ankerl::unordered_dense::map<std::string, asmjit::x86::Gp> reg_map =
 		{
 			// 64-bit registers
 			{"rax", asmjit::x86::rax}, // RAX: 64-bit
@@ -215,7 +215,7 @@ namespace lua::memory
 	std::optional<asmjit::x86::Xmm> get_xmm_from_name(const std::string& name)
 	{
 		// clang-format off
-		static const std::unordered_map<std::string, asmjit::x86::Xmm> reg_map =
+		static const ankerl::unordered_dense::map<std::string, asmjit::x86::Xmm> reg_map =
 		{
 			{"xmm0", asmjit::x86::xmm0},   {"xmm1", asmjit::x86::xmm1},   {"xmm2", asmjit::x86::xmm2},
 			{"xmm3", asmjit::x86::xmm3},   {"xmm4", asmjit::x86::xmm4},   {"xmm5", asmjit::x86::xmm5},

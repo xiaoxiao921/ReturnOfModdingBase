@@ -71,7 +71,7 @@ void toml_v2::config_file::save()
 		allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = nullptr, .m_value = v});
 	}
 
-	std::unordered_set<std::string> already_written_section_headers;
+	ankerl::unordered_dense::set<std::string> already_written_section_headers;
 	for (const auto& [k, v] : allConfigEntries)
 	{
 		if (!already_written_section_headers.contains(k.m_section))

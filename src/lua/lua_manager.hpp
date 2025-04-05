@@ -5,12 +5,13 @@
 #include "module_info.hpp"
 #include "rom/rom.hpp"
 
+#include <ankerl/unordered_dense.h>
 #include <file_manager/folder.hpp>
 #include <lua/bindings/imgui_window.hpp>
 #include <mutex>
 #include <stack>
 #include <thunderstore/v1/manifest.hpp>
-#include <unordered_set>
+
 
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
@@ -28,13 +29,13 @@ namespace big
 	private:
 		std::recursive_mutex m_to_reload_lock;
 		std::queue<lua_module*> m_to_reload_queue;
-		std::unordered_set<std::string> m_to_reload_duplicate_checker;
-		std::unordered_set<std::wstring> m_to_reload_duplicate_checker_2;
-	
+		ankerl::unordered_dense::set<std::string> m_to_reload_duplicate_checker;
+		ankerl::unordered_dense::set<std::wstring> m_to_reload_duplicate_checker_2;
+
 	public:
 		std::mutex m_to_do_file_callback_lock;
 		std::queue<std::tuple<lua_module*, std::string, std::string, std::time_t>> m_to_do_file_callback_queue;
-	
+
 	public:
 
 		std::recursive_mutex m_module_lock;
@@ -47,7 +48,7 @@ namespace big
 		folder m_plugins_folder;
 
 		// non owning map
-		std::unordered_map<uintptr_t, lua::memory::runtime_func_t*> m_target_func_ptr_to_dynamic_hook;
+		ankerl::unordered_dense::map<uintptr_t, lua::memory::runtime_func_t*> m_target_func_ptr_to_dynamic_hook;
 
 	public:
 		using on_lua_state_init_t  = std::function<void(sol::state_view&, sol::table&)>;
@@ -140,7 +141,7 @@ namespace big
 		lua_module* get_fallback_module();
 
 	private:
-		inline bool topological_sort_visit(const std::string& node, std::stack<std::string>& stack, std::vector<std::string>& sorted_list, const std::function<std::vector<std::string>(const std::string&)>& dependency_selector, std::unordered_set<std::string>& visited, std::unordered_set<std::string>& sorted)
+		inline bool topological_sort_visit(const std::string& node, std::stack<std::string>& stack, std::vector<std::string>& sorted_list, const std::function<std::vector<std::string>(const std::string&)>& dependency_selector, ankerl::unordered_dense::set<std::string>& visited, ankerl::unordered_dense::set<std::string>& sorted)
 		{
 			if (visited.contains(node))
 			{
@@ -174,8 +175,8 @@ namespace big
 		{
 			std::vector<std::string> sorted_list;
 
-			std::unordered_set<std::string> visited;
-			std::unordered_set<std::string> sorted;
+			ankerl::unordered_dense::set<std::string> visited;
+			ankerl::unordered_dense::set<std::string> sorted;
 
 			for (const auto& input : nodes)
 			{
@@ -259,7 +260,7 @@ namespace big
 				LOG(DEBUG) << guid;
 			}*/
 
-			std::unordered_set<std::string> missing_modules;
+			ankerl::unordered_dense::set<std::string> missing_modules;
 			for (const auto& guid : sorted_modules)
 			{
 				const auto mod_loader_name = rom::g_project_name + "-" + rom::g_project_name;

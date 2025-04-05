@@ -105,7 +105,7 @@ namespace big
 			ULONG_PTR key             = 0;
 			LPOVERLAPPED lpOverlapped = nullptr;
 
-			std::unordered_set<std::wstring> current_modifications;
+			ankerl::unordered_dense::set<std::wstring> current_modifications;
 
 			BOOL result = GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 0);
 			if (!result)

@@ -4,6 +4,8 @@
 #include "rom/rom.hpp"
 #include "toml.hpp"
 
+#include <ankerl/unordered_dense.h>
+
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
@@ -12,7 +14,7 @@ using namespace al;
 namespace lua::window
 {
 	// mod guid -> window name -> is the window open
-	inline std::unordered_map<std::string, std::unordered_map<std::string, bool>> is_open;
+	inline ankerl::unordered_dense::map<std::string, ankerl::unordered_dense::map<std::string, bool>> is_open;
 
 	inline void serialize()
 	{

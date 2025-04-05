@@ -3,13 +3,13 @@
 
 #include "memory/module.hpp"
 
-#include <unordered_set>
+#include <ankerl/unordered_dense.h>
 
 namespace big::threads
 {
 	bool are_suspended = false;
 
-	static std::unordered_set<DWORD> g_ntdll_threads;
+	static ankerl::unordered_dense::set<DWORD> g_ntdll_threads;
 
 	PVOID get_thread_start_address(HANDLE hThread)
 	{

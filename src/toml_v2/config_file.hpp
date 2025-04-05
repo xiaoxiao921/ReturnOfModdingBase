@@ -3,6 +3,7 @@
 #include "config_description.hpp"
 #include "toml_type_converter.hpp"
 
+#include <ankerl/unordered_dense.h>
 #include <any>
 #include <filesystem>
 #include <fstream>
@@ -10,7 +11,6 @@
 #include <string/string.hpp>
 #include <string>
 #include <typeindex>
-#include <unordered_set>
 
 namespace toml_v2
 {

@@ -1,8 +1,8 @@
 #pragma once
 
+#include <ankerl/unordered_dense.h>
 #include <filesystem>
 #include <toml.hpp>
-#include <unordered_map>
 
 namespace big
 {
@@ -22,7 +22,7 @@ namespace big
 		const uint8_t get_vk_value() const;
 		void set_vk_value(uint8_t new_vk);
 
-		static inline std::unordered_map<std::string, hotkey*> hotkeys;
+		static inline ankerl::unordered_dense::map<std::string, hotkey*> hotkeys;
 		static inline std::filesystem::path m_file_path;
 		static inline toml::table m_table;
 		static inline toml::table m_last_saved_table;

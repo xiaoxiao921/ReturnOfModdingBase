@@ -1,10 +1,10 @@
 #include "type_info_t.hpp"
 
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 namespace lua::memory
 {
-	static std::unordered_map<std::string, type_info_t> string_to_type_info_id;
+	static ankerl::unordered_dense::map<std::string, type_info_t> string_to_type_info_id;
 
 	type_info_t get_type_info_from_string(const std::string& s)
 	{

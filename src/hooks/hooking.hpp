@@ -5,6 +5,8 @@
 #include "vmt_hook.hpp"
 #include "vtable_hook.hpp"
 
+#include <ankerl/unordered_dense.h>
+
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
@@ -35,7 +37,7 @@ namespace big
 			void enable_now();
 			void enable_hook_if_hooking_is_already_running();
 
-			static inline std::unordered_map<void*, detour_hook> m_target_func_to_detour_hook;
+			static inline ankerl::unordered_dense::map<void*, detour_hook> m_target_func_to_detour_hook;
 
 			template<auto detour_function>
 			struct hook_to_detour_hook_helper
