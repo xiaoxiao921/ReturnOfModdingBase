@@ -106,13 +106,59 @@ namespace lua::memory
 
 	// Lua API: Function
 	// Table: memory
+	// Name: get_module_base_address
+	// Param: module_name (optional): string: The name of the module for which the base address is to be retrieved. Example: "ntdll.dll". If not provided, the API resolves this to the current targeted main module name automatically.
+	// Returns: pointer: A pointer to the found address.
+	// Returns the base address of a specified module within the current process. Returns a pointer:is_null() == true pointer otherwise.
+	static pointer get_module_base_address_module_name(const std::string& module_name)
+	{
+		const auto mod = ::memory::module(module_name);
+		if (!mod.loaded())
+		{
+			return pointer(0);
+		}
+
+		return pointer(mod.begin().as<uintptr_t>());
+	}
+
+	static pointer get_module_base_address()
+	{
+		return get_module_base_address_module_name(rom::g_target_module_name);
+	}
+
+	// Lua API: Function
+	// Table: memory
+	// Name: scan_pattern_from_module
+	// Param: module_name: string: module name. Example: "ntdll.dll"
+	// Param: pattern: string: byte pattern (IDA format)
+	// Returns: pointer: A pointer to the found address.
+	// Scans the specified memory pattern within the target main module and returns a pointer to the found address. Returns a pointer:is_null() == true pointer otherwise.
+	static pointer scan_pattern_from_module(const std::string& module_name, const std::string& pattern)
+	{
+		const auto mod = ::memory::module(module_name);
+		if (!mod.loaded())
+		{
+			return pointer(0);
+		}
+
+		const auto pattern_result = mod.scan(::memory::pattern(pattern));
+		if (!pattern_result.has_value())
+		{
+			return pointer(0);
+		}
+
+		return pointer(pattern_result.value().as<uintptr_t>());
+	}
+
+	// Lua API: Function
+	// Table: memory
 	// Name: scan_pattern
 	// Param: pattern: string: byte pattern (IDA format)
 	// Returns: pointer: A pointer to the found address.
-	// Scans the specified memory pattern within the target main module and returns a pointer to the found address.
+	// Scans the specified memory pattern within the target main module and returns a pointer to the found address. Returns a pointer:is_null() == true pointer otherwise.
 	static pointer scan_pattern(const std::string& pattern)
 	{
-		return pointer(::memory::module(rom::g_target_module_name).scan(::memory::pattern(pattern)).value().as<uintptr_t>());
+		return scan_pattern_from_module(rom::g_target_module_name, pattern);
 	}
 
 	// Lua API: Function
@@ -862,39 +908,47 @@ namespace lua::memory
 	{
 		auto ns = state.create_named("memory");
 
-		auto pointer_ut           = ns.new_usertype<pointer>("pointer", sol::constructors<pointer(uintptr_t)>());
-		pointer_ut["add"]         = &pointer::add;
-		pointer_ut["sub"]         = &pointer::sub;
-		pointer_ut["rip"]         = &pointer::rip;
-		pointer_ut["rip_cmp"]     = &pointer::rip_cmp;
-		pointer_ut["get_byte"]    = &pointer::get<uint8_t>;
-		pointer_ut["get_word"]    = &pointer::get<uint16_t>;
-		pointer_ut["get_dword"]   = &pointer::get<uint32_t>;
-		pointer_ut["get_qword"]   = &pointer::get<uint64_t>;
-		pointer_ut["get_float"]   = &pointer::get<float>;
-		pointer_ut["get_string"]  = &pointer::get_string;
-		pointer_ut["set_byte"]    = &pointer::set<uint8_t>;
-		pointer_ut["set_word"]    = &pointer::set<uint16_t>;
-		pointer_ut["set_dword"]   = &pointer::set<uint32_t>;
-		pointer_ut["set_qword"]   = &pointer::set<uint64_t>;
-		pointer_ut["set_float"]   = &pointer::set<float>;
-		pointer_ut["set_string"]  = &pointer::set_string;
-		pointer_ut["patch_byte"]  = &pointer::patch<uint8_t>;
-		pointer_ut["patch_word"]  = &pointer::patch<uint16_t>;
-		pointer_ut["patch_dword"] = &pointer::patch<uint32_t>;
-		pointer_ut["patch_qword"] = &pointer::patch<uint64_t>;
-		pointer_ut["is_null"]     = &pointer::is_null;
-		pointer_ut["is_valid"]    = &pointer::is_valid;
-		pointer_ut["deref"]       = &pointer::deref;
-		pointer_ut["get_address"] = &pointer::get_address;
+		auto pointer_ut            = ns.new_usertype<pointer>("pointer", sol::constructors<pointer(uintptr_t)>());
+		pointer_ut["add"]          = &pointer::add;
+		pointer_ut["sub"]          = &pointer::sub;
+		pointer_ut["rip"]          = &pointer::rip;
+		pointer_ut["rip_cmp"]      = &pointer::rip_cmp;
+		pointer_ut["get_byte"]     = &pointer::get<uint8_t>;
+		pointer_ut["get_word"]     = &pointer::get<uint16_t>;
+		pointer_ut["get_dword"]    = &pointer::get<uint32_t>;
+		pointer_ut["get_qword"]    = &pointer::get<uint64_t>;
+		pointer_ut["get_float"]    = &pointer::get<float>;
+		pointer_ut["get_double"]   = &pointer::get<double>;
+		pointer_ut["get_string"]   = &pointer::get_string;
+		pointer_ut["set_byte"]     = &pointer::set<uint8_t>;
+		pointer_ut["set_word"]     = &pointer::set<uint16_t>;
+		pointer_ut["set_dword"]    = &pointer::set<uint32_t>;
+		pointer_ut["set_qword"]    = &pointer::set<uint64_t>;
+		pointer_ut["set_float"]    = &pointer::set<float>;
+		pointer_ut["set_double"]   = &pointer::set<double>;
+		pointer_ut["set_string"]   = &pointer::set_string;
+		pointer_ut["patch_byte"]   = &pointer::patch<uint8_t>;
+		pointer_ut["patch_word"]   = &pointer::patch<uint16_t>;
+		pointer_ut["patch_dword"]  = &pointer::patch<uint32_t>;
+		pointer_ut["patch_qword"]  = &pointer::patch<uint64_t>;
+		pointer_ut["patch_float"]  = &pointer::patch<float>;
+		pointer_ut["patch_double"] = &pointer::patch<double>;
+		pointer_ut["is_null"]      = &pointer::is_null;
+		pointer_ut["is_valid"]     = &pointer::is_valid;
+		pointer_ut["deref"]        = &pointer::deref;
+		pointer_ut["get_address"]  = &pointer::get_address;
 
 		auto patch_ut       = ns.new_usertype<big::lua_patch>("patch", sol::no_constructor);
 		patch_ut["apply"]   = &big::lua_patch::apply;
 		patch_ut["restore"] = &big::lua_patch::restore;
 
-		ns["scan_pattern"] = scan_pattern;
-		ns["allocate"]     = allocate;
-		ns["free"]         = lua_memory_free;
+		ns["get_module_base_address"] = sol::overload(get_module_base_address, get_module_base_address_module_name);
+
+		ns["scan_pattern_from_module"] = scan_pattern_from_module;
+		ns["scan_pattern"]             = scan_pattern;
+
+		ns["allocate"] = allocate;
+		ns["free"]     = lua_memory_free;
 
 		ns.new_usertype<value_wrapper_t>("value_wrapper", "get", &value_wrapper_t::get, "set", &value_wrapper_t::set);
 		ns["dynamic_hook"]            = sol::overload(dynamic_hook, dynamic_hook_table_overload);

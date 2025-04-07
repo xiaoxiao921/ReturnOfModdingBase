@@ -76,7 +76,13 @@ namespace lua::memory
 		// Lua API: Function
 		// Class: pointer
 		// Name: get_float
-		// Returns: float: the value stored at the memory address as the specified type.
+		// Returns: number: the value stored at the memory address as the specified type.
+		// Retrieves the value stored at the memory address as the specified type.
+
+		// Lua API: Function
+		// Class: pointer
+		// Name: get_double
+		// Returns: number: the value stored at the memory address as the specified type.
 		// Retrieves the value stored at the memory address as the specified type.
 
 		// Lua API: Function
@@ -112,6 +118,12 @@ namespace lua::memory
 		// Lua API: Function
 		// Class: pointer
 		// Name: set_float
+		// Param: value: number: new value.
+		// Sets the value at the memory address to the specified value of the given type.
+
+		// Lua API: Function
+		// Class: pointer
+		// Name: set_double
 		// Param: value: number: new value.
 		// Sets the value at the memory address to the specified value of the given type.
 
@@ -171,6 +183,24 @@ namespace lua::memory
 		// Lua API: Function
 		// Class: pointer
 		// Name: patch_qword
+		// Param: value: number: new value.
+		// Returns: lua_patch: memory patch instance for modifying the value at the memory address with the specified value. Can call apply / restore on the object.
+		// Creates a memory patch for modifying the value at the memory address with the specified value.
+		// The modified value is applied when you call the apply function on the lua_patch object.
+		// The original value is restored when you call the restore function on the lua_patch object.
+
+		// Lua API: Function
+		// Class: pointer
+		// Name: patch_float
+		// Param: value: number: new value.
+		// Returns: lua_patch: memory patch instance for modifying the value at the memory address with the specified value. Can call apply / restore on the object.
+		// Creates a memory patch for modifying the value at the memory address with the specified value.
+		// The modified value is applied when you call the apply function on the lua_patch object.
+		// The original value is restored when you call the restore function on the lua_patch object.
+
+		// Lua API: Function
+		// Class: pointer
+		// Name: patch_double
 		// Param: value: number: new value.
 		// Returns: lua_patch: memory patch instance for modifying the value at the memory address with the specified value. Can call apply / restore on the object.
 		// Creates a memory patch for modifying the value at the memory address with the specified value.
