@@ -648,7 +648,7 @@ def parse_function_doc(cur_function, cur_table, cur_class, line, line_lower):
         parameter = make_parameter_from_doc_line(line)
         cur_function.parameters.append(parameter)
     elif (
-        is_lua_doc_comment_startswith(line_lower, "return")
+        is_lua_doc_comment_startswith(line_lower, "returns:")
         and lua_api_comment_separator in line_lower
     ):
         return_info = line.split(lua_api_comment_separator, 2)
