@@ -298,6 +298,23 @@ namespace lua::memory
 	// end})
 	// ```
 
+	static void ensure_jit_off_for_lua_callback(const sol::this_environment& env_, const sol::protected_function& func)
+	{
+#ifdef LUA_USE_LUAJIT
+		auto L = env_.env.value().lua_state();
+
+		func.push();
+
+		int mode = LUAJIT_MODE_OFF | LUAJIT_MODE_FUNC;
+		if (luaJIT_setmode(L, -1, mode) == 0)
+		{
+			LOG(ERROR) << "Failed to disable jit for dynamic hook lua callback";
+		}
+
+		lua_pop(L, 1);
+#endif
+	}
+
 	static uintptr_t dynamic_hook_table_overload(const std::string& hook_name, const std::string& return_type, sol::table param_types_table, lua::memory::pointer& target_func_ptr_obj, sol::table callbacks, sol::this_environment env_)
 	{
 		if (!target_func_ptr_obj.is_valid())
@@ -319,11 +336,15 @@ namespace lua::memory
 		sol::optional<sol::protected_function> post_lua_callback = callbacks[2];
 		if (pre_lua_callback.has_value())
 		{
+			ensure_jit_off_for_lua_callback(env_, pre_lua_callback.value());
+
 			module->m_data.m_dynamic_hook_pre_callbacks[target_func_ptr].push_back(pre_lua_callback.value());
 			need_hook = true;
 		}
 		if (post_lua_callback.has_value())
 		{
+			ensure_jit_off_for_lua_callback(env_, post_lua_callback.value());
+
 			module->m_data.m_dynamic_hook_post_callbacks[target_func_ptr].push_back(post_lua_callback.value());
 			need_hook = true;
 		}
