@@ -109,6 +109,10 @@ namespace toml_v2
 				{
 					stream_ << "# Setting type: string" << std::endl;
 				}
+				else if (type() == typeid(bool))
+				{
+					stream_ << "# Setting type: Boolean" << std::endl;
+				}
 				else
 				{
 					stream_ << "# Setting type: " << type().name() << std::endl;
@@ -116,7 +120,7 @@ namespace toml_v2
 
 				stream_ << "# Default value: " << toml_type_converter::convert_to_string(*m_default_value);
 
-				// todo acceptable values
+				// TODO: acceptable values
 			}
 		};
 
