@@ -132,10 +132,17 @@ namespace big
 	{
 		try
 		{
+			const auto backup_folder_path = m_file.get_path().parent_path() / "backup";
+
+			if (!std::filesystem::exists(backup_folder_path))
+			{
+				return;
+			}
+
 			std::vector<std::pair<std::wstring, uintmax_t>> files;
 			uintmax_t total_size = 0;
 
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_file.get_path().parent_path() / "backup", std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(backup_folder_path, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 			{
 				if (entry.is_regular_file() && entry.path().extension() == ".log")
 				{
