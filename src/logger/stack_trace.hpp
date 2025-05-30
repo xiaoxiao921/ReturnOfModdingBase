@@ -14,7 +14,7 @@ namespace big
 		virtual ~stack_trace();
 
 		const std::vector<uintptr_t>& frame_pointers();
-		void new_stack_trace(EXCEPTION_POINTERS* exception_info);
+		bool new_stack_trace(EXCEPTION_POINTERS* exception_info);
 		std::string str() const;
 
 		friend std::ostream& operator<<(std::ostream& os, const stack_trace& st);
@@ -42,7 +42,7 @@ namespace big
 		void dump_module_info();
 		void dump_registers();
 		void dump_stacktrace();
-		void dump_cpp_exception();
+		bool dump_cpp_exception();
 		void grab_stacktrace();
 		const module_info* get_module_by_address(uintptr_t addr) const;
 

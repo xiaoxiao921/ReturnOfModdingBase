@@ -26,7 +26,7 @@ namespace big
 		return m_frame_pointers;
 	}
 
-	void stack_trace::new_stack_trace(EXCEPTION_POINTERS* exception_info)
+	bool stack_trace::new_stack_trace(EXCEPTION_POINTERS* exception_info)
 	{
 		static std::mutex m;
 		std::scoped_lock lock(m);
@@ -38,9 +38,16 @@ namespace big
 		dump_module_info();
 		dump_registers();
 		dump_stacktrace();
-		dump_cpp_exception();
+		const auto should_be_silenced = dump_cpp_exception();
+		if (should_be_silenced)
+		{
+			m_dump = {};
+			return true;
+		}
 
 		m_dump << "\n--------End of exception--------\n";
+
+		return false;
 	}
 
 	std::string stack_trace::str() const
@@ -191,21 +198,40 @@ namespace big
 	// Raised by MSVC C++ Exceptions
 	constexpr DWORD msvc_exception_code = 0xE0'6D'73'63;
 
-	void stack_trace::dump_cpp_exception()
+	[[nodiscard]] static const char* try_get_msvc_exception_what(_EXCEPTION_POINTERS* exp) noexcept
+	{
+		__try
+		{
+			return reinterpret_cast<std::exception*>(exp->ExceptionRecord->ExceptionInformation[1])->what();
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return nullptr;
+		}
+	}
+
+	bool stack_trace::dump_cpp_exception()
 	{
 		if (m_exception_info->ExceptionRecord->ExceptionCode == msvc_exception_code)
 		{
-			// TODO: This is disabled for now because it's not always a std::exeception in that array??
-			// Atleast this completly fail when a YY Code Error happens.
-			/*m_dump
-			    << "\n\nC++ Exception: "
-			    << reinterpret_cast<const std::exception*>(m_exception_info->ExceptionRecord->ExceptionInformation[1])->what() << '\n';*/
+			const auto msvc_exception_what = try_get_msvc_exception_what(m_exception_info);
+			if (msvc_exception_what)
+			{
+				m_dump << "\n\nC++ MSVC Exception: " << msvc_exception_what << '\n';
+			}
+			else
+			{
+				m_dump << "\n\nC++ MSVC Exception\n";
+			}
 		}
 		else if (m_exception_info->ExceptionRecord->ExceptionCode == SetThreadName_exception_code)
 		{
-			m_dump = {};
-			m_dump << "SetThreadName Exception raised\n";
+			LOG(INFO) << "SetThreadName Exception.";
+
+			return true;
 		}
+
+		return false;
 	}
 
 	void stack_trace::grab_stacktrace()
@@ -242,10 +268,7 @@ namespace big
 		return nullptr;
 	}
 
-#define MAP_PAIR_STRINGIFY(x) \
-	{                         \
-		x, #x                 \
-	}
+#define MAP_PAIR_STRINGIFY(x) {x, #x}
 	static const std::map<DWORD, std::string> exceptions = {MAP_PAIR_STRINGIFY(EXCEPTION_ACCESS_VIOLATION), MAP_PAIR_STRINGIFY(EXCEPTION_ARRAY_BOUNDS_EXCEEDED), MAP_PAIR_STRINGIFY(EXCEPTION_DATATYPE_MISALIGNMENT), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_DENORMAL_OPERAND), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_DIVIDE_BY_ZERO), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_INEXACT_RESULT), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_INEXACT_RESULT), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_INVALID_OPERATION), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_OVERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_STACK_CHECK), MAP_PAIR_STRINGIFY(EXCEPTION_FLT_UNDERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_ILLEGAL_INSTRUCTION), MAP_PAIR_STRINGIFY(EXCEPTION_IN_PAGE_ERROR), MAP_PAIR_STRINGIFY(EXCEPTION_INT_DIVIDE_BY_ZERO), MAP_PAIR_STRINGIFY(EXCEPTION_INT_OVERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_INVALID_DISPOSITION), MAP_PAIR_STRINGIFY(EXCEPTION_NONCONTINUABLE_EXCEPTION), MAP_PAIR_STRINGIFY(EXCEPTION_PRIV_INSTRUCTION), MAP_PAIR_STRINGIFY(EXCEPTION_STACK_OVERFLOW), MAP_PAIR_STRINGIFY(EXCEPTION_BREAKPOINT), MAP_PAIR_STRINGIFY(EXCEPTION_SINGLE_STEP)};
 
 	std::string stack_trace::exception_code_to_string(const DWORD code)

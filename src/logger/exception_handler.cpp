@@ -147,7 +147,10 @@ namespace big
 		static std::set<std::size_t> logged_exceptions;
 
 		stack_trace trace;
-		trace.new_stack_trace(exception_info);
+		if (trace.new_stack_trace(exception_info))
+		{
+			return EXCEPTION_CONTINUE_SEARCH;
+		}
 		const auto trace_hash = hash_stack_trace(trace.frame_pointers());
 		if (const auto it = logged_exceptions.find(trace_hash); it == logged_exceptions.end())
 		{
