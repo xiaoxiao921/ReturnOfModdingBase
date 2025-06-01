@@ -13,6 +13,12 @@
 #include <string>
 #include <typeindex>
 
+// clang-format off
+#include <AsyncLogger/Logger.hpp>
+using namespace al;
+// clang-format on
+#undef ERROR
+
 namespace toml_v2
 {
 	class config_file

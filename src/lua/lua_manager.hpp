@@ -12,12 +12,11 @@
 #include <stack>
 #include <thunderstore/v1/manifest.hpp>
 
-
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
 using namespace al;
-
 // clang-format on
+#undef ERROR
 
 namespace big
 {
