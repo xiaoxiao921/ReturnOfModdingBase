@@ -21,13 +21,13 @@ namespace toml_v2
 
 		config_definition(std::string_view section, std::string_view key)
 		{
-			CheckInvalidConfigChars(section, "section");
-			CheckInvalidConfigChars(key, "key");
+			check_invalid_config_chars(section, "section");
+			check_invalid_config_chars(key, "key");
 			m_key     = key;
 			m_section = section;
 		}
 
-		static inline void CheckInvalidConfigChars(std::string_view val, std::string_view name)
+		static inline void check_invalid_config_chars(std::string_view val, std::string_view name)
 		{
 			if (val.empty())
 			{

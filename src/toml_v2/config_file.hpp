@@ -7,6 +7,7 @@
 #include <any>
 #include <filesystem>
 #include <fstream>
+#include <gui/imgui_include.hpp>
 #include <map>
 #include <string/string.hpp>
 #include <string>
@@ -14,13 +15,13 @@
 
 namespace toml_v2
 {
-	class config_file
+	class config_file : public std::enable_shared_from_this<config_file>
 	{
 	public:
 		class config_entry_base
 		{
 		public:
-			config_file* m_config_file;
+			std::shared_ptr<config_file> m_config_file;
 			config_definition m_definition;
 			config_description m_description;
 
@@ -32,15 +33,15 @@ namespace toml_v2
 
 			std::function<void(config_entry_base*)> m_setting_changed;
 
-			config_entry_base(config_file* configFile, config_definition definition, const std::any& default_value, config_description description) :
+			config_entry_base(std::shared_ptr<config_file> config_file, config_definition definition, const std::any& default_value, config_description description) :
 			    m_definition(definition),
 			    m_description(description)
 			{
-				m_config_file   = configFile;
+				m_config_file   = config_file;
 				m_default_value = std::make_shared<std::any>(default_value);
 				m_boxed_value   = std::make_shared<std::any>(default_value);
 
-				configFile->m_on_setting_changed.push_back(
+				config_file->m_on_setting_changed.push_back(
 				    [this](config_entry_base* cfg_entry)
 				    {
 					    if (cfg_entry == this && m_setting_changed)
@@ -48,6 +49,10 @@ namespace toml_v2
 						    m_setting_changed(cfg_entry);
 					    }
 				    });
+			}
+
+			virtual ~config_entry_base()
+			{
 			}
 
 			auto& type()
@@ -72,7 +77,7 @@ namespace toml_v2
 				}
 
 				*m_boxed_value = new_value;
-				OnSettingChanged();
+				on_setting_changed();
 			}
 
 			std::string get_serialized_value()
@@ -88,11 +93,11 @@ namespace toml_v2
 					// TODO: clamp value if needed before assigning.
 
 					*m_boxed_value = *opt_res;
-					OnSettingChanged();
+					on_setting_changed();
 				}
 			}
 
-			void OnSettingChanged()
+			void on_setting_changed()
 			{
 				m_config_file->on_setting_changed(this);
 			}
@@ -128,7 +133,7 @@ namespace toml_v2
 		class config_entry : public config_entry_base
 		{
 		public:
-			config_entry(config_file* configFile, config_definition definition, ValueType default_value, config_description description) :
+			config_entry(std::shared_ptr<config_file> configFile, config_definition definition, ValueType default_value, config_description description) :
 			    config_entry_base(configFile, definition, std::any(default_value), description)
 			{
 			}
@@ -148,7 +153,7 @@ namespace toml_v2
 		class config_entry<const char*> : public config_entry_base
 		{
 		public:
-			config_entry(config_file* configFile, config_definition definition, const char* default_value, config_description description) :
+			config_entry(std::shared_ptr<config_file> configFile, config_definition definition, const char* default_value, config_description description) :
 			    config_entry_base(configFile, definition, std::any(std::string(default_value)), description)
 			{
 			}
@@ -175,15 +180,44 @@ namespace toml_v2
 		std::map<config_definition, std::string> m_orphaned_entries;
 
 		std::filesystem::path m_config_file_path;
+		std::string m_config_file_path_as_str;
 
 		bool m_save_on_config_set = true;
 
 		std::vector<std::function<void()>> m_on_config_reloaded;
 		std::vector<std::function<void(config_entry_base*)>> m_on_setting_changed;
 
-		static inline std::vector<toml_v2::config_file*> g_config_files;
+		static inline std::vector<config_file*> g_config_files;
 
-		config_file(std::string_view config_path, bool save_on_init, std::string_view owner_guid);
+		config_file(std::string_view config_path, bool save_on_init, std::string_view owner_guid)
+		{
+			m_owner_guid = owner_guid;
+
+			if (config_path.empty())
+			{
+				LOG(ERROR) << "config_path cannot be empty";
+				return;
+			}
+
+			if (!config_path.ends_with(".cfg"))
+			{
+				LOGF(WARNING, "It's recommended to use `.cfg` as the file extension (Owner GUID: {}) (Current file path: {}). The mod manager will pick it up and make it show nicely inside the mod manager UI.", owner_guid, config_path);
+			}
+
+			m_config_file_path        = std::filesystem::absolute(config_path);
+			m_config_file_path_as_str = (char*)m_config_file_path.u8string().c_str();
+
+			if (std::filesystem::exists(m_config_file_path))
+			{
+				reload();
+			}
+			else if (save_on_init)
+			{
+				save();
+			}
+
+			g_config_files.push_back(this);
+		}
 
 		~config_file()
 		{
@@ -194,18 +228,18 @@ namespace toml_v2
 			              });
 		}
 
-		config_entry_base* try_get_entry(config_definition& key)
+		std::shared_ptr<config_entry_base> try_get_entry(config_definition& key)
 		{
 			const auto it_entry = m_entries.find(key);
 			if (it_entry != m_entries.end())
 			{
-				return it_entry->second.get();
+				return it_entry->second;
 			}
 
 			return nullptr;
 		}
 
-		config_entry_base* operator[](config_definition& key)
+		std::shared_ptr<config_entry_base> operator[](config_definition& key)
 		{
 			return try_get_entry(key);
 		}
@@ -226,7 +260,7 @@ namespace toml_v2
 			}
 		}
 
-		int count() const
+		size_t count() const
 		{
 			return m_entries.size();
 		}
@@ -298,19 +332,82 @@ namespace toml_v2
 			on_config_reloaded();
 		}
 
-		void save();
+		void save()
+		{
+			try
+			{
+				std::filesystem::create_directories(m_config_file_path.parent_path());
+			}
+			catch (const std::exception& e)
+			{
+				LOG(ERROR) << "Failed writing config file while trying to save: " << e.what();
+				return;
+			}
+
+			std::ofstream writer(m_config_file_path, std::ios::trunc);
+
+			if (!writer.is_open())
+			{
+				LOG(ERROR) << "Failed opening config file while trying to save";
+				return;
+			}
+
+			if (m_owner_guid.size())
+			{
+				writer << "## Settings file was created by plugin " << m_owner_guid << std::endl;
+			}
+
+			struct all_config_entry_t
+			{
+				config_definition m_key;
+				config_entry_base* m_entry;
+				std::string m_value;
+			};
+
+			std::map<config_definition, all_config_entry_t> allConfigEntries;
+			for (const auto& [k, v] : m_entries)
+			{
+				allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = v.get(), .m_value = v->get_serialized_value()});
+			}
+			for (const auto& [k, v] : m_orphaned_entries)
+			{
+				allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = nullptr, .m_value = v});
+			}
+
+			ankerl::unordered_dense::set<std::string> already_written_section_headers;
+			for (const auto& [k, v] : allConfigEntries)
+			{
+				if (!already_written_section_headers.contains(k.m_section))
+				{
+					writer << std::endl;
+					writer << std::format("[{}]", k.m_section) << std::endl;
+					already_written_section_headers.insert(k.m_section);
+				}
+
+				writer << std::endl;
+				if (v.m_entry)
+				{
+					v.m_entry->write_description(writer);
+					writer << std::endl;
+				}
+
+				writer << std::format("{} = {}", v.m_key.m_key, v.m_value) << std::endl;
+			}
+
+			writer.close();
+		}
 
 		template<typename ValueType>
-		config_entry<ValueType>* bind(const std::string& section, const std::string& key, ValueType defaultValue, const std::string& description)
+		std::shared_ptr<config_entry<ValueType>> bind(const std::string& section, const std::string& key, ValueType defaultValue, const std::string& description)
 		{
 			auto config_def     = config_definition(section, key);
 			auto existing_entry = try_get_entry(config_def);
 			if (existing_entry)
 			{
-				return (config_entry<ValueType>*)existing_entry;
+				return std::dynamic_pointer_cast<config_entry<ValueType>>(existing_entry);
 			}
 
-			auto entry = std::make_shared<config_entry<ValueType>>(this, config_def, defaultValue, config_description(description));
+			auto entry = std::make_shared<config_entry<ValueType>>(shared_from_this(), config_def, defaultValue, config_description(description));
 
 			m_entries.emplace(config_def, entry);
 
@@ -326,7 +423,7 @@ namespace toml_v2
 				save();
 			}
 
-			return entry.get();
+			return entry;
 		}
 
 		void on_setting_changed(config_entry_base* changed_entry_base)
@@ -347,6 +444,41 @@ namespace toml_v2
 			for (auto& ev : m_on_config_reloaded)
 			{
 				ev();
+			}
+		}
+
+		inline static void imgui_config_file()
+		{
+			static ankerl::unordered_dense::map<std::string, std::string> edit_buffers;
+
+			ImGui::Text("Config Files: %zu", g_config_files.size());
+			for (const auto& cfg : g_config_files)
+			{
+				ImGui::Text("[%s] %s", cfg->m_owner_guid.c_str(), cfg->m_config_file_path_as_str.c_str());
+
+				ImGui::Text("Entries: %zu", cfg->count());
+				for (const auto& [k, v] : cfg->m_entries)
+				{
+					std::string entry_id = k.m_section + "." + k.m_key;
+
+					std::string& buffer = edit_buffers[entry_id];
+					if (buffer.empty())
+					{
+						buffer = v->get_serialized_value();
+					}
+
+					// Give each InputText a unique label
+					std::string label = "##" + entry_id; // invisible label, editable field only
+
+					ImGui::Text("%s.%s (Press Enter to apply changes):", k.m_section.c_str(), k.m_key.c_str());
+					if (ImGui::InputText(label.c_str(), &buffer, ImGuiInputTextFlags_EnterReturnsTrue))
+					{
+						// Commit the value on Enter
+						v->set_serialized_value(buffer);
+					}
+				}
+
+				ImGui::Separator();
 			}
 		}
 	};

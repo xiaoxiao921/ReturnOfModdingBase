@@ -8,14 +8,14 @@ namespace toml_v2
 	class config_description
 	{
 	public:
+		std::string m_description;
+
+		acceptable_value_base m_acceptable_values;
+
 		config_description(std::string_view description, acceptable_value_base acceptableValues = {})
 		{
 			m_acceptable_values = acceptableValues;
 			m_description       = description;
 		}
-
-		std::string m_description;
-
-		acceptable_value_base m_acceptable_values;
 	};
 } // namespace toml_v2

@@ -5,19 +5,19 @@
 
 namespace lua::toml_lua_v2
 {
-	static toml_v2::config_file::config_entry_base* bind_entry_bool(toml_v2::config_file& self, const std::string& section, const std::string& key, bool default_value, const std::string& description, sol::this_environment env)
+	static auto bind_entry_bool(toml_v2::config_file& self, const std::string& section, const std::string& key, bool default_value, const std::string& description, sol::this_environment env)
 	{
-		return (toml_v2::config_file::config_entry_base*)self.bind(section, key, default_value, description);
+		return std::dynamic_pointer_cast<toml_v2::config_file::config_entry_base>(self.bind(section, key, default_value, description));
 	}
 
-	static toml_v2::config_file::config_entry_base* bind_entry_double(toml_v2::config_file& self, const std::string& section, const std::string& key, double default_value, const std::string& description, sol::this_environment env)
+	static auto bind_entry_double(toml_v2::config_file& self, const std::string& section, const std::string& key, double default_value, const std::string& description, sol::this_environment env)
 	{
-		return (toml_v2::config_file::config_entry_base*)self.bind(section, key, default_value, description);
+		return std::dynamic_pointer_cast<toml_v2::config_file::config_entry_base>(self.bind(section, key, default_value, description));
 	}
 
-	static toml_v2::config_file::config_entry_base* bind_entry_string(toml_v2::config_file& self, const std::string& section, const std::string& key, const std::string& default_value, const std::string& description, sol::this_environment env)
+	static auto bind_entry_string(toml_v2::config_file& self, const std::string& section, const std::string& key, const std::string& default_value, const std::string& description, sol::this_environment env)
 	{
-		return (toml_v2::config_file::config_entry_base*)self.bind(section, key, default_value, description);
+		return std::dynamic_pointer_cast<toml_v2::config_file::config_entry_base>(self.bind(section, key, default_value, description));
 	}
 
 	static sol::object get_value(toml_v2::config_file::config_entry_base& self, sol::this_state env)
@@ -89,13 +89,13 @@ namespace lua::toml_lua_v2
 		                                                                // passed in
 		                                                                [](const std::string& config_path, bool save_on_init, sol::this_environment env)
 		                                                                {
-			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
+			                                                                return std::make_shared<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                },
 		                                                                // -- colon syntax, passes in the
 		                                                                // "self" value as first argument implicitly
 		                                                                [](sol::object, const std::string& config_path, bool save_on_init, sol::this_environment env)
 		                                                                {
-			                                                                return std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
+			                                                                return std::make_shared<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
 		                                                                }));
 
 		// Lua API: Field

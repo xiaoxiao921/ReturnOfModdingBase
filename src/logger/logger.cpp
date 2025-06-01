@@ -54,7 +54,7 @@ namespace big
 
 	void logger::initialize()
 	{
-		m_attach_console_cfg = big::config::general().bind("Logging", "Console Enabled", true, "Enables showing a console for log output.");
+		m_attach_console_cfg = big::config::general->bind("Logging", "Console Enabled", true, "Enables showing a console for log output.");
 
 		if (m_attach_console_cfg->get_value())
 		{
@@ -85,8 +85,8 @@ namespace big
 		handle_backups();
 		open_outstreams();
 
-		m_log_level_filter_console_cfg = big::config::general().bind("Logging", "Console LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the console.");
-		m_log_level_filter_file_cfg = big::config::general().bind("Logging", "File LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the log file.");
+		m_log_level_filter_console_cfg = big::config::general->bind("Logging", "Console LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the console.");
+		m_log_level_filter_file_cfg = big::config::general->bind("Logging", "File LogLevels", "DEBUG, INFO, WARNING, ERROR", "Only displays the specified log levels in the log file.");
 		refresh_log_filter_values_from_config();
 
 		Logger::Init();
@@ -333,7 +333,7 @@ namespace big
 
 	void logger::refresh_log_filter_values_from_config()
 	{
-		auto init_log_filter = [](toml_v2::config_file::config_entry<const char*>* cfg, int* flag)
+		auto init_log_filter = [](std::shared_ptr<toml_v2::config_file::config_entry<const char*>>& cfg, int* flag)
 		{
 			const auto str = cfg->get_value();
 			auto res       = *flag;
