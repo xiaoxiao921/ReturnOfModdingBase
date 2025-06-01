@@ -47,6 +47,8 @@ namespace big
 			ankerl::unordered_dense::map<uintptr_t, sol::protected_function> m_dynamic_hook_mid_callbacks;
 
 			ankerl::unordered_dense::map<std::string, std::vector<sol::protected_function>> m_file_watchers;
+
+			std::vector<std::unique_ptr<toml_v2::config_file>> m_config_files;
 		};
 
 		std::shared_mutex m_file_watcher_mutex;

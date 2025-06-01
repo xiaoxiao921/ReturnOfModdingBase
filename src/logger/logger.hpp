@@ -54,7 +54,7 @@ namespace big
 		void format_file(const LogMessagePtr msg);
 
 	private:
-		std::shared_ptr<toml_v2::config_file::config_entry<bool>> m_attach_console_cfg;
+		toml_v2::config_file::config_entry<bool>* m_attach_console_cfg;
 		bool m_did_console_exist;
 
 		void (logger::*m_console_logger)(const LogMessagePtr msg);
@@ -68,10 +68,10 @@ namespace big
 
 		file m_file;
 
-		std::shared_ptr<toml_v2::config_file::config_entry<const char*>> m_log_level_filter_console_cfg{};
+		toml_v2::config_file::config_entry<const char*>* m_log_level_filter_console_cfg{};
 		eLogLevel m_log_level_filter_console_value{};
 
-		std::shared_ptr<toml_v2::config_file::config_entry<const char*>> m_log_level_filter_file_cfg{};
+		toml_v2::config_file::config_entry<const char*>* m_log_level_filter_file_cfg{};
 		eLogLevel m_log_level_filter_file_value{};
 	};
 

@@ -4,7 +4,7 @@
 
 namespace big::config
 {
-	extern std::shared_ptr<toml_v2::config_file> general;
+	extern std::unique_ptr<toml_v2::config_file> general;
 
 	void init_general();
 } // namespace big::config

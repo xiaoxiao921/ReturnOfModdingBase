@@ -7,11 +7,11 @@
 
 namespace big::config
 {
-	std::shared_ptr<toml_v2::config_file> general = nullptr;
+	std::unique_ptr<toml_v2::config_file> general = nullptr;
 
 	void init_general()
 	{
-		general = std::make_shared<toml_v2::config_file>((char*)g_file_manager
+		general = std::make_unique<toml_v2::config_file>((char*)g_file_manager
 		                                                     .get_project_file(std::format("config/{}-{}-General.cfg", rom::g_project_name, rom::g_project_name))
 		                                                     .get_path()
 		                                                     .u8string()

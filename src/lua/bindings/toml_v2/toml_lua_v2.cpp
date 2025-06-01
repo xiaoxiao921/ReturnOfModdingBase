@@ -7,17 +7,17 @@ namespace lua::toml_lua_v2
 {
 	static auto bind_entry_bool(toml_v2::config_file& self, const std::string& section, const std::string& key, bool default_value, const std::string& description, sol::this_environment env)
 	{
-		return std::dynamic_pointer_cast<toml_v2::config_file::config_entry_base>(self.bind(section, key, default_value, description));
+		return (toml_v2::config_file::config_entry_base*)self.bind(section, key, default_value, description);
 	}
 
 	static auto bind_entry_double(toml_v2::config_file& self, const std::string& section, const std::string& key, double default_value, const std::string& description, sol::this_environment env)
 	{
-		return std::dynamic_pointer_cast<toml_v2::config_file::config_entry_base>(self.bind(section, key, default_value, description));
+		return (toml_v2::config_file::config_entry_base*)self.bind(section, key, default_value, description);
 	}
 
 	static auto bind_entry_string(toml_v2::config_file& self, const std::string& section, const std::string& key, const std::string& default_value, const std::string& description, sol::this_environment env)
 	{
-		return std::dynamic_pointer_cast<toml_v2::config_file::config_entry_base>(self.bind(section, key, default_value, description));
+		return (toml_v2::config_file::config_entry_base*)self.bind(section, key, default_value, description);
 	}
 
 	static sol::object get_value(toml_v2::config_file::config_entry_base& self, sol::this_state env)
@@ -82,21 +82,42 @@ namespace lua::toml_lua_v2
 		// Param: config_path: string: Full path to a file that contains settings. The file will be created as needed. It's recommended to use `.cfg` as the file extension. The mod manager will pick it up and make it show nicely inside the mod manager UI.
 		// Param: save_on_init: boolean: If the config file/directory doesn't exist, create it immediately.
 		// Create a new config file at the specified config path.
-		auto config_file_ut = ns.new_usertype<toml_v2::config_file>("config_file",
-		                                                            sol::meta_function::construct,
-		                                                            sol::factories(
-		                                                                // dot syntax, no "self" value
-		                                                                // passed in
-		                                                                [](const std::string& config_path, bool save_on_init, sol::this_environment env)
-		                                                                {
-			                                                                return std::make_shared<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
-		                                                                },
-		                                                                // -- colon syntax, passes in the
-		                                                                // "self" value as first argument implicitly
-		                                                                [](sol::object, const std::string& config_path, bool save_on_init, sol::this_environment env)
-		                                                                {
-			                                                                return std::make_shared<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env));
-		                                                                }));
+		auto config_file_ut = ns.new_usertype<toml_v2::config_file>(
+		    "config_file",
+		    sol::meta_function::construct,
+		    sol::factories(
+		        // dot syntax, no "self" value
+		        // passed in
+		        [](const std::string& config_path, bool save_on_init, sol::this_environment env) -> sol::object
+		        {
+			        big::lua_module* module = big::lua_module::this_from(env);
+			        if (module)
+			        {
+				        const auto index = module->m_data.m_config_files.size();
+
+				        module->m_data.m_config_files.emplace_back(std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env)));
+
+				        return sol::make_object(env.env.value().lua_state(), module->m_data.m_config_files[index].get());
+			        }
+
+			        return sol::nil;
+		        },
+		        // -- colon syntax, passes in the
+		        // "self" value as first argument implicitly
+		        [](sol::object, const std::string& config_path, bool save_on_init, sol::this_environment env) -> sol::object
+		        {
+			        big::lua_module* module = big::lua_module::this_from(env);
+			        if (module)
+			        {
+				        const auto index = module->m_data.m_config_files.size();
+
+				        module->m_data.m_config_files.emplace_back(std::make_unique<toml_v2::config_file>(config_path, save_on_init, big::lua_module::guid_from(env)));
+
+				        return sol::make_object(env.env.value().lua_state(), module->m_data.m_config_files[index].get());
+			        }
+
+			        return sol::nil;
+		        }));
 
 		// Lua API: Field
 		// Class: config.config_file

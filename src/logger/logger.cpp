@@ -333,7 +333,7 @@ namespace big
 
 	void logger::refresh_log_filter_values_from_config()
 	{
-		auto init_log_filter = [](std::shared_ptr<toml_v2::config_file::config_entry<const char*>>& cfg, int* flag)
+		auto init_log_filter = [](toml_v2::config_file::config_entry<const char*>* cfg, int* flag)
 		{
 			const auto str = cfg->get_value();
 			auto res       = *flag;

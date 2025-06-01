@@ -15,13 +15,13 @@
 
 namespace toml_v2
 {
-	class config_file : public std::enable_shared_from_this<config_file>
+	class config_file
 	{
 	public:
 		class config_entry_base
 		{
 		public:
-			std::shared_ptr<config_file> m_config_file;
+			config_file* m_config_file;
 			config_definition m_definition;
 			config_description m_description;
 
@@ -33,7 +33,7 @@ namespace toml_v2
 
 			std::function<void(config_entry_base*)> m_setting_changed;
 
-			config_entry_base(std::shared_ptr<config_file> config_file, config_definition definition, const std::any& default_value, config_description description) :
+			config_entry_base(config_file* config_file, config_definition definition, const std::any& default_value, config_description description) :
 			    m_definition(definition),
 			    m_description(description)
 			{
@@ -49,10 +49,6 @@ namespace toml_v2
 						    m_setting_changed(cfg_entry);
 					    }
 				    });
-			}
-
-			virtual ~config_entry_base()
-			{
 			}
 
 			auto& type()
@@ -133,7 +129,7 @@ namespace toml_v2
 		class config_entry : public config_entry_base
 		{
 		public:
-			config_entry(std::shared_ptr<config_file> configFile, config_definition definition, ValueType default_value, config_description description) :
+			config_entry(config_file* configFile, config_definition definition, ValueType default_value, config_description description) :
 			    config_entry_base(configFile, definition, std::any(default_value), description)
 			{
 			}
@@ -153,7 +149,7 @@ namespace toml_v2
 		class config_entry<const char*> : public config_entry_base
 		{
 		public:
-			config_entry(std::shared_ptr<config_file> configFile, config_definition definition, const char* default_value, config_description description) :
+			config_entry(config_file* configFile, config_definition definition, const char* default_value, config_description description) :
 			    config_entry_base(configFile, definition, std::any(std::string(default_value)), description)
 			{
 			}
@@ -228,18 +224,18 @@ namespace toml_v2
 			              });
 		}
 
-		std::shared_ptr<config_entry_base> try_get_entry(config_definition& key)
+		config_entry_base* try_get_entry(config_definition& key)
 		{
 			const auto it_entry = m_entries.find(key);
 			if (it_entry != m_entries.end())
 			{
-				return it_entry->second;
+				return it_entry->second.get();
 			}
 
 			return nullptr;
 		}
 
-		std::shared_ptr<config_entry_base> operator[](config_definition& key)
+		config_entry_base* operator[](config_definition& key)
 		{
 			return try_get_entry(key);
 		}
@@ -360,14 +356,14 @@ namespace toml_v2
 			struct all_config_entry_t
 			{
 				config_definition m_key;
-				config_entry_base* m_entry;
+				std::shared_ptr<config_entry_base> m_entry;
 				std::string m_value;
 			};
 
 			std::map<config_definition, all_config_entry_t> allConfigEntries;
 			for (const auto& [k, v] : m_entries)
 			{
-				allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = v.get(), .m_value = v->get_serialized_value()});
+				allConfigEntries.emplace(k, all_config_entry_t{.m_key = k, .m_entry = v, .m_value = v->get_serialized_value()});
 			}
 			for (const auto& [k, v] : m_orphaned_entries)
 			{
@@ -398,16 +394,16 @@ namespace toml_v2
 		}
 
 		template<typename ValueType>
-		std::shared_ptr<config_entry<ValueType>> bind(const std::string& section, const std::string& key, ValueType defaultValue, const std::string& description)
+		config_entry<ValueType>* bind(const std::string& section, const std::string& key, ValueType defaultValue, const std::string& description)
 		{
 			auto config_def     = config_definition(section, key);
 			auto existing_entry = try_get_entry(config_def);
 			if (existing_entry)
 			{
-				return std::dynamic_pointer_cast<config_entry<ValueType>>(existing_entry);
+				return (config_entry<ValueType>*)existing_entry;
 			}
 
-			auto entry = std::make_shared<config_entry<ValueType>>(shared_from_this(), config_def, defaultValue, config_description(description));
+			auto entry = std::make_shared<config_entry<ValueType>>(this, config_def, defaultValue, config_description(description));
 
 			m_entries.emplace(config_def, entry);
 
@@ -423,7 +419,7 @@ namespace toml_v2
 				save();
 			}
 
-			return entry;
+			return entry.get();
 		}
 
 		void on_setting_changed(config_entry_base* changed_entry_base)
@@ -449,36 +445,90 @@ namespace toml_v2
 
 		inline static void imgui_config_file()
 		{
+			static std::vector<const toml_v2::config_file*> open_tabs;
+			static int selected_index = -1;
+			static std::unordered_map<std::string, char[256]> search_filters;
 			static ankerl::unordered_dense::map<std::string, std::string> edit_buffers;
 
-			ImGui::Text("Config Files: %zu", g_config_files.size());
-			for (const auto& cfg : g_config_files)
+			if (g_config_files.empty())
 			{
-				ImGui::Text("[%s] %s", cfg->m_owner_guid.c_str(), cfg->m_config_file_path_as_str.c_str());
+				ImGui::Text("No config files loaded.");
+				return;
+			}
 
-				ImGui::Text("Entries: %zu", cfg->count());
-				for (const auto& [k, v] : cfg->m_entries)
+			// Dropdown to add config file as a new tab
+			if (ImGui::BeginCombo("Add Config Tab", "Select..."))
+			{
+				for (size_t i = 0; i < g_config_files.size(); ++i)
 				{
-					std::string entry_id = k.m_section + "." + k.m_key;
+					const auto* cfg   = g_config_files[i];
+					bool already_open = std::find(open_tabs.begin(), open_tabs.end(), cfg) != open_tabs.end();
 
-					std::string& buffer = edit_buffers[entry_id];
-					if (buffer.empty())
+					if (ImGui::Selectable(cfg->m_config_file_path_as_str.c_str(), false, already_open ? ImGuiSelectableFlags_Disabled : 0))
 					{
-						buffer = v->get_serialized_value();
-					}
-
-					// Give each InputText a unique label
-					std::string label = "##" + entry_id; // invisible label, editable field only
-
-					ImGui::Text("%s.%s (Press Enter to apply changes):", k.m_section.c_str(), k.m_key.c_str());
-					if (ImGui::InputText(label.c_str(), &buffer, ImGuiInputTextFlags_EnterReturnsTrue))
-					{
-						// Commit the value on Enter
-						v->set_serialized_value(buffer);
+						open_tabs.push_back(cfg);
 					}
 				}
+				ImGui::EndCombo();
+			}
 
-				ImGui::Separator();
+			// Tab bar for opened config files
+			if (ImGui::BeginTabBar("ConfigTabs", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs))
+			{
+				for (size_t i = 0; i < open_tabs.size();)
+				{
+					const toml_v2::config_file* cfg = open_tabs[i];
+					bool open                       = true;
+
+					if (ImGui::BeginTabItem(cfg->m_config_file_path_as_str.c_str(), &open))
+					{
+						// Per-tab search filter
+						std::string filter_key = cfg->m_config_file_path_as_str;
+						auto& filter_buf       = search_filters[filter_key];
+						ImGui::InputTextWithHint("##filter", "Search section.key...", filter_buf, sizeof(filter_buf));
+
+						ImGui::Text("Owner: %s", cfg->m_owner_guid.c_str());
+						ImGui::Text("Entries: %zu", cfg->count());
+
+						for (const auto& [k, v] : cfg->m_entries)
+						{
+							std::string entry_id = cfg->m_config_file_path_as_str + "::" + k.m_section + "." + k.m_key;
+
+							// Filtering
+							if (filter_buf[0] && std::string(entry_id).find(filter_buf) == std::string::npos)
+							{
+								continue;
+							}
+
+							std::string& buffer = edit_buffers[entry_id];
+							if (buffer.empty())
+							{
+								buffer = v->get_serialized_value();
+							}
+
+							ImGui::Text("%s.%s (Press Enter to apply changes):", k.m_section.c_str(), k.m_key.c_str());
+
+							std::string label = "##" + entry_id;
+							if (ImGui::InputText(label.c_str(), &buffer, ImGuiInputTextFlags_EnterReturnsTrue))
+							{
+								v->set_serialized_value(buffer);
+							}
+						}
+
+						ImGui::EndTabItem();
+					}
+
+					// Close tab if user clicked X
+					if (!open)
+					{
+						open_tabs.erase(open_tabs.begin() + i);
+					}
+					else
+					{
+						++i;
+					}
+				}
+				ImGui::EndTabBar();
 			}
 		}
 	};
