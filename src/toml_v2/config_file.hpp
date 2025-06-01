@@ -183,6 +183,7 @@ namespace toml_v2
 
 		std::filesystem::path m_config_file_path;
 		std::string m_config_file_path_as_str;
+		std::string m_config_file_stem_as_str;
 
 		bool m_save_on_config_set = true;
 
@@ -208,6 +209,7 @@ namespace toml_v2
 
 			m_config_file_path        = std::filesystem::absolute(config_path);
 			m_config_file_path_as_str = (char*)m_config_file_path.u8string().c_str();
+			m_config_file_stem_as_str = (char*)m_config_file_path.stem().u8string().c_str();
 
 			if (std::filesystem::exists(m_config_file_path))
 			{
@@ -451,90 +453,64 @@ namespace toml_v2
 
 		inline static void imgui_config_file()
 		{
-			static std::vector<const toml_v2::config_file*> open_tabs;
-			static int selected_index = -1;
-			static std::unordered_map<std::string, char[256]> search_filters;
+			static std::unordered_map<std::string, std::string> search_filters;
 			static ankerl::unordered_dense::map<std::string, std::string> edit_buffers;
 
 			if (g_config_files.empty())
 			{
-				ImGui::Text("No config files loaded.");
+				ImGui::TextUnformatted("No config files loaded.");
 				return;
 			}
 
-			// Dropdown to add config file as a new tab
-			if (ImGui::BeginCombo("Add Config Tab", "Select..."))
+			if (ImGui::Button("Refresh All Edits"))
 			{
-				for (size_t i = 0; i < g_config_files.size(); ++i)
-				{
-					const auto* cfg   = g_config_files[i];
-					bool already_open = std::find(open_tabs.begin(), open_tabs.end(), cfg) != open_tabs.end();
-
-					if (ImGui::Selectable(cfg->m_config_file_path_as_str.c_str(), false, already_open ? ImGuiSelectableFlags_Disabled : 0))
-					{
-						open_tabs.push_back(cfg);
-					}
-				}
-				ImGui::EndCombo();
+				edit_buffers.clear();
 			}
 
-			// Tab bar for opened config files
-			if (ImGui::BeginTabBar("ConfigTabs", ImGuiTabBarFlags_Reorderable | ImGuiTabBarFlags_AutoSelectNewTabs))
+			for (const auto* cfg : g_config_files)
 			{
-				for (size_t i = 0; i < open_tabs.size();)
+				const std::string& path     = cfg->m_config_file_path_as_str;
+				const std::string& stem     = cfg->m_config_file_stem_as_str;
+				const std::string header_id = "##header_" + path;
+
+				if (ImGui::CollapsingHeader((stem + header_id).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 				{
-					const toml_v2::config_file* cfg = open_tabs[i];
-					bool open                       = true;
+					ImGui::Text("Path: %s", path.c_str());
+					ImGui::Text("Owner: %s", cfg->m_owner_guid.c_str());
+					ImGui::Text("Entries: %zu", cfg->count());
 
-					if (ImGui::BeginTabItem(cfg->m_config_file_path_as_str.c_str(), &open))
+					std::string& filter = search_filters[path];
+					ImGui::InputTextWithHint(("##filter_" + path).c_str(), "Search section.key...", &filter);
+
+					ImGui::Separator();
+
+					for (const auto& [key, value] : cfg->m_entries)
 					{
-						// Per-tab search filter
-						std::string filter_key = cfg->m_config_file_path_as_str;
-						auto& filter_buf       = search_filters[filter_key];
-						ImGui::InputTextWithHint("##filter", "Search section.key...", filter_buf, sizeof(filter_buf));
+						std::string entry_id = path + "::" + key.m_section + "." + key.m_key;
+						std::string full_key = key.m_section + "." + key.m_key;
 
-						ImGui::Text("Owner: %s", cfg->m_owner_guid.c_str());
-						ImGui::Text("Entries: %zu", cfg->count());
-
-						for (const auto& [k, v] : cfg->m_entries)
+						// Filter by substring match
+						if (!filter.empty() && full_key.find(filter) == std::string::npos)
 						{
-							std::string entry_id = cfg->m_config_file_path_as_str + "::" + k.m_section + "." + k.m_key;
-
-							// Filtering
-							if (filter_buf[0] && std::string(entry_id).find(filter_buf) == std::string::npos)
-							{
-								continue;
-							}
-
-							std::string& buffer = edit_buffers[entry_id];
-							if (buffer.empty())
-							{
-								buffer = v->get_serialized_value();
-							}
-
-							ImGui::Text("%s.%s (Press Enter to apply changes):", k.m_section.c_str(), k.m_key.c_str());
-
-							std::string label = "##" + entry_id;
-							if (ImGui::InputText(label.c_str(), &buffer, ImGuiInputTextFlags_EnterReturnsTrue))
-							{
-								v->set_serialized_value(buffer);
-							}
+							continue;
 						}
 
-						ImGui::EndTabItem();
-					}
+						std::string& edit_value = edit_buffers[entry_id];
+						if (edit_value.empty())
+						{
+							edit_value = value->get_serialized_value();
+						}
 
-					// Close tab if user clicked X
-					if (!open)
-					{
-						open_tabs.erase(open_tabs.begin() + i);
-					}
-					else
-					{
-						++i;
+						ImGui::Text("%s:", full_key.c_str());
+
+						if (ImGui::InputText(("##" + entry_id).c_str(), &edit_value, ImGuiInputTextFlags_EnterReturnsTrue))
+						{
+							value->set_serialized_value(edit_value);
+						}
 					}
 				}
-				ImGui::EndTabBar();
+
+				ImGui::Spacing();
 			}
 		}
 	};
