@@ -6,8 +6,10 @@
 #include "lua/sol_include.hpp"
 #include "lua_patch.hpp"
 #include "module_info.hpp"
+#include "toml_v2/config_file.hpp"
 
 #include <ankerl/unordered_dense.h>
+#include <memory>
 #include <shared_mutex>
 #include <thunderstore/v1/manifest.hpp>
 
