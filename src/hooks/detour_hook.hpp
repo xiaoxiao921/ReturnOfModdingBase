@@ -1,6 +1,11 @@
 #pragma once
 
-#include <polyhook2/Detour/x64Detour.hpp>
+#if defined(_WIN64)
+	#include <polyhook2/Detour/x64Detour.hpp>
+#elif defined(_WIN32)
+	#include <polyhook2/Detour/x86Detour.hpp>
+#endif
+
 
 namespace big
 {
@@ -48,6 +53,10 @@ namespace big
 		void* m_target;
 		void* m_detour;
 
+#if defined(_WIN64)
 		std::unique_ptr<PLH::x64Detour> m_detour_object;
+#elif defined(_WIN32)
+		std::unique_ptr<PLH::x86Detour> m_detour_object;
+#endif
 	};
 } // namespace big

@@ -8,6 +8,9 @@ project(ReturnOfModdingBase CXX C ASM_MASM)
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
+# Fix ImGui x86 compilation
+add_compile_definitions(ImTextureID=ImU64)
+
 # Fetch modules
 message("\nFetching modules")
 include(cmake_scripts/async-logger.cmake)

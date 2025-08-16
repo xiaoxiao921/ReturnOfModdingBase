@@ -131,7 +131,7 @@ namespace big
 		return is_success;
 	}
 
-	LONG big_exception_handler(EXCEPTION_POINTERS* exception_info)
+	LONG WINAPI big_exception_handler(EXCEPTION_POINTERS* exception_info)
 	{
 		const auto exception_code = exception_info->ExceptionRecord->ExceptionCode;
 		if (exception_code == EXCEPTION_BREAKPOINT || exception_code == DBG_PRINTEXCEPTION_C || exception_code == DBG_PRINTEXCEPTION_WIDE_C)

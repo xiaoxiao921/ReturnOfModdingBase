@@ -41,9 +41,9 @@ struct module_info_helper
  */
 struct gmAddress
 {
-	uint64_t m_value = 0;
+	uintptr_t m_value = 0;
 
-	gmAddress(uint64_t value) :
+	gmAddress(uintptr_t value) :
 	    m_value(value)
 	{
 	}
@@ -54,8 +54,8 @@ struct gmAddress
 	}
 
 private:
-	static inline uint64_t s_module_base_default_module;
-	static inline uint64_t s_module_size_default_module;
+	static inline uintptr_t s_module_base_default_module;
+	static inline size_t s_module_size_default_module;
 
 	static inline void init_if_needed_default_module_info()
 	{
@@ -67,8 +67,8 @@ private:
 		}
 	}
 
-	static inline uint64_t s_module_base_our_module;
-	static inline uint64_t s_module_size_our_module;
+	static inline uintptr_t s_module_base_our_module;
+	static inline size_t s_module_size_our_module;
 
 	static inline void init_if_needed_our_module_info()
 	{
@@ -80,7 +80,7 @@ private:
 		}
 	}
 
-	static gmAddress scan_internal(const char* pattern_str, const char* debug_name, uint64_t module_base, uint64_t module_size)
+	static gmAddress scan_internal(const char* pattern_str, const char* debug_name, uintptr_t module_base, size_t module_size)
 	{
 		// Convert string pattern into byte array form
 		int16_t pattern[256];
@@ -120,7 +120,7 @@ private:
 
 		// Search for string through whole module
 		// We use two-end comparison, nothing fancy but better than just brute force
-		for (uint64_t i = 0; i < module_size; i += 1)
+		for (size_t i = 0; i < module_size; i += 1)
 		{
 			const uint8_t* module_position = (uint8_t*)(module_base + i);
 			for (uint8_t j = 0; j < scan_size; j++)

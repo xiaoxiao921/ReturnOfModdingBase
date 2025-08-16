@@ -104,6 +104,7 @@ namespace big
 	{
 		const auto context = m_exception_info->ContextRecord;
 
+#if defined(_WIN64)
 		m_dump << "Dumping registers:\n"
 		       << "RAX: " << HEX_TO_UPPER(context->Rax) << '\n'
 		       << "RCX: " << HEX_TO_UPPER(context->Rcx) << '\n'
@@ -122,6 +123,19 @@ namespace big
 		       << "R14: " << HEX_TO_UPPER(context->R14) << '\n'
 		       << "R15: " << HEX_TO_UPPER(context->R15) << '\n'
 		       << "RIP: " << HEX_TO_UPPER(context->Rip) << '\n';
+#elif defined(_WIN32)
+		m_dump << "Dumping registers:\n"
+		       << "EAX: " << HEX_TO_UPPER(context->Eax) << '\n'
+		       << "ECX: " << HEX_TO_UPPER(context->Ecx) << '\n'
+		       << "EDX: " << HEX_TO_UPPER(context->Edx) << '\n'
+		       << "EBX: " << HEX_TO_UPPER(context->Ebx) << '\n'
+		       << "ESI: " << HEX_TO_UPPER(context->Esi) << '\n'
+		       << "EDI: " << HEX_TO_UPPER(context->Edi) << '\n'
+		       << "ESP: " << HEX_TO_UPPER(context->Esp) << '\n'
+		       << "EBP: " << HEX_TO_UPPER(context->Ebp) << '\n'
+		       << "EIP: " << HEX_TO_UPPER(context->Eip) << '\n';
+#endif
+
 	}
 
 	void stack_trace::dump_stacktrace()
@@ -234,24 +248,34 @@ namespace big
 		return false;
 	}
 
-	void stack_trace::grab_stacktrace()
+void stack_trace::grab_stacktrace()
 	{
 		CONTEXT context = *m_exception_info->ContextRecord;
 
 		STACKFRAME64 frame{};
-		frame.AddrPC.Mode      = AddrModeFlat;
-		frame.AddrFrame.Mode   = AddrModeFlat;
-		frame.AddrStack.Mode   = AddrModeFlat;
+		frame.AddrPC.Mode    = AddrModeFlat;
+		frame.AddrFrame.Mode = AddrModeFlat;
+		frame.AddrStack.Mode = AddrModeFlat;
+
+#if defined(_WIN64)
+		DWORD64 machineType    = IMAGE_FILE_MACHINE_AMD64;
 		frame.AddrPC.Offset    = context.Rip;
 		frame.AddrFrame.Offset = context.Rbp;
 		frame.AddrStack.Offset = context.Rsp;
+#elif defined(_WIN32)
+		DWORD64 machineType    = IMAGE_FILE_MACHINE_I386;
+		frame.AddrPC.Offset    = context.Eip;
+		frame.AddrFrame.Offset = context.Ebp;
+		frame.AddrStack.Offset = context.Esp;
+#endif
 
 		for (size_t i = 0; i < m_frame_pointers.size(); ++i)
 		{
-			if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, GetCurrentProcess(), GetCurrentThread(), &frame, &context, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
+			if (!StackWalk64(machineType, GetCurrentProcess(), GetCurrentThread(), &frame, &context, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
 			{
 				break;
 			}
+
 			m_frame_pointers[i] = frame.AddrPC.Offset;
 		}
 	}

@@ -23,5 +23,5 @@ namespace big
 		uint32_t m_old_error_mode{};
 	};
 
-	extern LONG big_exception_handler(EXCEPTION_POINTERS* exception_info);
+	extern LONG WINAPI big_exception_handler(EXCEPTION_POINTERS* exception_info);
 } // namespace big

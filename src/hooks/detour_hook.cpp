@@ -51,7 +51,11 @@ namespace big
 
 		fix_hook_address();
 
+#if defined(_WIN64)
 		m_detour_object = std::make_unique<PLH::x64Detour>((uintptr_t)m_target, (uintptr_t)m_detour, (uintptr_t*)&m_original);
+#elif defined(_WIN32)
+		m_detour_object = std::make_unique<PLH::x86Detour>((uint64_t)m_target, (uint64_t)m_detour, (uint64_t*)&m_original);
+#endif
 	}
 
 	detour_hook::~detour_hook() noexcept
