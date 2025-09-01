@@ -136,7 +136,7 @@ namespace big
 
 			if (!std::filesystem::exists(backup_folder_path))
 			{
-				return;
+				std::filesystem::create_directories(backup_folder_path);
 			}
 
 			std::vector<std::pair<std::wstring, uintmax_t>> files;
