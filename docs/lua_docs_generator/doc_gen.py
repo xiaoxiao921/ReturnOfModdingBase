@@ -3,9 +3,9 @@ import sys
 import shutil
 from enum import Enum
 
-if len(sys.argv) != 4:
+if len(sys.argv) < 4:
     raise ValueError(
-        "Provide in that order: ReturnOfModdingBase src folder path, your lib src folder path, and the folder path where the doc will end up."
+        "Provide in that order: ReturnOfModdingBase src folder path, your lib src folder path, the folder path where the doc will end up, and optionally line ending type (LF or CRLF)."
     )
 
 rom_base_src_folder = sys.argv[1]
@@ -13,6 +13,17 @@ rom_base_src_folder = sys.argv[1]
 src_folders = [rom_base_src_folder, sys.argv[2]]
 
 output_doc_folder_path = sys.argv[3]
+
+if len(sys.argv) == 5:
+    line_ending_type = sys.argv[4].upper()
+    if line_ending_type == "CRLF":
+        line_ending = "\r\n"
+    elif line_ending_type == "LF":
+        line_ending = "\n"
+    else:
+        raise ValueError("Line ending must be 'LF' or 'CRLF'.")
+else:
+    line_ending = "\r\n"  # default
 
 lua_api_namespace = ""
 lua_api_comment_identifier = "lua api"
@@ -791,7 +802,8 @@ for table_name, table in tables.items():
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
-    f.write(bytes(str(table), "UTF8"))
+    content = str(table).replace("\n", line_ending)
+    f.write(content.encode("utf-8"))
     f.close()
 print("Wrote tables")
 
@@ -803,7 +815,8 @@ for table_name, table in tables.items():
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
-    f.write(bytes(str(table.print_definition()), "UTF8"))
+    content = str(table.print_definition()).replace("\n", line_ending)
+    f.write(content.encode("utf-8"))
     f.close()
 print("Wrote table definitions")
 
@@ -827,7 +840,8 @@ for class_name, class_ in classes.items():
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
-    f.write(bytes(str(class_), "UTF8"))
+    content = str(class_).replace("\n", line_ending)
+    f.write(content.encode("utf-8"))
     f.close()
 print("Wrote classes")
 
@@ -838,7 +852,8 @@ for class_name, class_ in classes.items():
     if os.path.exists(file_name):
         os.remove(file_name)
     f = open(file_name, "ba")
-    f.write(bytes(str(class_.print_definition()), "UTF8"))
+    content = str(class_.print_definition()).replace("\n", line_ending)
+    f.write(content.encode("utf-8"))
     f.close()
 print("Wrote class definitions")
 
