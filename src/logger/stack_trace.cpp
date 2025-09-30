@@ -13,7 +13,31 @@ namespace big
 	stack_trace::stack_trace() :
 	    m_frame_pointers(32)
 	{
-		SymInitialize(GetCurrentProcess(), nullptr, true);
+		SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES | SYMOPT_DEBUG);
+
+		// Get the directory of the current executable
+		char exe_path[MAX_PATH];
+		GetModuleFileNameA(nullptr, exe_path, MAX_PATH);
+		std::filesystem::path path(exe_path);
+		std::string dir = path.parent_path().string();
+
+		// Initialize with explicit search path
+		if (!SymInitialize(GetCurrentProcess(), dir.c_str(), true))
+		{
+			DWORD error = GetLastError();
+			LOG(WARNING) << "SymInitialize failed with error: " << error;
+		}
+
+		// Force load symbols for the main executable
+		HMODULE hModule = GetModuleHandleA(nullptr);
+		if (!SymLoadModuleEx(GetCurrentProcess(), nullptr, exe_path, nullptr, (DWORD64)hModule, 0, nullptr, 0))
+		{
+			DWORD error = GetLastError();
+			if (error != ERROR_SUCCESS)
+			{
+				LOG(WARNING) << "SymLoadModuleEx failed with error: " << error;
+			}
+		}
 	}
 
 	stack_trace::~stack_trace()
@@ -143,7 +167,6 @@ namespace big
 		m_dump << "Dumping stacktrace:";
 		grab_stacktrace();
 
-		// alloc once
 		char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME];
 		auto symbol          = reinterpret_cast<SYMBOL_INFO*>(buffer);
 		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -151,7 +174,6 @@ namespace big
 
 		DWORD64 displacement64;
 		DWORD displacement;
-
 
 		IMAGEHLP_LINE64 line;
 		line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
@@ -166,6 +188,7 @@ namespace big
 			{
 				if (SymGetLineFromAddr64(GetCurrentProcess(), addr, &displacement, &line))
 				{
+					// Got file and line number information
 					m_dump << line.FileName << ":" << line.LineNumber << " " << std::string_view(symbol->Name, symbol->NameLen);
 				}
 				else
@@ -187,16 +210,53 @@ namespace big
 					}
 					else
 					{
-						m_dump << "No module found for address " << HEX_TO_UPPER(addr);
+						m_dump << std::string_view(symbol->Name, symbol->NameLen) << " [No module found for address " << HEX_TO_UPPER(addr) << "]";
 					}
 				}
 			}
 			else
 			{
+				// Failed to get symbol information
+				DWORD sym_error = GetLastError();
+				m_dump << "[SymFromAddr failed with error " << sym_error;
+
+				// Translate common error codes
+				switch (sym_error)
+				{
+				case ERROR_MOD_NOT_FOUND:   m_dump << " (ERROR_MOD_NOT_FOUND - Module not found)"; break;
+				case ERROR_INVALID_ADDRESS: m_dump << " (ERROR_INVALID_ADDRESS - Invalid address)"; break;
+				default:                    m_dump << " (Unknown error code)"; break;
+				}
+				m_dump << "] ";
+
 				const auto module_info = get_module_by_address(addr);
 				if (module_info)
 				{
 					m_dump << module_info->m_path.filename().string() << "+" << HEX_TO_UPPER(addr - module_info->m_base) << " " << HEX_TO_UPPER(addr);
+
+					// Check if symbols are loaded for this module
+					IMAGEHLP_MODULE64 mod_info{};
+					mod_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+					if (SymGetModuleInfo64(GetCurrentProcess(), module_info->m_base, &mod_info))
+					{
+						m_dump << " [SymType: ";
+						switch (mod_info.SymType)
+						{
+						case SymNone:     m_dump << "None - No symbols loaded"; break;
+						case SymExport:   m_dump << "Export - Only export symbols"; break;
+						case SymPdb:      m_dump << "PDB - Full PDB symbols"; break;
+						case SymDeferred: m_dump << "Deferred - Symbols not loaded yet"; break;
+						case SymCoff:     m_dump << "COFF"; break;
+						case SymCv:       m_dump << "CodeView"; break;
+						case SymDia:      m_dump << "DIA"; break;
+						default:          m_dump << "Unknown (" << mod_info.SymType << ")"; break;
+						}
+						m_dump << ", LoadedPdbName: " << (mod_info.LoadedPdbName[0] ? mod_info.LoadedPdbName : "None") << "]";
+					}
+					else
+					{
+						m_dump << " [SymGetModuleInfo64 failed: " << GetLastError() << "]";
+					}
 				}
 				else
 				{
