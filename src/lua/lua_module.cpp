@@ -183,6 +183,11 @@ namespace big
 
 	std::string lua_module::guid_from(sol::this_environment this_env)
 	{
+		if (!this_env)
+		{
+			return g_lua_manager->get_fallback_module()->guid();
+		}
+
 		sol::environment& env            = this_env;
 		sol::optional<std::string> _guid = get_PLUGIN_table(env)["guid"];
 		if (_guid)
@@ -195,6 +200,11 @@ namespace big
 
 	big::lua_module* lua_module::this_from(sol::this_environment this_env)
 	{
+		if (!this_env)
+		{
+			return g_lua_manager->get_fallback_module();
+		}
+
 		sol::environment& env                 = this_env;
 		sol::optional<big::lua_module*> _this = get_PLUGIN_table(env)["this"];
 
