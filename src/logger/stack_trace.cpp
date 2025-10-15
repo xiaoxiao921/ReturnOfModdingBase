@@ -10,8 +10,7 @@
 
 namespace big
 {
-	stack_trace::stack_trace() :
-	    m_frame_pointers(32)
+	stack_trace::stack_trace()
 	{
 		SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES | SYMOPT_DEBUG);
 
@@ -159,7 +158,6 @@ namespace big
 		       << "EBP: " << HEX_TO_UPPER(context->Ebp) << '\n'
 		       << "EIP: " << HEX_TO_UPPER(context->Eip) << '\n';
 #endif
-
 	}
 
 	void stack_trace::dump_stacktrace()
@@ -178,9 +176,13 @@ namespace big
 		IMAGEHLP_LINE64 line;
 		line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-		for (size_t i = 0; i < m_frame_pointers.size() && m_frame_pointers[i]; ++i)
+		for (size_t i = 0; i < m_frame_pointers.size(); ++i)
 		{
 			const auto addr = m_frame_pointers[i];
+			if (!addr)
+			{
+				continue;
+			}
 
 			m_dump << "\n[" << i << "]\t";
 
@@ -308,7 +310,7 @@ namespace big
 		return false;
 	}
 
-void stack_trace::grab_stacktrace()
+	void stack_trace::grab_stacktrace()
 	{
 		CONTEXT context = *m_exception_info->ContextRecord;
 
@@ -329,14 +331,9 @@ void stack_trace::grab_stacktrace()
 		frame.AddrStack.Offset = context.Esp;
 #endif
 
-		for (size_t i = 0; i < m_frame_pointers.size(); ++i)
+		while (StackWalk64(machineType, GetCurrentProcess(), GetCurrentThread(), &frame, &context, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
 		{
-			if (!StackWalk64(machineType, GetCurrentProcess(), GetCurrentThread(), &frame, &context, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
-			{
-				break;
-			}
-
-			m_frame_pointers[i] = frame.AddrPC.Offset;
+			m_frame_pointers.push_back(frame.AddrPC.Offset);
 		}
 	}
 
