@@ -108,7 +108,7 @@ namespace lua::log
 
 		// Lua API: Function
 		// Table: _G
-		// Name: print_raw
+		// Name: _rom_print_raw
 		// Param: args: any
 		// Logs an informational message without the mod guid prefix.
 		state["_rom_print_raw"] = [](sol::variadic_args args, sol::this_environment env)
