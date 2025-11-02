@@ -125,8 +125,9 @@ namespace big
 		}};
 	}
 
-	lua_manager::lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init, get_env_for_module_t get_env_for_module) :
+	lua_manager::lua_manager(lua_State* game_lua_state, std::string_view version_number, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init, get_env_for_module_t get_env_for_module) :
 	    m_state(game_lua_state),
+	    m_version_number(version_number),
 	    m_config_folder(config_folder),
 	    m_plugins_data_folder(plugins_data_folder),
 	    m_plugins_folder(plugins_folder),
@@ -379,6 +380,15 @@ namespace big
 	{
 		sol::table global_table = m_state.globals();
 		sol::table lua_ext = rom::g_lua_api_namespace.size() ? m_state.create_named_table(rom::g_lua_api_namespace) : global_table;
+
+		sol::table _rom = lua_ext.create_named("_ROM");
+
+		// Lua API: Function
+		// Table: _ROM
+		// Name: version
+		// Returns: string: The version of the mod loader.
+
+		_rom["version"] = m_version_number;
 
 		sol::table mods = lua_ext.create_named("mods");
 

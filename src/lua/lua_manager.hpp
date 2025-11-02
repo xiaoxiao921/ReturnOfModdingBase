@@ -42,6 +42,7 @@ namespace big
 
 		std::vector<std::string> m_modules_loading_order;
 
+		std::string m_version_number;
 		folder m_config_folder;
 		folder m_plugins_data_folder;
 		folder m_plugins_folder;
@@ -61,7 +62,7 @@ namespace big
 		get_env_for_module_t m_get_env_for_module;
 
 	public:
-		lua_manager(lua_State* game_lua_state, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr, get_env_for_module_t get_env_for_module = nullptr);
+		lua_manager(lua_State* game_lua_state, std::string_view version_number, folder config_folder, folder plugins_data_folder, folder plugins_folder, on_lua_state_init_t on_lua_state_init = nullptr, get_env_for_module_t get_env_for_module = nullptr);
 		~lua_manager();
 
 	private:
