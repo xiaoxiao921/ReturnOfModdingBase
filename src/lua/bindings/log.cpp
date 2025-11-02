@@ -111,7 +111,7 @@ namespace lua::log
 		// Name: print_raw
 		// Param: args: any
 		// Logs an informational message without the mod guid prefix.
-		state["print_raw"] = [](sol::variadic_args args, sol::this_environment env)
+		state["_rom_print_raw"] = [](sol::variadic_args args, sol::this_environment env)
 		{
 				log_internal_no_guid_prefix(args, env, INFO);
 		};
