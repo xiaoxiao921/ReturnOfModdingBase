@@ -7,6 +7,27 @@
 
 namespace lua::log
 {
+	static void log_internal_no_guid_prefix(sol::variadic_args& args, sol::this_environment& env, al::eLogLevel level)
+	{
+		std::stringstream data;
+
+		size_t i                        = 0;
+		const size_t last_element_index = args.size() - 1;
+		for (const auto& arg : args)
+		{
+			data << env.env.value()["_rom_tostring"](arg).get<const char*>();
+
+			if (i != last_element_index)
+			{
+				data << '\t';
+			}
+
+			i++;
+		}
+
+		LOG(level) << data.str();
+	}
+
 	static void log_internal(sol::variadic_args& args, sol::this_environment& env, al::eLogLevel level)
 	{
 		std::stringstream data;
@@ -85,6 +106,20 @@ namespace lua::log
 	{
 		state["_rom_tostring"] = state["tostring"];
 
+		// Lua API: Function
+		// Table: _G
+		// Name: print_raw
+		// Param: args: any
+		// Logs an informational message without the mod guid prefix.
+		state["print_raw"] = [](sol::variadic_args args, sol::this_environment env)
+		{
+				log_internal_no_guid_prefix(args, env, INFO);
+		};
+		// Lua API: Function
+		// Table: _G
+		// Name: print
+		// Param: args: any
+		// Logs an informational message.
 		state["print"] = info;
 
 		auto ns       = lua_ext.create_named("log");
