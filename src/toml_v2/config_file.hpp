@@ -453,7 +453,7 @@ namespace toml_v2
 
 		inline static void imgui_config_file()
 		{
-			static std::unordered_map<std::string, std::string> search_filters;
+			static ankerl::unordered_dense::map<std::string, std::string> search_filters;
 			static ankerl::unordered_dense::map<std::string, std::string> edit_buffers;
 
 			if (g_config_files.empty())
