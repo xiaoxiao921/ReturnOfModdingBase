@@ -3,11 +3,15 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
+#include <ankerl/unordered_dense.h>
+
 // clang-format on
 
 namespace big::threads
 {
 	extern bool are_suspended;
+
+	inline ankerl::unordered_dense::set<DWORD> g_rom_thread_ids;
 
 	extern PVOID get_thread_start_address(HANDLE hThread);
 

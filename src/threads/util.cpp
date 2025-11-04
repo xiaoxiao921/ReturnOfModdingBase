@@ -3,13 +3,11 @@
 
 #include "memory/module.hpp"
 
-#include <ankerl/unordered_dense.h>
-
 namespace big::threads
 {
 	bool are_suspended = false;
 
-	static ankerl::unordered_dense::set<DWORD> g_ntdll_threads;
+	static ankerl::unordered_dense::set<DWORD> g_ntdll_thread_ids;
 
 	PVOID get_thread_start_address(HANDLE hThread)
 	{
@@ -82,7 +80,7 @@ namespace big::threads
 					if (thread_start_address >= ntdll_module_info.begin().as<PVOID>()
 					    && thread_start_address < ntdll_module_info.end().as<PVOID>())
 					{
-						g_ntdll_threads.insert(te.th32ThreadID);
+						g_ntdll_thread_ids.insert(te.th32ThreadID);
 					}
 
 					CloseHandle(hThread);
@@ -96,7 +94,7 @@ namespace big::threads
 
 	void resume_all(DWORD target_process_id, DWORD thread_id_to_not_suspend)
 	{
-		if (g_ntdll_threads.empty() && target_process_id == GetCurrentProcessId())
+		if (g_ntdll_thread_ids.empty() && target_process_id == GetCurrentProcessId())
 		{
 			fill_current_process_ntdll_thread_cache();
 		}
@@ -113,7 +111,8 @@ namespace big::threads
 					// clang-format off
 					if (te.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(te.th32OwnerProcessID) &&
 						te.th32OwnerProcessID == target_process_id &&
-						!g_ntdll_threads.contains(te.th32ThreadID))
+						!g_rom_thread_ids.contains(te.th32ThreadID) &&
+						!g_ntdll_thread_ids.contains(te.th32ThreadID))
 					// clang-format on
 					{
 						HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
@@ -132,7 +131,7 @@ namespace big::threads
 
 	void suspend_all_but_one(DWORD target_process_id, DWORD thread_id_to_not_suspend)
 	{
-		if (g_ntdll_threads.empty() && target_process_id == GetCurrentProcessId())
+		if (g_ntdll_thread_ids.empty() && target_process_id == GetCurrentProcessId())
 		{
 			fill_current_process_ntdll_thread_cache();
 		}
@@ -149,8 +148,9 @@ namespace big::threads
 					// clang-format off
 					if (te.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(te.th32OwnerProcessID) &&
 						te.th32OwnerProcessID == target_process_id &&
-						te.th32ThreadID != thread_id_to_not_suspend&&
-						!g_ntdll_threads.contains(te.th32ThreadID))
+						te.th32ThreadID != thread_id_to_not_suspend &&
+						!g_rom_thread_ids.contains(te.th32ThreadID) &&
+						!g_ntdll_thread_ids.contains(te.th32ThreadID))
 					// clang-format on
 					{
 						HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);

@@ -3,6 +3,7 @@
 
 #include "directory_watcher/directory_watcher.hpp"
 #include "lua/lua_manager.hpp"
+#include "threads/util.hpp"
 
 #include <filesystem>
 
@@ -266,6 +267,8 @@ namespace lua::path
 			std::thread(
 			    [directory, mdl]
 			    {
+				    big::threads::g_rom_thread_ids.insert(GetCurrentThreadId());
+
 				    std::vector<big::directory_watcher> watchers;
 				    watchers.emplace_back(directory);
 				    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))

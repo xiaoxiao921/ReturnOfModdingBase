@@ -5,6 +5,7 @@
 #include "bindings/log.hpp"
 #include "bindings/memory.hpp"
 #include "bindings/path.hpp"
+#include "threads/util.hpp"
 #include "bindings/paths.hpp"
 #include "bindings/toml/toml_lua.hpp"
 #include "bindings/toml_v2/toml_lua_v2.hpp"
@@ -151,6 +152,8 @@ namespace big
 		std::thread(
 		    [directory]
 		    {
+			    big::threads::g_rom_thread_ids.insert(GetCurrentThreadId());
+
 			    std::vector<big::directory_watcher> watchers;
 			    watchers.emplace_back(directory);
 			    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
