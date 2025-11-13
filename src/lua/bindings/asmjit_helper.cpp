@@ -329,7 +329,7 @@ namespace lua::memory
 				auto num            = parse_number_from_string(sub_str);
 				if (num.has_value())
 				{
-					offset += *num;
+					offset += (int32_t)*num;
 				}
 				else
 				{
@@ -343,7 +343,7 @@ namespace lua::memory
 				auto num            = parse_number_from_string(sub_str);
 				if (num.has_value())
 				{
-					offset -= *num;
+					offset -= (int32_t)*num;
 				}
 				else
 				{
@@ -387,7 +387,7 @@ namespace lua::memory
 
 		if (*base == asmjit::x86::rsp)
 		{
-			offset += rsp_offset;
+			offset += (int32_t)rsp_offset;
 		}
 
 		if (auto index = get_gp_from_name(index_str); index.has_value())

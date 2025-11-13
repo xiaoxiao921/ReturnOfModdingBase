@@ -433,7 +433,7 @@ namespace big
 					}
 					else if (hotkey_entry->m_vk_string->type() == toml::node_type::integer)
 					{
-						const auto vk_value = hotkey_entry->m_vk_string->ref<int64_t>();
+						const auto vk_value = (uint8_t)hotkey_entry->m_vk_string->ref<int64_t>();
 						if (VK_KEYS_REVERSE.contains(vk_value))
 						{
 							hotkey_entry->m_vk_value = vk_value;

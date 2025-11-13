@@ -320,12 +320,12 @@ namespace big
 		frame.AddrStack.Mode = AddrModeFlat;
 
 #if defined(_WIN64)
-		DWORD64 machineType    = IMAGE_FILE_MACHINE_AMD64;
+		DWORD machineType    = IMAGE_FILE_MACHINE_AMD64;
 		frame.AddrPC.Offset    = context.Rip;
 		frame.AddrFrame.Offset = context.Rbp;
 		frame.AddrStack.Offset = context.Rsp;
 #elif defined(_WIN32)
-		DWORD64 machineType    = IMAGE_FILE_MACHINE_I386;
+		DWORD machineType      = IMAGE_FILE_MACHINE_I386;
 		frame.AddrPC.Offset    = context.Eip;
 		frame.AddrFrame.Offset = context.Ebp;
 		frame.AddrStack.Offset = context.Esp;
