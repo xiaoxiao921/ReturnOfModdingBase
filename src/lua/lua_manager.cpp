@@ -168,6 +168,8 @@ namespace big
 
 			    while (g_lua_manager)
 			    {
+				    bool any_hot_reloading_this_frame = false;
+
 				    for (auto& watcher : watchers)
 				    {
 					    auto modified_files = watcher.check();
@@ -191,6 +193,8 @@ namespace big
 										    g_lua_manager->m_to_reload_queue.push(mod.get());
 										    g_lua_manager->m_to_reload_duplicate_checker.insert(mod->guid());
 
+											any_hot_reloading_this_frame = true;
+
 										    break;
 									    }
 								    }
@@ -198,6 +202,11 @@ namespace big
 						    }
 					    }
 				    }
+
+					if (any_hot_reloading_this_frame)
+					{
+					    g_lua_manager->m_hot_reloading_generation_count++;
+					}
 
 				    using namespace std::chrono_literals;
 				    std::this_thread::sleep_for(500ms);
