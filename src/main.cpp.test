@@ -234,6 +234,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 	auto L                    = luaL_newstate();
 	auto lua_manager_instance = std::make_unique<lua_manager>(L,
+	                                                          "1.0.0",
 	                                                          g_file_manager.get_project_folder("config"),
 	                                                          g_file_manager.get_project_folder("plugins_data"),
 	                                                          g_file_manager.get_project_folder("plugins"),
@@ -259,7 +260,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 			sol::lib::ffi
 		);
 	// clang-format on
-	lua_manager_instance->init<lua_module>();
+	lua_manager_instance->init<lua_module>(true);
 	LOG(INFO) << "Lua manager initialized.";
 
 	// lua::memory dynamic_hook test
