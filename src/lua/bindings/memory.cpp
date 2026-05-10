@@ -34,6 +34,21 @@ extern "C"
 		return 1;
 	}
 
+	int rom_lua_bind_get_table_pointer(lua_State* L)
+	{
+		// Check if the first argument is a table
+		if (!lua_istable(L, 1))
+		{
+			return luaL_error(L, "Expected a table.");
+		}
+		// Get the internal pointer to the table (no dereference needed)
+		const void* ptr = lua_topointer(L, 1);
+		// Push the pointer as a Lua number
+		lua_pushnumber(L, (lua_Number)(uintptr_t)ptr);
+		// Return 1 value to Lua (the pointer)
+		return 1;
+	}
+
 #ifdef __cplusplus
 }
 #endif
@@ -985,5 +1000,12 @@ namespace lua::memory
 		// Param: usertype_object: any_usertype: A lua usertype instance.
 		// Returns: number: The object address as a lua number.
 		ns["get_usertype_pointer"] = &rom_lua_bind_get_usertype_pointer;
+
+		// Lua API: Function
+		// Table: memory
+		// Name: get_table_pointer
+		// Param: table: table: A lua table instance.
+		// Returns: number: The table address as a lua number.
+		ns["get_table_pointer"] = &rom_lua_bind_get_table_pointer;
 	}
 } // namespace lua::memory
