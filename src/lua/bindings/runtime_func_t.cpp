@@ -287,7 +287,7 @@ namespace lua::memory
 		code.relocateToBase((uintptr_t)m_jit_function_buffer.data());
 		code.copyFlattenedData(m_jit_function_buffer.data(), size);
 
-		LOG(DEBUG) << "JIT Stub: " << log.data();
+		LOG(DEBUG) << "JIT Stub: " << log.data() << " | " << m_jit_function_buffer.data();
 
 		return (uintptr_t)m_jit_function_buffer.data();
 	}
@@ -600,7 +600,7 @@ namespace lua::memory
 		code.relocateToBase((uintptr_t)m_jit_function_buffer.data());
 		code.copyFlattenedData(m_jit_function_buffer.data(), size);
 
-		LOG(DEBUG) << "JIT Stub: " << log.data();
+		LOG(DEBUG) << "JIT Stub: " << log.data() << " | " << m_jit_function_buffer.data();
 
 		return (uintptr_t)m_jit_function_buffer.data();
 	}
