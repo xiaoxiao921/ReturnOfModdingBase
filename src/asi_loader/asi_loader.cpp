@@ -106,33 +106,32 @@ namespace big::asi_loader
 		}
 	}
 
-	void init(HMODULE rom_current_hmod)
+	void init(const std::filesystem::path& base_folder_path, std::function<bool(const std::filesystem::path&)> pred)
 	{
 		const auto old_directory_path = MyGetCurrentDirectoryW();
 
-		auto self_path = MyGetModuleFileNameW(rom_current_hmod).substr(0, MyGetModuleFileNameW(rom_current_hmod).find_last_of(L"/\\") + 1);
-		SetCurrentDirectoryW(self_path.c_str());
+		WIN32_FIND_DATAW fd{};
 
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(base_folder_path, std::filesystem::directory_options::skip_permission_denied))
 		{
-			WIN32_FIND_DATAW fd;
+			std::error_code ec;
+			if (!entry.is_directory(ec))
 			{
-				find_files(&fd);
+				continue;
 			}
 
-			SetCurrentDirectoryW(self_path.c_str());
-			if (SetCurrentDirectoryW(L"scripts\\"))
-			{
-				find_files(&fd);
-			}
+			const auto& p = entry.path();
 
-			SetCurrentDirectoryW(self_path.c_str());
-			if (SetCurrentDirectoryW(L"plugins\\"))
+			if (pred(p))
 			{
+				const auto dir = p.wstring();
+
+				SetCurrentDirectoryW(dir.c_str());
+
 				find_files(&fd);
 			}
 		}
 
-		// Reset the current directory
 		SetCurrentDirectoryW(old_directory_path.c_str());
 	}
 } // namespace big::asi_loader
