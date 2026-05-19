@@ -816,7 +816,7 @@ namespace lua::memory
 		code.relocateToBase((uintptr_t)jit_function_buffer.get());
 		code.copyFlattenedData(jit_function_buffer.get(), size);
 
-		LOG(DEBUG) << "JIT Stub: " << log.data() << " | " << jit_function_buffer.get();
+		LOG(DEBUG) << "JIT Stub: " << log.data() << " | " << (uintptr_t)jit_function_buffer.get() << " | " << size;
 
 		lua_pushcfunction(lua_state, (lua_CFunction)jit_function_buffer.get());
 		lua_setglobal(lua_state, jitted_lua_func_global_name.c_str());
