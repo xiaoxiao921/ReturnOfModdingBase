@@ -282,6 +282,7 @@ namespace big
 					{
 						LOG(WARNING) << "Can't load " << guid << " because it's missing " << dependency;
 						not_missing_dependency = false;
+						missing_modules.insert(guid);
 					}
 				}
 
