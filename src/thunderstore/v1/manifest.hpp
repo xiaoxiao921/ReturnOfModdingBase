@@ -26,6 +26,9 @@ namespace ts::v1
 		std::vector<std::string> dependencies{};
 		std::vector<std::string> dependencies_no_version_number{};
 
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(manifest, name, version_number, website_url, description, dependencies)
+		std::vector<std::string> rom_soft_deps{};
+		std::vector<std::string> rom_soft_deps_no_version_number{};
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(manifest, name, version_number, website_url, description, dependencies, rom_soft_deps)
 	};
 } // namespace ts::v1

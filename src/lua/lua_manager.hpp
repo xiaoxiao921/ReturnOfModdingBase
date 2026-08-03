@@ -251,7 +251,16 @@ namespace big
 			                                             {
 				                                             if (module_guid_to_module_info.contains(guid))
 				                                             {
-					                                             return module_guid_to_module_info[guid].m_manifest.dependencies_no_version_number;
+																std::vector<std::string> all_deps;
+																all_deps.insert(all_deps.end(),
+																	module_guid_to_module_info[guid].m_manifest.dependencies_no_version_number.begin(),
+																	module_guid_to_module_info[guid].m_manifest.dependencies_no_version_number.end()
+																);
+																all_deps.insert(all_deps.end(),
+																	module_guid_to_module_info[guid].m_manifest.rom_soft_deps_no_version_number.begin(),
+																	module_guid_to_module_info[guid].m_manifest.rom_soft_deps_no_version_number.end()
+																);
+																return all_deps;
 				                                             }
 				                                             return std::vector<std::string>();
 			                                             });
