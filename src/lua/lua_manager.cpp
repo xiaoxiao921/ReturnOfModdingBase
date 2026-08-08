@@ -81,6 +81,19 @@ namespace big
 			}
 		}
 
+		for (const auto& dep : manifest.rom_soft_deps)
+		{
+			const auto splitted = big::string::split(dep, '-');
+			if (splitted.size() == 3)
+			{
+				manifest.rom_soft_deps_no_version_number.push_back(splitted[0] + '-' + splitted[1]);
+			}
+			else
+			{
+				LOG(ERROR) << "Invalid soft dependency string " << dep << " inside the following manifest: " << manifest_path << ". Example format: AuthorName-ModName-1.0.0";
+			}
+		}
+
 		std::string folder_name = (char*)current_folder.filename().u8string().c_str();
 		const auto sep_count    = std::ranges::count(folder_name, '-');
 		if (sep_count != 1)
