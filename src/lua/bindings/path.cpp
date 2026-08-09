@@ -208,6 +208,38 @@ namespace lua::path
 
 	// Lua API: Function
 	// Table: path
+	// Name: copy_file
+	// Param: from: string: The path of the file to copy.
+	// Param: to: string: The path the file is copied to, including the file name. Existing files cannot be overwritten.
+	// Returns: boolean: true if the file was copied, false otherwise.
+	// Returns: string: The reason the copy failed, empty when it succeeded.
+	static std::tuple<bool, std::string> copy_file(const std::string& from, const std::string& to)
+	{
+		try
+		{
+			std::error_code ec;
+			if (std::filesystem::copy_file(from, to, std::filesystem::copy_options::none, ec))
+			{
+				return {true, ""};
+			}
+
+			LOG(WARNING) << "Could not copy " << from << " to " << to << ": " << ec.message();
+			return {false, ec.message()};
+		}
+		catch (const std::exception& e)
+		{
+			LOG(WARNING) << e.what();
+			return {false, e.what()};
+		}
+		catch (...)
+		{
+			LOG(WARNING) << "Unknown exception while copying " << from << " to " << to;
+			return {false, "Unknown exception"};
+		}
+	}
+
+	// Lua API: Function
+	// Table: path
 	// Name: exists
 	// Param: path: string: The path to check.
 	// Returns: boolean: true if the path exists, false otherwise.
@@ -324,6 +356,7 @@ namespace lua::path
 		ns["filename"]         = filename;
 		ns["stem"]             = stem;
 		ns["create_directory"] = create_directory;
+		ns["copy_file"]        = copy_file;
 		ns["exists"]           = exists;
 		ns["add_file_watcher"] = add_file_watcher;
 	}
