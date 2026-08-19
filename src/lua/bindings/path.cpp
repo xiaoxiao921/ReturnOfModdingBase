@@ -6,6 +6,7 @@
 #include "threads/util.hpp"
 
 #include <filesystem>
+#include <deque>
 
 // clang-format off
 #include <AsyncLogger/Logger.hpp>
@@ -301,7 +302,7 @@ namespace lua::path
 			    {
 				    big::threads::g_rom_thread_ids.insert(GetCurrentThreadId());
 
-				    std::vector<big::directory_watcher> watchers;
+				    std::deque<big::directory_watcher> watchers;
 				    watchers.emplace_back(directory);
 				    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink))
 				    {

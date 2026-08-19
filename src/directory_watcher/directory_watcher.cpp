@@ -83,7 +83,15 @@ namespace big
 	{
 		if (_file_handle != INVALID_HANDLE_VALUE)
 		{
-			CancelIo(_file_handle);
+			// Reap the cancelled read before _overlapped and _buffer die, or the kernel writes STATUS_CANCELLED into freed memory and corrupts whatever reuses it
+			if (CancelIoEx(_file_handle, &_overlapped) || GetLastError() != ERROR_NOT_FOUND)
+			{
+				DWORD transferred         = 0;
+				ULONG_PTR key             = 0;
+				LPOVERLAPPED lpOverlapped = nullptr;
+				GetQueuedCompletionStatus(_completion_handle, &transferred, &key, &lpOverlapped, 1000);
+			}
+
 			CloseHandle(_file_handle);
 			LOG(INFO) << "File handle closed successfully.";
 		}
